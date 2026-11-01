@@ -368,3 +368,15 @@ export async function deletePremiumCalendarItem(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw new Error(`Impossible de supprimer l'intervention : ${error.message}`);
 }
+
+/** Modification d'une préconisation (titre et description) depuis le dashboard Premium admin. */
+export async function updateRecommendationContent(
+  id: string,
+  patch: { title: string; description: string | null },
+): Promise<void> {
+  const { error } = await supabase
+    .from("recommendations")
+    .update({ title: patch.title, description: patch.description })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible d'enregistrer la préconisation : ${error.message}`);
+}

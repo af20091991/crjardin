@@ -3,14 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   CalendarDays,
-  Check,
   Crown,
   Eye,
   FileText,
   Images,
   MessageSquare,
   Sparkles,
-  X,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { LoadingState } from "@/components/pilot/LoadingState";
@@ -22,6 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardDocumentSender } from "@/components/premium-admin/DashboardDocumentSender";
 import { DashboardComposer } from "@/components/premium-admin/DashboardComposer";
 import { DashboardPhotoUploader } from "@/components/premium-admin/DashboardPhotoUploader";
+import { EditableBlock, EditableRecommendation } from "@/components/premium-admin/EditableFields";
+import { updateClientPremium } from "@/lib/client-premium";
 import { AdminStat, fmtDate, fmtDateTime } from "@/components/premium-admin/shared";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { getClient } from "@/lib/clients";
@@ -45,16 +45,7 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-function Block({ title, text }: { title: string; text: string | null }) {
-  return (
-    <Card className="p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{text || "Non renseigné"}</p>
-    </Card>
-  );
-}
-
-// Lecture seule : ce dashboard n'appelle AUCUNE fonction de suivi côté client
+// Ce dashboard n'appelle AUCUNE fonction de suivi côté client
 // (lecture des comptes-rendus, consultation des préconisations ou des documents),
 // pour ne jamais fausser les statistiques ni déclencher de notification.
 function PremiumClientDashboard() {
@@ -119,6 +110,12 @@ function PremiumClientDashboard() {
   }
 
   const messages = messagesQuery.data ?? [];
+  const refreshPremium = () =>
+    void queryClient.invalidateQueries({ queryKey: ["premium-dashboard-premium", token] });
+  const saveGarden = async (patch: Parameters<typeof updateClientPremium>[1]) => {
+    await updateClientPremium(clientId, patch);
+    refreshPremium();
+  };
   const interventions = shared.interventions;
   const freePhotos = shared.free_photos ?? [];
   const groups = premium.recommendation_groups;
@@ -201,9 +198,21 @@ function PremiumClientDashboard() {
 
           <TabsContent value="home" className="mt-4 space-y-4">
             <div className="grid gap-3 md:grid-cols-3">
-              <Block title="État actuel du jardin" text={premium.garden_state} />
-              <Block title="Objectifs" text={premium.garden_objectives} />
-              <Block title="Particularités" text={premium.garden_specificities} />
+              <EditableBlock
+                title="État actuel du jardin"
+                value={premium.garden_state}
+                onSave={(v) => saveGarden({ garden_state: v })}
+              />
+              <EditableBlock
+                title="Objectifs"
+                value={premium.garden_objectives}
+                onSave={(v) => saveGarden({ garden_objectives: v })}
+              />
+              <EditableBlock
+                title="Particularités"
+                value={premium.garden_specificities}
+                onSave={(v) => saveGarden({ garden_specificities: v })}
+              />
             </div>
             <Card className="p-4">
               <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -229,7 +238,11 @@ function PremiumClientDashboard() {
               )}
             </Card>
             <div className="grid gap-3 md:grid-cols-2">
-              <Block title="Note commerciale" text={premium.commercial_note} />
+              <EditableBlock
+                title="Note commerciale"
+                value={premium.commercial_note}
+                onSave={(v) => saveGarden({ commercial_note: v })}
+              />
               <Card className="p-4 text-sm">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Dernier message du client
@@ -291,29 +304,7 @@ function PremiumClientDashboard() {
                 </div>
                 <ul className="divide-y">
                   {g.items.map((r) => (
-                    <li key={r.id} className="flex items-start justify-between gap-3 py-3 text-sm">
-                      <div className="min-w-0">
-                        <p className="font-medium">{r.title}</p>
-                        {r.description && (
-                          <p className="mt-1 text-muted-foreground">{r.description}</p>
-                        )}
-                      </div>
-                      {r.client_interest === "interested" ? (
-                        <Badge className="shrink-0 bg-green-600 hover:bg-green-600">
-                          <Check className="mr-1 h-3 w-3" />
-                          Intéressé
-                        </Badge>
-                      ) : r.client_interest === "not_interested" ? (
-                        <Badge className="shrink-0 bg-red-600 hover:bg-red-600">
-                          <X className="mr-1 h-3 w-3" />
-                          Pas intéressé
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="shrink-0">
-                          Sans réponse
-                        </Badge>
-                      )}
-                    </li>
+                    <EditableRecommendation key={r.id} reco={r} onSaved={refreshPremium} />
                   ))}
                 </ul>
               </section>
