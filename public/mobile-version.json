@@ -1,6 +1,6 @@
 {
-  "latestBuild": 13,
-  "versionName": "2.8.2",
+  "latestBuild": 14,
+  "versionName": "2.8.3",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Lien de téléchargement direct du fichier APK dans l'application. Plus de blocage si l'installation dans l'appli échoue."
+  "notes": "Démarrage sans fond blanc ni petit logo pixellisé. Nouvelle icône PP."
 }
