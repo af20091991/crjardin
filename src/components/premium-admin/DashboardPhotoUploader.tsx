@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { addFreePhoto, addPhoto, listFreePhotos, listPhotos } from "@/lib/interventions";
+import { addPhoto, listPhotos } from "@/lib/interventions";
+import { addFreePhoto, listFreePhotos } from "@/lib/free-photos";
 import { uploadInterventionPhoto } from "@/lib/storage";
 
 export interface UploadableIntervention {
