@@ -43,6 +43,8 @@ export async function openUpdate(remote: RemoteVersion): Promise<void> {
       return;
     }
     toast.error(message);
+    // Échec de l'installation dans l'appli : on propose le téléchargement classique.
+    window.open(remote.apkUrl, "_blank");
   }
 }
 
@@ -102,6 +104,14 @@ export function MobileUpdatePrompt() {
             Plus tard
           </Button>
         </div>
+        <a
+          href={update.apkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-xs font-medium text-primary underline underline-offset-4"
+        >
+          Télécharger le fichier APK
+        </a>
       </div>
       <button onClick={dismiss} aria-label="Fermer" className="text-muted-foreground">
         <X className="h-4 w-4" />
