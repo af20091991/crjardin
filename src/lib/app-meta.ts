@@ -11,8 +11,6 @@ export const APP_NAME_VERSION = `${APP_NAME} v${APP_VERSION}`;
 
 /**
  * Temps total passé à développer l'application (toutes tâches confondues), en heures.
- * Estimation : union de trois sources horodatées (messages Lovable, commits git, journal de
- * session), regroupées en sessions (écart max 60 min, +10 min avant et après chaque session),
- * puis ventilées par jour (fuseau Europe/Paris). Hors temps de réflexion sans trace écrite.
+ * Estimation : 5 h par jour depuis le 15/06/2026, 7 j/7 (140 jours à la date du 01/11/2026).
  */
-export const DEV_HOURS_ESTIMATE = 298;
+export const DEV_HOURS_ESTIMATE = 695;
