@@ -546,11 +546,11 @@ function ChargesPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
-            <span className="flex items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2">
               <Landmark className="h-4 w-4 text-primary" />
               Détail des charges {detailYear} — qualification investissement
             </span>
-            <span className="flex items-center gap-2">
+            <span className="flex flex-wrap items-center gap-2">
               <AddInvestmentDialog
                 year={detailYear}
                 onCreated={() => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] })}
@@ -572,7 +572,7 @@ function ChargesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Rechercher une charge…"
-                className="h-9 w-48"
+                className="h-9 w-full sm:w-48"
               />
             </span>
           </CardTitle>

@@ -15,7 +15,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "@/components/ui/lazy-recharts";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "@/components/ui/lazy-recharts";
 import { AddStockMovementDialog } from "@/components/pilot/stock/AddStockMovementDialog";
 import { BulkAddStockItemsDialog } from "@/components/pilot/stock/BulkAddStockItemsDialog";
 import { EditStockItemDialog } from "@/components/pilot/stock/EditStockItemDialog";
@@ -207,7 +215,7 @@ function StockPage() {
               : `Vue historique — état des stocks importé pour ${selectedYear}, lecture seule.`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-wrap gap-2 md:w-auto">
           <Button size="sm" variant="outline" onClick={exportStockState}>
             <Download className="mr-1 h-3.5 w-3.5" />
             Exporter l'état des stocks

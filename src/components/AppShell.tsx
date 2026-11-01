@@ -692,14 +692,19 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </span>
           <div className="flex shrink-0 items-center gap-3">
             <GlobalSearch collapsed />
-            {showPilotPeriod && <PilotPeriodSwitcher compact />}
-            {showPilotPeriod && <PilotYearSwitcher compact />}
             <NotificationBell />
             <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
               <LogOut className="h-5 w-5" />
             </button>
           </div>
         </header>
+
+        {showPilotPeriod && (
+          <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-2 md:hidden">
+            <PilotPeriodSwitcher compact />
+            <PilotYearSwitcher compact />
+          </div>
+        )}
 
         {title && (
           <div
