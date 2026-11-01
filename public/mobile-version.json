@@ -1,6 +1,6 @@
 {
-  "latestBuild": 9,
-  "versionName": "2.6",
+  "latestBuild": 10,
+  "versionName": "2.7",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Nouvel écran de démarrage avec logo agrandi et animation. Mise à jour en un clic depuis l'application (build 8 requis)."
+  "notes": "Nouveau logo PilotPro (icône, écran de démarrage, en-tête). Écran de démarrage natif épuré, sans logo pixellisé. Mise à jour en un clic depuis l'application (build 8 requis)."
 }
