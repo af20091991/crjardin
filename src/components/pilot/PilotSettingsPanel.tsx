@@ -414,8 +414,16 @@ function ExcelImportCard() {
       if (!user_id) throw new Error("Non authentifié");
       const years = Array.from(new Set(preview.map((r) => r.year)));
       // Remplace les données des années présentes dans le fichier
+      // (fonction protégée : journalisée et archivée dans la corbeille)
       for (const y of years) {
-        const { error } = await supabase.from("pilot_ca_entries").delete().eq("year", y);
+        const { error } = await (
+          supabase as unknown as {
+            rpc: (
+              fn: string,
+              args: Record<string, unknown>,
+            ) => PromiseLike<{ error: Error | null }>;
+          }
+        ).rpc("pp_replace_ca_year", { p_year: y });
         if (error) throw error;
       }
       const payload = preview.map((r, i) => ({ ...r, user_id, position: i, is_fixed: false }));
