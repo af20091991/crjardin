@@ -16,7 +16,11 @@
     </style>
 
 
+    <!-- Écran de démarrage Android 12+ : fond crème, sans icône (évite le petit logo pixellisé sur fond blanc). -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">#F9F7F2</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_blank</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>
