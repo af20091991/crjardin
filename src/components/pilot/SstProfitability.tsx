@@ -459,7 +459,7 @@ export function SstProfitabilityTab() {
           </SelectContent>
         </Select>
         <Input
-          className="w-56"
+          className="w-full sm:w-56"
           placeholder="Rechercher…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -468,7 +468,7 @@ export function SstProfitabilityTab() {
           <Archive className="mr-2 h-4 w-4" />
           {showArchived ? "Masquer les archives" : "Voir les archives"}
         </Button>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:ml-auto">
           <SstSettingsDialog
             lists={lists}
             marginTarget={marginTarget}

@@ -537,7 +537,7 @@ function CalendrierSstPage() {
                 {periodTitle}
               </h2>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex max-w-full flex-wrap items-center gap-1.5">
               <div
                 className="flex items-center rounded-md border border-border bg-background p-0.5"
                 role="group"
