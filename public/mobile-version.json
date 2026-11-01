@@ -1,6 +1,6 @@
 {
-  "latestBuild": 14,
-  "versionName": "2.8.3",
+  "latestBuild": 15,
+  "versionName": "2.8.4",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Démarrage sans fond blanc ni petit logo pixellisé. Nouvelle icône PP."
+  "notes": "Icône PP en noir et plus grand pour la distinguer des autres applications."
 }
