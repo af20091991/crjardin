@@ -46,7 +46,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
-import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
+import { APP_NAME, APP_VERSION, DEV_HOURS_ESTIMATE } from "@/lib/app-meta";
 import { useAppearance } from "@/lib/appearance";
 import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { PERIOD_LABELS, type PeriodMode } from "@/lib/pilot-realized";
@@ -508,6 +508,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                   </p>
                   <p className="truncate text-[11px] text-muted-foreground">
                     Version {APP_VERSION}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    Temps de développement : ~{DEV_HOURS_ESTIMATE} h
                   </p>
                 </div>
               )}
