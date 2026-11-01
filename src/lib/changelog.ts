@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-01",
+    version: "2.6.9",
+    theme: "Général",
+    title: "Protection renforcée des données",
+    details: [
+      "Sauvegarde complète quotidienne de toutes les données (conservée 60 jours).",
+      "Suppression d'un compte refusée s'il possède des clients, interventions ou lignes de CA.",
+      "Les suppressions massives sont bloquées et chaque ligne supprimée est archivée.",
+    ],
+  },
+  {
     date: "2026-10-31",
     version: "2.6.8",
     theme: "Clients",
