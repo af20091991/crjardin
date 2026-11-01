@@ -1864,6 +1864,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      app_dev_time: {
+        Row: {
+          base_hours: number;
+          id: number;
+          measured_seconds: number;
+          updated_at: string;
+        };
+        Insert: {
+          base_hours?: number;
+          id?: number;
+          measured_seconds?: number;
+          updated_at?: string;
+        };
+        Update: {
+          base_hours?: number;
+          id?: number;
+          measured_seconds?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       intervention_photos: {
         Row: {
           caption: string | null;
@@ -5632,6 +5653,7 @@ export type Database = {
         Returns: string;
       };
       get_shared_client: { Args: { p_token: string }; Returns: Json };
+      add_dev_time: { Args: { p_seconds: number }; Returns: Json };
       get_shared_messages: { Args: { p_token: string }; Returns: Json };
       get_shared_premium: { Args: { p_token: string }; Returns: Json };
       get_shared_premium_document_url: {
