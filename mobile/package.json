@@ -1,7 +1,7 @@
 {
   "name": "pp-mobile",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Coque native Android/iOS (Capacitor) de Pilot Pro — charge l'app PP publiée.",
   "scripts": {
     "sync": "cap sync",

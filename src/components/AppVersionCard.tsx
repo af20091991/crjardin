@@ -5,6 +5,10 @@ import { openUpdate } from "@/components/MobileUpdatePrompt";
 import { checkMobileUpdate, type UpdateCheck } from "@/lib/mobile-update";
 import { getCapacitor } from "@/lib/native-app";
 
+/** Lien de secours : dernière version publiée sur GitHub Releases. */
+export const APK_DOWNLOAD_URL =
+  "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk";
+
 /** Version de l'application mobile + recherche manuelle de mise à jour (appli uniquement). */
 export function AppVersionCard() {
   const [check, setCheck] = useState<UpdateCheck | null>(null);
@@ -48,6 +52,14 @@ export function AppVersionCard() {
             </Button>
           )}
         </div>
+        <a
+          href={check?.remote?.apkUrl ?? APK_DOWNLOAD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-sm font-medium text-primary underline underline-offset-4"
+        >
+          Télécharger le fichier APK
+        </a>
       </CardContent>
     </Card>
   );
