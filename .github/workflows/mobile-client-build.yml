@@ -67,7 +67,7 @@ jobs:
         run: |
           cp mobile/android-client/app/build/outputs/apk/debug/app-debug.apk JardinSignature.apk
           # --latest=false : ne pas écraser la release « latest » de l'appli de gestion (PilotPro.apk)
-          gh release create "client-v${VERSION_CODE}" JardinSignature.apk --title "Jardin Signature Android ${VERSION_NAME} (build ${VERSION_CODE})" --notes "Installer JardinSignature.apk." --latest=false
+          gh release view "client-v${VERSION_CODE}" >/dev/null 2>&1 || gh release create "client-v${VERSION_CODE}" JardinSignature.apk --title "Jardin Signature Android ${VERSION_NAME} (build ${VERSION_CODE})" --notes "Installer JardinSignature.apk." --latest=false
           # URL stable pour le bouton de téléchargement de la PWA : la release « client-latest » est mise à jour à chaque build.
           gh release view client-latest >/dev/null 2>&1 || gh release create client-latest --title "Jardin Signature Android (dernière version)" --notes "Dernière version de l'appli client." --latest=false --target "$GITHUB_SHA"
           gh release upload client-latest JardinSignature.apk --clobber
