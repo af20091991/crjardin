@@ -8,7 +8,7 @@ import { SproutSplash } from "@/components/SproutSplash";
 const STORAGE_KEY = "js-client-token";
 /** APK publié en release GitHub par le workflow de l'appli client (étape suivante). */
 export const CLIENT_APK_URL =
-  "https://github.com/af20091991/crjardin/releases/latest/download/JardinSignature.apk";
+  "https://github.com/af20091991/crjardin/releases/download/client-latest/JardinSignature.apk";
 
 export const Route = createFileRoute("/jardin-signature")({
   head: () => ({
