@@ -26,6 +26,8 @@ jobs:
         run: |
           echo "VERSION_CODE=$(jq -r .latestBuild public/mobile-version.json)" >> $GITHUB_ENV
           echo "VERSION_NAME=$(jq -r .versionName public/mobile-version.json)" >> $GITHUB_ENV
+      - name: Installer ImageMagick (icônes)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
       - name: Copie du projet Android pour l'appli client
         run: |
           rm -rf "$RUNNER_TEMP/client-android"
