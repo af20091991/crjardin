@@ -1,0 +1,65 @@
+name: mobile-client-build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["mobile/**", "public/js-icon-512.png", ".github/workflows/mobile-client-build.yml"]
+jobs:
+  android-client:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # Appli client : charge uniquement l'espace client Jardin Signature.
+      PP_APP_URL: https://crjardin.lovable.app/jardin-signature
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: mobile/package-lock.json }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci --no-audit --no-fund
+        working-directory: mobile
+      - run: npx cap sync android
+        working-directory: mobile
+      - name: Version depuis public/mobile-version.json
+        run: |
+          echo "VERSION_CODE=$(jq -r .latestBuild public/mobile-version.json)" >> $GITHUB_ENV
+          echo "VERSION_NAME=$(jq -r .versionName public/mobile-version.json)" >> $GITHUB_ENV
+      - name: Copie du projet Android pour l'appli client
+        run: |
+          rm -rf "$RUNNER_TEMP/client-android"
+          cp -r mobile/android "$RUNNER_TEMP/client-android"
+          rm -rf "$RUNNER_TEMP/client-android/app/build"
+          cd "$RUNNER_TEMP/client-android/app"
+          sed -i 's/applicationId "fr.delagraineaujardin.pp"/applicationId "fr.delagraineaujardin.jardinsignature"/' build.gradle
+          sed -i 's#<string name="app_name">PilotPro</string>#<string name="app_name">Jardin Signature</string>#' src/main/res/values/strings.xml
+          ICON="$GITHUB_WORKSPACE/public/js-icon-512.png"
+          for pair in mdpi:48:108 hdpi:72:162 xhdpi:96:216 xxhdpi:144:324 xxxhdpi:192:432; do
+            n=${pair%%:*}; rest=${pair#*:}; legacy=${rest%%:*}; adaptive=${rest#*:}
+            D="src/main/res/mipmap-$n"
+            convert "$ICON" -resize ${legacy}x${legacy} "$D/ic_launcher.png"
+            cp "$D/ic_launcher.png" "$D/ic_launcher_round.png"
+            convert "$ICON" -resize ${adaptive}x${adaptive} "$D/ic_launcher_foreground.png"
+            convert -size ${adaptive}x${adaptive} xc:white "$D/ic_launcher_background.png"
+          done
+          grep -n 'applicationId' build.gradle | head -2
+          grep -n 'app_name' src/main/res/values/strings.xml
+      - name: Clé de signature fixe
+        run: |
+          mkdir -p ~/.android
+          cp mobile/android/pp-debug.keystore ~/.android/debug.keystore
+      - run: ./gradlew assembleDebug
+        working-directory: ${{ runner.temp }}/client-android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jardin-signature-android-debug-apk
+          path: ${{ runner.temp }}/client-android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publier la release (APK client)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp "$RUNNER_TEMP/client-android/app/build/outputs/apk/debug/app-debug.apk" JardinSignature.apk
+          # --latest=false : ne pas écraser la release « latest » de l'appli de gestion (PilotPro.apk)
+          gh release create "client-v${VERSION_CODE}" JardinSignature.apk --title "Jardin Signature Android ${VERSION_NAME} (build ${VERSION_CODE})" --notes "Installer JardinSignature.apk." --latest=false
