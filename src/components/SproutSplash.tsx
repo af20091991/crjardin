@@ -85,31 +85,8 @@ export function SproutSplash({ onDone }: { onDone: () => void }) {
             fill="#62B33A"
           />
         </g>
-        {/* Logo : feuille et stylo plume */}
-        <g className="logo">
-          <g transform="translate(6 6) scale(0.56)">
-            <path d="M190 392 C170 240 260 130 410 96 C432 250 360 372 190 392 Z" fill="#4FA836" />
-            <path
-              d="M236 364 C240 282 286 210 378 150"
-              fill="none"
-              stroke="#3E8A2A"
-              strokeWidth="7"
-              strokeLinecap="round"
-            />
-            <path
-              d="M210 380 C214 300 248 240 300 200 C300 270 270 340 210 380 Z"
-              fill="#62B33A"
-              opacity="0.9"
-            />
-            <g transform="rotate(-38 256 256)">
-              <rect x="236" y="120" width="40" height="230" rx="10" fill="#2F5E22" />
-              <rect x="232" y="104" width="48" height="26" rx="8" fill="#C9A227" />
-              <rect x="236" y="330" width="40" height="22" fill="#2F5E22" />
-              <path d="M240 352 L256 412 L272 352 Z" fill="#C9A227" />
-              <line x1="256" y1="356" x2="256" y2="404" stroke="#2F5E22" strokeWidth="4" />
-            </g>
-          </g>
-        </g>
+        {/* Logo : feuille et stylo plume (ton logo, stylo plume noir réaliste) */}
+        <image className="logo" href="/js-logo.svg" x="0" y="0" width="300" height="300" />
       </svg>
       <p className="wordmark absolute bottom-[22%] font-serif text-2xl font-semibold text-primary">
         Jardin Signature
