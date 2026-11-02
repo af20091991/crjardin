@@ -34,6 +34,8 @@ jobs:
           rm -rf mobile/android-client
           cp -r mobile/android mobile/android-client
           rm -rf mobile/android-client/app/build
+          # Pas de notifications push pour l'appli client pour l'instant : son identifiant n'est pas encore déclaré dans Firebase.
+          rm -f mobile/android-client/app/google-services.json
           cd mobile/android-client/app
           sed -i 's/applicationId "fr.delagraineaujardin.pp"/applicationId "fr.delagraineaujardin.jardinsignature"/' build.gradle
           sed -i 's#<string name="app_name">PilotPro</string>#<string name="app_name">Jardin Signature</string>#' src/main/res/values/strings.xml
