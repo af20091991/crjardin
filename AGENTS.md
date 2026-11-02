@@ -90,6 +90,7 @@ bun test           # tests unitaires (src/lib/__tests__)
 - Alias `@/` → `src/`. Composants en PascalCase, modules `src/lib/*` en kebab-case.
 - Un module `src/lib/x.ts` = une responsabilité métier pure et testable ; les composants
   ne contiennent pas de calcul métier.
+- Assistant AP PDF exports and readiness checks must share `isOrderable` from `assistant-ap-export` to avoid omitting suppliers with reserved or scheduled supplies.
 - Chaque route de contenu déclare son `head()` (title, description, og:*).
 - Données : TanStack Query (`useQuery`/`useSuspenseQuery`), pas de `fetch` dans `useEffect`.
 - Ajouter/mettre à jour un test dans `src/lib/__tests__` pour toute règle de calcul.
