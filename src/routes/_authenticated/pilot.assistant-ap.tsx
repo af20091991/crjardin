@@ -1702,7 +1702,7 @@ function SupplyReadinessPanel({
   }
   if (!isReadyForExport(worksite.supplies, suppliers)) return null;
   const orders = groupSuppliesBySupplier(
-    worksite.supplies.filter((s) => s.status === "a_faire" && isOrderable(s)),
+    worksite.supplies.filter(isOrderable),
   );
   return (
     <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">

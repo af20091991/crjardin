@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-02",
+    version: "2.6.10",
+    theme: "PDF & Partage",
+    title: "Assistant AP : commandes PDF complètes",
+    details: [
+      "L'export par fournisseur inclut aussi les fournitures commandées, réservées, planifiées ou à relancer, comme l'export général.",
+      "Les fournitures en stock ou terminées restent exclues par défaut ; elles peuvent toujours être sélectionnées dans l'export général.",
+    ],
+  },
+  {
     date: "2026-11-01",
     version: "2.6.9",
     theme: "Général",

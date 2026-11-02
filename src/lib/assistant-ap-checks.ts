@@ -1,6 +1,7 @@
 // Assistant AP — éléments bloquants / à vérifier d'une fourniture (logique pure).
 import type { ApSupply, ApSupplier } from "@/lib/assistant-ap";
 import { supplierByName } from "@/lib/assistant-ap-catalogue";
+import { isOrderable } from "@/lib/assistant-ap-export";
 
 export type ApIssueLevel = "blocking" | "warning";
 export interface ApIssue {
@@ -56,6 +57,6 @@ export function isReadyForExport(
   supplies: ApSupply[],
   suppliers: Pick<ApSupplier, "id" | "name">[],
 ): boolean {
-  const pending = supplies.filter((s) => s.status === "a_faire" && s.mode !== "stock");
+  const pending = supplies.filter(isOrderable);
   return pending.length > 0 && worksiteBlockers(supplies, suppliers).length === 0;
 }
