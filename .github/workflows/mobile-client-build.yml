@@ -30,10 +30,11 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
       - name: Copie du projet Android pour l'appli client
         run: |
-          rm -rf "$RUNNER_TEMP/client-android"
-          cp -r mobile/android "$RUNNER_TEMP/client-android"
-          rm -rf "$RUNNER_TEMP/client-android/app/build"
-          cd "$RUNNER_TEMP/client-android/app"
+          # Copie à côté de android/ : les chemins relatifs vers node_modules restent valides.
+          rm -rf mobile/android-client
+          cp -r mobile/android mobile/android-client
+          rm -rf mobile/android-client/app/build
+          cd mobile/android-client/app
           sed -i 's/applicationId "fr.delagraineaujardin.pp"/applicationId "fr.delagraineaujardin.jardinsignature"/' build.gradle
           sed -i 's#<string name="app_name">PilotPro</string>#<string name="app_name">Jardin Signature</string>#' src/main/res/values/strings.xml
           ICON="$GITHUB_WORKSPACE/public/js-icon-512.png"
@@ -52,16 +53,16 @@ jobs:
           mkdir -p ~/.android
           cp mobile/android/pp-debug.keystore ~/.android/debug.keystore
       - run: ./gradlew assembleDebug
-        working-directory: ${{ runner.temp }}/client-android
+        working-directory: mobile/android-client
       - uses: actions/upload-artifact@v4
         with:
           name: jardin-signature-android-debug-apk
-          path: ${{ runner.temp }}/client-android/app/build/outputs/apk/debug/app-debug.apk
+          path: mobile/android-client/app/build/outputs/apk/debug/app-debug.apk
       - name: Publier la release (APK client)
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp "$RUNNER_TEMP/client-android/app/build/outputs/apk/debug/app-debug.apk" JardinSignature.apk
+          cp mobile/android-client/app/build/outputs/apk/debug/app-debug.apk JardinSignature.apk
           # --latest=false : ne pas écraser la release « latest » de l'appli de gestion (PilotPro.apk)
           gh release create "client-v${VERSION_CODE}" JardinSignature.apk --title "Jardin Signature Android ${VERSION_NAME} (build ${VERSION_CODE})" --notes "Installer JardinSignature.apk." --latest=false
