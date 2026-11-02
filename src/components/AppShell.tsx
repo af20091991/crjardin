@@ -632,24 +632,26 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       >
         <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur md:hidden">
           <Sheet>
-            <SheetTrigger asChild>
-              <button
-                className="-ml-1 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-foreground active:bg-accent/40"
-                aria-label="Ouvrir le menu des modules"
-                title="Menu des modules"
-              >
-                <Menu className="h-6 w-6" />
-              </button>
-            </SheetTrigger>
+            <div className="-ml-1 flex shrink-0 flex-col items-center">
+              <SheetTrigger asChild>
+                <button
+                  className="grid h-14 w-14 place-items-center rounded-lg text-foreground active:bg-accent/40"
+                  aria-label="Ouvrir le menu des modules"
+                  title="Menu des modules"
+                >
+                  <Menu className="h-10 w-10" />
+                </button>
+              </SheetTrigger>
+              <p className="-mt-1 text-[11px] leading-none text-muted-foreground">
+                <DevTimeCounter />
+              </p>
+            </div>
             <SheetContent
               side="left"
               className="flex h-dvh w-[88vw] max-w-sm flex-col overflow-hidden p-0 pt-[calc(env(safe-area-inset-top)+1rem)]"
             >
               <SheetHeader className="shrink-0 px-6 text-left">
                 <SheetTitle className="font-serif">Modules</SheetTitle>
-                <p className="text-[11px] text-muted-foreground">
-                  <DevTimeCounter />
-                </p>
               </SheetHeader>
               {/* Zone défilante séparée : tous les modules restent atteignables, y compris en bas (barre de gestes). */}
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
