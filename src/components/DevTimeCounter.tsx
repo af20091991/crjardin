@@ -64,10 +64,6 @@ export function DevTimeCounter() {
     };
   }, [isAdmin]);
 
-  const totalHours = base + (measured + pending) / 3600;
-  return (
-    <span className="tabular-nums">
-      {totalHours.toLocaleString("fr-FR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} h
-    </span>
-  );
+  const totalHours = Math.round(base + (measured + pending) / 3600);
+  return <span className="tabular-nums">{`${totalHours.toLocaleString("fr-FR")} h`}</span>;
 }

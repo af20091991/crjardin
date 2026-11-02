@@ -511,7 +511,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                     Version {APP_VERSION}
                   </p>
                   <p className="truncate text-[11px] text-muted-foreground">
-                    Temps de développement : <DevTimeCounter />
+                    <DevTimeCounter />
                   </p>
                 </div>
               )}
@@ -647,6 +647,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             >
               <SheetHeader className="shrink-0 px-6 text-left">
                 <SheetTitle className="font-serif">Modules</SheetTitle>
+                <p className="text-[11px] text-muted-foreground">
+                  <DevTimeCounter />
+                </p>
               </SheetHeader>
               {/* Zone défilante séparée : tous les modules restent atteignables, y compris en bas (barre de gestes). */}
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
