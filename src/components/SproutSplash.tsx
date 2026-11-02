@@ -31,7 +31,8 @@ export function SproutSplash({ onDone }: { onDone: () => void }) {
   return (
     <div
       aria-hidden="true"
-      className="js-splash fixed inset-0 z-50 flex items-center justify-center bg-background"
+      className="js-splash fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "#FFFFFF" }}
     >
       <style>{`
         .js-splash .seed { animation: js-fall 1.5s cubic-bezier(.45,0,.9,.6) forwards, js-sway 0.6s ease-in-out 0s 3 alternate; transform-origin: 150px 0; }
@@ -41,8 +42,7 @@ export function SproutSplash({ onDone }: { onDone: () => void }) {
         .js-splash .leaf-r { transform-origin: 150px 150px; transform: scale(0); animation: js-leaf 0.6s ease-out 2.4s forwards; }
         .js-splash .sprout { animation: js-fade-out 0.4s ease-in 2.9s forwards; }
         .js-splash .logo { opacity: 0; transform-origin: 150px 150px; transform: scale(0.9); animation: js-logo 0.6s ease-out 3.1s forwards; }
-        .js-splash .wordmark { opacity: 0; animation: js-fade-in 0.5s ease-out 3.6s forwards; }
-        @keyframes js-fall { from { transform: translate(0, -40px); } 40% { transform: translate(-18px, 80px); } 70% { transform: translate(14px, 150px); } to { transform: translate(0, 212px); } }
+                @keyframes js-fall { from { transform: translate(0, -40px); } 40% { transform: translate(-18px, 80px); } 70% { transform: translate(14px, 150px); } to { transform: translate(0, 212px); } }
         @keyframes js-sway { from { transform: translateX(-10px) rotate(-12deg); } to { transform: translateX(10px) rotate(12deg); } }
         @keyframes js-squash { from { opacity: 1; transform: scale(1, 1); } to { opacity: 0; transform: scale(1.3, 0.5); } }
         @keyframes js-grow { to { stroke-dashoffset: 0; } }
@@ -53,7 +53,6 @@ export function SproutSplash({ onDone }: { onDone: () => void }) {
         @media (prefers-reduced-motion: reduce) {
           .js-splash .seed, .js-splash .seed-squash, .js-splash .sprout { display: none; }
           .js-splash .logo { opacity: 1; transform: none; animation: none; }
-          .js-splash .wordmark { opacity: 1; animation: none; }
         }
       `}</style>
       <svg viewBox="0 0 300 300" className="h-72 w-72 max-w-[80vw]">
@@ -85,12 +84,17 @@ export function SproutSplash({ onDone }: { onDone: () => void }) {
             fill="#62B33A"
           />
         </g>
-        {/* Logo : feuille et stylo plume (ton logo, stylo plume noir réaliste) */}
-        <image className="logo" href="/js-logo.svg" x="0" y="0" width="300" height="300" />
+        {/* Logo de la marque, sur fond blanc */}
+        <image
+          className="logo"
+          href="/js-logo.png"
+          x="0"
+          y="0"
+          width="300"
+          height="300"
+          preserveAspectRatio="xMidYMid meet"
+        />
       </svg>
-      <p className="wordmark absolute bottom-[22%] font-serif text-2xl font-semibold text-primary">
-        Jardin Signature
-      </p>
     </div>
   );
 }
