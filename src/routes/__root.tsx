@@ -18,6 +18,10 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { AppearanceProvider } from "@/lib/appearance";
 import { PilotModeProvider } from "@/lib/pilot-mode";
 import { Toaster } from "@/components/ui/sonner";
+import { installApercuGuard } from "@/lib/apercu";
+
+// Verrou de l'aperçu lecture seule (sans effet hors d'un cadre « pp-apercu »).
+installApercuGuard();
 import { registerPwa } from "@/lib/pwa";
 import { APP_VERSION } from "@/lib/app-meta";
 import { hydrateAccountPrefs, setPrefsUser } from "@/lib/account-prefs";
