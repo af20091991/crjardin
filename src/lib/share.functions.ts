@@ -1,5 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
+
+/** Lecture seule : bloque toute écriture déclenchée depuis l'aperçu administrateur. */
+function assertNotApercu() {
+  if (getRequestHeader("x-apercu") === "1") {
+    throw new Error("Aperçu en lecture seule : aucune modification n'est enregistrée.");
+  }
+}
 import { createClient } from "@supabase/supabase-js";
 import type { PremiumPlanningDb } from "@/lib/premium-planning-import.server";
 import type { Database } from "@/integrations/supabase/types";
@@ -154,6 +161,7 @@ export const markSharedRead = createServerFn({ method: "POST" })
     return { token: data.token };
   })
   .handler(async ({ data }) => {
+    assertNotApercu();
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
@@ -172,6 +180,7 @@ export const markRecommendationsViewed = createServerFn({ method: "POST" })
     return { token: data.token };
   })
   .handler(async ({ data }) => {
+    assertNotApercu();
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
@@ -232,6 +241,7 @@ export const addClientMessage = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
+    assertNotApercu();
     const attachment = data.attachment;
     const content =
       data.content || (attachment ? attachmentOnlyContent(attachment.filename) : data.content);
@@ -380,6 +390,7 @@ export const setRecommendationInterest = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
+    assertNotApercu();
     const { error } = await publicClient().rpc("set_recommendation_interest", {
       p_token: data.token,
       p_reco_id: data.recoId,
@@ -680,6 +691,7 @@ export const getSharedInterventionPdfUrl = createServerFn({ method: "POST" })
     return { token: data.token, interventionId: data.interventionId };
   })
   .handler(async ({ data }): Promise<{ url: string }> => {
+    assertNotApercu();
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
@@ -734,6 +746,7 @@ export const createSharedPremiumDocumentUpload = createServerFn({ method: "POST"
     return data;
   })
   .handler(async ({ data }) => {
+    assertNotApercu();
     const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
     const ext = data.filename.split(".").pop() || "bin";
     const path = `${client.id}/client-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -759,6 +772,7 @@ export const finalizeSharedPremiumDocumentUpload = createServerFn({ method: "POS
     },
   )
   .handler(async ({ data }) => {
+    assertNotApercu();
     const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
     if (!data.path.startsWith(`${client.id}/`)) throw new Error("Chemin de fichier invalide");
     const filename = data.path.split("/").pop()!;
@@ -811,6 +825,7 @@ export const setSharedPremiumCover = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
+    assertNotApercu();
     const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
     // Mêmes critères que get_shared_client : photo d'une intervention terminée du client,
     // incluse dans le compte-rendu (c'est-à-dire visible dans l'espace client).
@@ -851,6 +866,7 @@ export const markSharedDocumentViewed = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
+    assertNotApercu();
     const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
     const db = supabaseAdmin as unknown as PremiumPlanningDb;
     const { data: document } = await db
@@ -882,6 +898,7 @@ export const trackPremiumRecommendationsConsulted = createServerFn({ method: "PO
     return data;
   })
   .handler(async ({ data }) => {
+    assertNotApercu();
     const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
     const now = new Date().toISOString();
     const forwarded = getRequestHeader("x-forwarded-for") ?? "";
