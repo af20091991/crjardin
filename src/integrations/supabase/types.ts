@@ -1885,6 +1885,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      dev_time_log: {
+        Row: {
+          created_at: string;
+          description: string;
+          id: string;
+          seconds: number;
+          source: string;
+        };
+        Insert: {
+          created_at?: string;
+          description: string;
+          id?: string;
+          seconds: number;
+          source?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string;
+          id?: string;
+          seconds?: number;
+          source?: string;
+        };
+        Relationships: [];
+      };
       intervention_photos: {
         Row: {
           caption: string | null;
