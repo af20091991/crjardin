@@ -7,6 +7,8 @@
  * (en-tête « x-apercu » contrôlé par chaque fonction d'écriture).
  */
 export const APERCU_FRAME_NAME = "pp-apercu";
+/** Cadre « vue prestataire » : même verrou, interface affichée avec les droits du rôle prestataire. */
+export const APERCU_PRESTATAIRE_FRAME_NAME = "pp-apercu:prestataire";
 export const APERCU_HEADER = "x-apercu";
 
 // Appels RPC de lecture autorisés même en aperçu (tous les autres sont bloqués).
@@ -16,9 +18,22 @@ let installed = false;
 
 export function isApercu(): boolean {
   try {
-    return window.self !== window.top && window.name === APERCU_FRAME_NAME;
+    return (
+      window.self !== window.top &&
+      (window.name === APERCU_FRAME_NAME || window.name === APERCU_PRESTATAIRE_FRAME_NAME)
+    );
   } catch {
     return false;
+  }
+}
+
+/** Rôle simulé dans l'aperçu (« prestataire ») ou null hors aperçu. Affichage uniquement. */
+export function apercuRoleOverride(): "prestataire" | null {
+  try {
+    if (window.self === window.top) return null;
+    return window.name === APERCU_PRESTATAIRE_FRAME_NAME ? "prestataire" : null;
+  } catch {
+    return null;
   }
 }
 

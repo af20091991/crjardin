@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { APERCU_FRAME_NAME } from "@/lib/apercu";
+import { APERCU_FRAME_NAME, APERCU_PRESTATAIRE_FRAME_NAME } from "@/lib/apercu";
 
 interface PremiumClientOption {
   client_id: string;
@@ -62,7 +62,16 @@ export function ApercuViews() {
           </TabsList>
 
           <TabsContent value="prestataire" className="mt-4">
-            <p className="text-sm text-muted-foreground">Bientôt disponible.</p>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Interface telle que la voit un prestataire. Lecture seule : aucune modification n'est
+              enregistrée.
+            </p>
+            <iframe
+              name={APERCU_PRESTATAIRE_FRAME_NAME}
+              src="/"
+              title="Vue prestataire"
+              className="h-[75vh] w-full rounded-xl border bg-background"
+            />
           </TabsContent>
 
           <TabsContent value="client" className="mt-4 space-y-3">
