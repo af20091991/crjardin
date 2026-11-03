@@ -13,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { APERCU_FRAME_NAME, APERCU_PRESTATAIRE_FRAME_NAME } from "@/lib/apercu";
+import { PRESTATAIRE_HOME } from "@/lib/prestataire-access";
 
 interface PremiumClientOption {
   client_id: string;
@@ -68,7 +69,7 @@ export function ApercuViews() {
             </p>
             <iframe
               name={APERCU_PRESTATAIRE_FRAME_NAME}
-              src="/"
+              src={PRESTATAIRE_HOME}
               title="Vue prestataire"
               className="h-[75vh] w-full rounded-xl border bg-background"
             />

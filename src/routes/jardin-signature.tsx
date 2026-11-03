@@ -67,16 +67,16 @@ function JardinSignatureEntry() {
     setChecked(true);
   }, [t]);
 
-  // La redirection attend la fin de l'animation d'ouverture.
+  // Lien personnel connu : redirection immédiate, l'animation est jouée par l'espace client.
   useEffect(() => {
-    if (splashDone && token) {
+    if (token) {
       void navigate({
         to: "/partage/$token",
         params: { token },
         search: { intervention: undefined, section: undefined },
       });
     }
-  }, [splashDone, token, navigate]);
+  }, [token, navigate]);
 
   const [pasted, setPasted] = useState("");
   const [pasteError, setPasteError] = useState(false);
@@ -91,11 +91,11 @@ function JardinSignatureEntry() {
     setToken(found);
   };
 
-  if (!checked) return null;
+  if (!checked || token) return null;
 
   return (
     <>
-      {!splashDone && <SproutSplash onDone={onSplashDone} />}
+      {!token && !splashDone && <SproutSplash onDone={onSplashDone} />}
       <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-10">
         <div className="space-y-2 text-center">
           <p className="font-serif text-3xl font-semibold text-primary">Jardin Signature</p>
