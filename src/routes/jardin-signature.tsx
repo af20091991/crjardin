@@ -3,12 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Download, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SproutSplash } from "@/components/SproutSplash";
+import { CLIENT_APK_URL } from "@/lib/mobile-update";
 
 /** Clé locale : le lien personnel du client est mémorisé sur son téléphone (aucun mot de passe). */
 const STORAGE_KEY = "js-client-token";
-/** APK publié en release GitHub par le workflow de l'appli client (étape suivante). */
-export const CLIENT_APK_URL =
-  "https://github.com/af20091991/crjardin/releases/download/client-latest/JardinSignature.apk";
 
 export const Route = createFileRoute("/jardin-signature")({
   head: () => ({

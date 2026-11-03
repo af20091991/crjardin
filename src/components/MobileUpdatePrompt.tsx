@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { checkMobileUpdate, UPDATE_CLICKED_KEY, type RemoteVersion } from "@/lib/mobile-update";
+import {
+  CLIENT_APP_ID,
+  checkMobileUpdate,
+  UPDATE_CLICKED_KEY,
+  type RemoteVersion,
+} from "@/lib/mobile-update";
 import { nativePlugin } from "@/lib/native-app";
 
 const DISMISS_KEY = "pp-mobile-update-dismissed";
@@ -52,13 +57,15 @@ export async function openUpdate(remote: RemoteVersion): Promise<void> {
  * Appli mobile Android uniquement : informe qu'une nouvelle version de l'APK existe.
  * Non bloquant — l'utilisateur peut continuer ; ses données sont dans PP, pas dans l'APK.
  */
-export function MobileUpdatePrompt() {
+export function MobileUpdatePrompt({ onlyClientApp = false }: { onlyClientApp?: boolean } = {}) {
   const [update, setUpdate] = useState<RemoteVersion | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void checkMobileUpdate().then((r) => {
       if (cancelled || !r.outdated || !r.remote) return;
+      // Pages client : n'avertir que dans l'appli client, jamais dans la gestion.
+      if (onlyClientApp && r.appId !== CLIENT_APP_ID) return;
       try {
         if (sessionStorage.getItem(DISMISS_KEY) === String(r.remote.latestBuild)) return;
       } catch {
@@ -69,7 +76,7 @@ export function MobileUpdatePrompt() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [onlyClientApp]);
 
   if (!update) return null;
 
