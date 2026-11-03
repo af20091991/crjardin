@@ -75,6 +75,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { MobileUpdatePrompt } from "@/components/MobileUpdatePrompt";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 // prettier-ignore
@@ -241,6 +242,8 @@ function SharePage() {
 
   if (premium?.enabled) {
     return (
+      <>
+      <MobileUpdatePrompt onlyClientApp />
       <PremiumExperience
         client={client}
         interventions={interventions}
@@ -254,6 +257,7 @@ function SharePage() {
         toggleDark={toggleDark}
         toggleLarge={toggleLarge}
       />
+      </>
     );
   }
 
