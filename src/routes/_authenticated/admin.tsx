@@ -73,10 +73,14 @@ import {
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Administration — De la graine au jardin" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: search.tab === "vues" ? ("vues" as const) : undefined,
+  }),
   component: AdminPage,
 });
 
 function AdminPage() {
+  const { tab } = Route.useSearch();
   const { isAdmin, isLoading } = useIsAdmin();
 
   const { user } = useAuth();
@@ -299,7 +303,7 @@ function AdminPage() {
 
   return (
     <AppShell title="Administration">
-      <Tabs defaultValue="supervision" className="mx-auto max-w-4xl">
+      <Tabs defaultValue={tab ?? "supervision"} className="mx-auto max-w-4xl">
         <TabsList className="mb-4">
           <TabsTrigger value="supervision">Supervision</TabsTrigger>
           <TabsTrigger value="vues">Vues</TabsTrigger>

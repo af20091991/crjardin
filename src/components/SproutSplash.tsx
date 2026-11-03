@@ -1,14 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const DURATION_MS = 4600;
+/** Durée totale : une seule animation de 3 secondes. */
+const DURATION_MS = 3000;
+/** Instant où la plume est posée : le logo apparaît alors autour d'elle. */
+const LAND_MS = 2300;
+/** Dimensions du logo (900 × 781) : la plume et le logo partagent le même repère. */
+const W = 900;
+const H = 781;
+/** Centre de la plume dans le logo : c'est là qu'elle vient se caler. */
+const CX = 542;
+const CY = 450;
+
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 /**
- * Animation d'ouverture « Jardin Signature » : une graine tombe, atterrit, germe en
- * plantule à deux feuilles, puis le logo (feuille et stylo plume) apparaît.
- * Respecte la préférence « réduire les animations » : le logo s'affiche immédiatement.
+ * Animation d'ouverture « Jardin Signature » (3 s) : la plume noire virevolte autour du
+ * logo, puis se pose exactement à sa place dans le logo ; le logo complet apparaît alors.
+ * Respecte « réduire les animations » : le logo s'affiche immédiatement.
  */
 export function SproutSplash({ onDone }: { onDone: () => void }) {
   const [visible, setVisible] = useState(true);
+  const quillRef = useRef<SVGGElement>(null);
+  const logoRef = useRef<SVGImageElement>(null);
   const [reduced] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -16,84 +29,77 @@ export function SproutSplash({ onDone }: { onDone: () => void }) {
   );
 
   useEffect(() => {
-    const t = setTimeout(
-      () => {
-        setVisible(false);
-        onDone();
-      },
-      reduced ? 600 : DURATION_MS,
-    );
-    return () => clearTimeout(t);
-  }, [onDone, reduced]);
+    const finish = () => {
+      setVisible(false);
+      onDone();
+    };
+    if (reduced) {
+      const t = setTimeout(finish, 600);
+      return () => clearTimeout(t);
+    }
+
+    let raf = 0;
+    const start = performance.now();
+    const frame = (now: number) => {
+      const t = Math.min(now - start, DURATION_MS);
+      const p = easeInOut(Math.min(t / LAND_MS, 1));
+      const quill = quillRef.current;
+      const logo = logoRef.current;
+      if (quill) {
+        // Orbite qui se resserre sur la position finale, avec une rotation qui s'annule.
+        const radius = 300 * Math.pow(1 - p, 0.7);
+        const theta = -0.6 * Math.PI + 3.2 * Math.PI * p;
+        const tx = radius * Math.cos(theta);
+        const ty = radius * 0.7 * Math.sin(theta);
+        const scale = 0.35 + 0.65 * p;
+        const rot = -70 * (1 - p);
+        quill.setAttribute(
+          "transform",
+          `translate(${tx.toFixed(1)} ${ty.toFixed(1)}) translate(${CX} ${CY}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)}) translate(${-CX} ${-CY})`,
+        );
+        quill.setAttribute("opacity", String(Math.min(1, t / 250)));
+      }
+      if (logo) {
+        const fade = Math.max(0, Math.min(1, (t - LAND_MS) / (DURATION_MS - LAND_MS)));
+        logo.setAttribute("opacity", String(fade));
+      }
+      if (t < DURATION_MS) {
+        raf = requestAnimationFrame(frame);
+      } else {
+        finish();
+      }
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+    // onDone est stable (useCallback côté appelant).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reduced]);
 
   if (!visible) return null;
 
   return (
     <div
       aria-hidden="true"
-      className="js-splash fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: "#FFFFFF" }}
     >
-      <style>{`
-        .js-splash .seed { animation: js-fall 1.5s cubic-bezier(.45,0,.9,.6) forwards, js-sway 0.6s ease-in-out 0s 3 alternate; transform-origin: 150px 0; }
-        .js-splash .seed-squash { animation: js-squash 0.3s ease-out 1.5s forwards; opacity: 0; transform-origin: 150px 212px; }
-        .js-splash .stem { stroke-dasharray: 80; stroke-dashoffset: 80; animation: js-grow 0.6s ease-out 1.7s forwards; }
-        .js-splash .leaf-l { transform-origin: 150px 150px; transform: scale(0); animation: js-leaf 0.6s ease-out 2.2s forwards; }
-        .js-splash .leaf-r { transform-origin: 150px 150px; transform: scale(0); animation: js-leaf 0.6s ease-out 2.4s forwards; }
-        .js-splash .sprout { animation: js-fade-out 0.4s ease-in 2.9s forwards; }
-        .js-splash .logo { opacity: 0; transform-origin: 150px 150px; transform: scale(0.9); animation: js-logo 0.6s ease-out 3.1s forwards; }
-                @keyframes js-fall { from { transform: translate(0, -40px); } 40% { transform: translate(-18px, 80px); } 70% { transform: translate(14px, 150px); } to { transform: translate(0, 212px); } }
-        @keyframes js-sway { from { transform: translateX(-10px) rotate(-12deg); } to { transform: translateX(10px) rotate(12deg); } }
-        @keyframes js-squash { from { opacity: 1; transform: scale(1, 1); } to { opacity: 0; transform: scale(1.3, 0.5); } }
-        @keyframes js-grow { to { stroke-dashoffset: 0; } }
-        @keyframes js-leaf { to { transform: scale(1); } }
-        @keyframes js-fade-out { to { opacity: 0; } }
-        @keyframes js-logo { to { opacity: 1; transform: scale(1); } }
-        @keyframes js-fade-in { to { opacity: 1; } }
-        @media (prefers-reduced-motion: reduce) {
-          .js-splash .seed, .js-splash .seed-squash, .js-splash .sprout { display: none; }
-          .js-splash .logo { opacity: 1; transform: none; animation: none; }
-        }
-      `}</style>
-      <svg viewBox="0 0 300 300" className="h-72 w-72 max-w-[80vw]">
-        {/* Graine */}
-        <g className="seed">
-          <ellipse cx="150" cy="0" rx="9" ry="12" fill="#7A5230" />
-        </g>
-        <ellipse className="seed-squash" cx="150" cy="212" rx="11" ry="7" fill="#7A5230" />
-        {/* Plantule à deux feuilles */}
-        <g className="sprout">
-          <line
-            className="stem"
-            x1="150"
-            y1="220"
-            x2="150"
-            y2="150"
-            stroke="#3E8A2A"
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
-          <path
-            className="leaf-l"
-            d="M150 152 C130 150 118 136 116 120 C132 122 146 134 150 152 Z"
-            fill="#4FA836"
-          />
-          <path
-            className="leaf-r"
-            d="M150 150 C170 148 182 134 184 118 C168 120 154 132 150 150 Z"
-            fill="#62B33A"
-          />
-        </g>
-        {/* Logo de la marque, sur fond blanc */}
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-[min(82vw,380px)]">
+        {/* Logo complet, révélé une fois la plume posée (même position, donc sans décalage) */}
         <image
-          className="logo"
+          ref={logoRef}
           href="/js-logo.png"
           x="0"
           y="0"
-          width="300"
-          height="300"
-          preserveAspectRatio="xMidYMid meet"
+          width={W}
+          height={H}
+          opacity={reduced ? 1 : 0}
         />
+        {/* Plume noire : virevolte puis se pose dans le logo */}
+        {!reduced && (
+          <g ref={quillRef} opacity="0">
+            <image href="/js-feather.png" x="0" y="0" width={W} height={H} />
+          </g>
+        )}
       </svg>
     </div>
   );

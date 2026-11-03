@@ -13,6 +13,7 @@ import {
   Database,
   Archive,
   ChevronRight,
+  Eye,
 } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 
@@ -26,9 +27,18 @@ type Section = {
   label: string;
   description: string;
   icon: typeof Users;
+  search?: { tab: "vues" };
 };
 
 const SECTIONS: Section[] = [
+  {
+    to: "/admin",
+    label: "Vues prestataire et client",
+    description:
+      "Aperçu en lecture seule de ce que voient le prestataire et le client. Rien n'est modifiable.",
+    icon: Eye,
+    search: { tab: "vues" },
+  },
   {
     to: "/admin",
     label: "Utilisateurs & accès",
@@ -100,7 +110,7 @@ function BackendPage() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           {SECTIONS.map((section) => (
-            <Link key={section.to} to={section.to}>
+            <Link key={section.label} to={section.to} search={section.search}>
               <Card className="h-full transition-colors hover:border-primary/40 hover:bg-accent/30">
                 <CardContent className="flex items-start gap-3 py-4">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">

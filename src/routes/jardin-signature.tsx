@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { Download, Smartphone } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SproutSplash } from "@/components/SproutSplash";
 import { CLIENT_APK_URL } from "@/lib/mobile-update";
@@ -43,6 +44,14 @@ function storeToken(token: string) {
   }
 }
 
+/** Extrait le jeton d'un lien personnel (« …/partage/JETON » ou « …?t=JETON »). */
+function tokenFromLink(raw: string): string | null {
+  const value = raw.trim();
+  const m =
+    value.match(/\/partage\/([A-Za-z0-9_-]{8,})/) ?? value.match(/[?&]t=([A-Za-z0-9_-]{8,})/);
+  return m ? m[1] : null;
+}
+
 function JardinSignatureEntry() {
   const { t } = Route.useSearch();
   const navigate = useNavigate();
@@ -69,6 +78,19 @@ function JardinSignatureEntry() {
     }
   }, [splashDone, token, navigate]);
 
+  const [pasted, setPasted] = useState("");
+  const [pasteError, setPasteError] = useState(false);
+  const usePastedLink = () => {
+    const found = tokenFromLink(pasted);
+    if (!found) {
+      setPasteError(true);
+      return;
+    }
+    storeToken(found);
+    setPasteError(false);
+    setToken(found);
+  };
+
   if (!checked) return null;
 
   return (
@@ -83,10 +105,34 @@ function JardinSignatureEntry() {
         </div>
 
         {!token && (
-          <div className="rounded-2xl border bg-card p-5 text-sm leading-6">
-            Pour accéder à votre espace, ouvrez le lien personnel qui vous a été envoyé par votre
-            jardinier. Il sera mémorisé sur ce téléphone.
-          </div>
+          <section className="space-y-3 rounded-2xl border bg-card p-5 text-sm leading-6">
+            <p className="font-medium">Accéder à votre espace</p>
+            <p>
+              Touchez le lien personnel envoyé par votre jardinier (SMS ou e-mail) : l'application
+              s'ouvre directement. Vous pouvez aussi coller ce lien ci-dessous.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={pasted}
+                onChange={(e) => {
+                  setPasted(e.target.value);
+                  setPasteError(false);
+                }}
+                placeholder="Coller mon lien personnel"
+                aria-label="Lien personnel"
+                inputMode="url"
+                autoCapitalize="none"
+              />
+              <Button onClick={usePastedLink} disabled={!pasted.trim()}>
+                Ouvrir
+              </Button>
+            </div>
+            {pasteError && (
+              <p className="text-destructive">
+                Ce lien n'est pas reconnu. Vérifiez qu'il est complet.
+              </p>
+            )}
+          </section>
         )}
 
         <section className="space-y-3 rounded-2xl border bg-card p-5">
