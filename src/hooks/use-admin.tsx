@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { apercuRoleOverride } from "@/lib/apercu";
 
 export function useIsAdmin() {
   const { user } = useAuth();
@@ -16,5 +17,7 @@ export function useIsAdmin() {
       return data as boolean;
     },
   });
+  // Aperçu « vue prestataire » : pas de droits administrateur affichés (le hook reste appelé à chaque rendu).
+  if (apercuRoleOverride() === "prestataire") return { isAdmin: false, isLoading: false };
   return { isAdmin: !!data, isLoading };
 }
