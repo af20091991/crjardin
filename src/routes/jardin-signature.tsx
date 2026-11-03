@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { Download, Smartphone } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SproutSplash } from "@/components/SproutSplash";
 import { CLIENT_APK_URL } from "@/lib/mobile-update";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 /** Clé locale : le lien personnel du client est mémorisé sur son téléphone (aucun mot de passe). */
 const STORAGE_KEY = "js-client-token";
@@ -50,6 +51,129 @@ function tokenFromLink(raw: string): string | null {
   const m =
     value.match(/\/partage\/([A-Za-z0-9_-]{8,})/) ?? value.match(/[?&]t=([A-Za-z0-9_-]{8,})/);
   return m ? m[1] : null;
+}
+
+interface PremiumOption {
+  client_id: string;
+  name: string;
+}
+
+/** Accès gérant : connexion PP ordinaire, réservée aux comptes administrateur. */
+function GerantAccess() {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [clients, setClients] = useState<PremiumOption[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const loadGerant = useCallback(async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    const user = auth.user;
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    const admin = (roles ?? []).some((r) => r.role === "admin");
+    setIsAdmin(admin);
+    if (!admin) return;
+    const { data } = await supabase
+      .from("client_premium")
+      .select("client_id, clients(name)")
+      .eq("enabled", true);
+    setClients(
+      (data ?? [])
+        .map((row) => ({
+          client_id: row.client_id,
+          name: (row.clients as unknown as { name: string } | null)?.name ?? "Client",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, "fr")),
+    );
+  }, []);
+
+  useEffect(() => {
+    void loadGerant();
+  }, [loadGerant]);
+
+  const signIn = async () => {
+    setBusy(true);
+    setError(null);
+    const { error: signError } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (signError) {
+      setError("Connexion impossible. Vérifiez vos identifiants.");
+      return;
+    }
+    setPassword("");
+    await loadGerant();
+  };
+
+  if (isAdmin) {
+    return (
+      <section className="space-y-3 rounded-2xl border bg-card p-5 text-sm">
+        <p className="font-medium">Espace gérant</p>
+        {clients.length === 0 && (
+          <p className="text-muted-foreground">Aucun client Premium actif.</p>
+        )}
+        <ul className="space-y-2">
+          {clients.map((c) => (
+            <li key={c.client_id}>
+              <a
+                className="text-primary underline underline-offset-4"
+                href={`/clients/premium-dashboard/${c.client_id}`}
+              >
+                {c.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          className="text-xs text-muted-foreground underline"
+          onClick={() => void supabase.auth.signOut().then(() => setIsAdmin(false))}
+        >
+          Se déconnecter
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-3 text-center text-xs text-muted-foreground">
+      {!open ? (
+        <button type="button" className="underline" onClick={() => setOpen(true)}>
+          Accès gérant
+        </button>
+      ) : (
+        <div className="space-y-2 rounded-2xl border bg-card p-5 text-left text-sm">
+          <Input
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+          />
+          <Input
+            type="password"
+            placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+          <Button
+            className="w-full"
+            onClick={() => void signIn()}
+            disabled={busy || !email || !password}
+          >
+            Se connecter
+          </Button>
+          {error && <p className="text-destructive">{error}</p>}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function JardinSignatureEntry() {
@@ -150,6 +274,8 @@ function JardinSignatureEntry() {
             </a>
           </Button>
         </section>
+
+        <GerantAccess />
 
         <section className="space-y-2 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">Sur iPhone ou ordinateur</p>
