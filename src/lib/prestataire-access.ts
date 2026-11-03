@@ -3,11 +3,11 @@
  * Toute autre page reste accessible au gérant (admin) et aux observateurs.
  */
 export const PRESTATAIRE_ALLOWED_PATHS = [
-  "/sst",
-  "/pilot/calendrier",
-  "/interventions",
-  "/settings",
-  "/personnalisation",
+  "/sst", // Mes missions (Mission SST) et Fiches SST
+  "/pilot/calendrier", // Calendrier SST
+  "/interventions", // CR Chantier
+  "/personnalisation", // Personnalisation
+  "/pilot/mapping", // Mapping (lecture seule)
 ] as const;
 
 export function isPrestatairePathAllowed(pathname: string): boolean {

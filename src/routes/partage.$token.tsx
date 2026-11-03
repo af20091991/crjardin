@@ -76,6 +76,7 @@ import {
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { MobileUpdatePrompt } from "@/components/MobileUpdatePrompt";
+import { SproutSplash } from "@/components/SproutSplash";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 // prettier-ignore
@@ -208,6 +209,8 @@ function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
   const { data: messages } = useQuery(messagesQuery(token));
+  // Animation d'ouverture « Jardin Signature » à chaque chargement de l'espace client.
+  const [splashDone, setSplashDone] = useState(false);
   const { data: premium } = useSuspenseQuery(premiumQuery(token));
   const { dark, large, toggleDark, toggleLarge } = useShareTheme();
   const qc = useQueryClient();
@@ -243,6 +246,7 @@ function SharePage() {
   if (premium?.enabled) {
     return (
       <>
+      {!splashDone && <SproutSplash onDone={() => setSplashDone(true)} />}
       <MobileUpdatePrompt onlyClientApp />
       <PremiumExperience
         client={client}
@@ -262,6 +266,8 @@ function SharePage() {
   }
 
   return (
+    <>
+    {!splashDone && <SproutSplash onDone={() => setSplashDone(true)} />}
     <div className={`min-h-dvh bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
         <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
@@ -407,6 +413,7 @@ function SharePage() {
         </>
       </main>
     </div>
+    </>
   );
 }
 
