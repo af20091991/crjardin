@@ -41,6 +41,7 @@ import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/p
 import { Route as ApiPublicPpFullBackupRouteImport } from './routes/api/public/pp-full-backup'
 import { Route as ApiPublicPpCaBackupRouteImport } from './routes/api/public/pp-ca-backup'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as ApiPublicDevTimeRouteImport } from './routes/api/public/dev-time'
 import { Route as ApiPublicBrevoWebhookRouteImport } from './routes/api/public/brevo-webhook'
 import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
 import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
@@ -253,6 +254,11 @@ const ApiPublicPpCaBackupRoute = ApiPublicPpCaBackupRouteImport.update({
 const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   id: '/api/public/email-open',
   path: '/api/public/email-open',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDevTimeRoute = ApiPublicDevTimeRouteImport.update({
+  id: '/api/public/dev-time',
+  path: '/api/public/dev-time',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicBrevoWebhookRoute = ApiPublicBrevoWebhookRouteImport.update({
@@ -595,6 +601,7 @@ export interface FileRoutesByFullPath {
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
+  '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
@@ -674,6 +681,7 @@ export interface FileRoutesByTo {
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
+  '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
@@ -757,6 +765,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
+  '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
@@ -840,6 +849,7 @@ export interface FileRouteTypes {
     | '/pilot/validation'
     | '/api/public/ap-reminders'
     | '/api/public/brevo-webhook'
+    | '/api/public/dev-time'
     | '/api/public/email-open'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
@@ -919,6 +929,7 @@ export interface FileRouteTypes {
     | '/pilot/validation'
     | '/api/public/ap-reminders'
     | '/api/public/brevo-webhook'
+    | '/api/public/dev-time'
     | '/api/public/email-open'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
@@ -1001,6 +1012,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/validation'
     | '/api/public/ap-reminders'
     | '/api/public/brevo-webhook'
+    | '/api/public/dev-time'
     | '/api/public/email-open'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
@@ -1033,6 +1045,7 @@ export interface RootRouteChildren {
   PartageTokenRoute: typeof PartageTokenRoute
   ApiPublicApRemindersRoute: typeof ApiPublicApRemindersRoute
   ApiPublicBrevoWebhookRoute: typeof ApiPublicBrevoWebhookRoute
+  ApiPublicDevTimeRoute: typeof ApiPublicDevTimeRoute
   ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
   ApiPublicPpCaBackupRoute: typeof ApiPublicPpCaBackupRoute
   ApiPublicPpFullBackupRoute: typeof ApiPublicPpFullBackupRoute
@@ -1266,6 +1279,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/email-open'
       fullPath: '/api/public/email-open'
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/dev-time': {
+      id: '/api/public/dev-time'
+      path: '/api/public/dev-time'
+      fullPath: '/api/public/dev-time'
+      preLoaderRoute: typeof ApiPublicDevTimeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/brevo-webhook': {
@@ -1780,6 +1800,7 @@ const rootRouteChildren: RootRouteChildren = {
   PartageTokenRoute: PartageTokenRoute,
   ApiPublicApRemindersRoute: ApiPublicApRemindersRoute,
   ApiPublicBrevoWebhookRoute: ApiPublicBrevoWebhookRoute,
+  ApiPublicDevTimeRoute: ApiPublicDevTimeRoute,
   ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
   ApiPublicPpCaBackupRoute: ApiPublicPpCaBackupRoute,
   ApiPublicPpFullBackupRoute: ApiPublicPpFullBackupRoute,
