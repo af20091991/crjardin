@@ -1885,6 +1885,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_view_log: {
+        Row: {
+          admin_user_id: string;
+          client_id: string | null;
+          created_at: string;
+          id: string;
+          surface: string;
+        };
+        Insert: {
+          admin_user_id?: string;
+          client_id?: string | null;
+          created_at?: string;
+          id?: string;
+          surface?: string;
+        };
+        Update: {
+          admin_user_id?: string;
+          client_id?: string | null;
+          created_at?: string;
+          id?: string;
+          surface?: string;
+        };
+        Relationships: [];
+      };
       dev_time_log: {
         Row: {
           created_at: string;
@@ -5650,6 +5674,10 @@ export type Database = {
       };
     };
     Functions: {
+      log_admin_view: {
+        Args: { p_client_id: string };
+        Returns: undefined;
+      };
       add_client_message: {
         Args: {
           p_author_name?: string;

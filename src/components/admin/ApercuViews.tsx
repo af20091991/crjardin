@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -38,15 +38,63 @@ async function listPremiumClientOptions(): Promise<PremiumClientOption[]> {
     .sort((a, b) => a.name.localeCompare(b.name, "fr"));
 }
 
+interface ViewLogRow {
+  id: string;
+  created_at: string;
+  client_id: string | null;
+}
+
+/** Journal des consultations d'espaces clients par l'administrateur (visible par lui seul). */
+function ViewLogCard() {
+  const logQuery = useQuery({
+    queryKey: ["admin-view-log"],
+    queryFn: async (): Promise<ViewLogRow[]> => {
+      const { data, error } = await supabase
+        .from("admin_view_log")
+        .select("id, created_at, client_id")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const rows = logQuery.data ?? [];
+  if (rows.length === 0) return null;
+  return (
+    <div className="space-y-1 rounded-xl border p-3 text-xs text-muted-foreground">
+      <p className="font-medium text-foreground">Consultations journalisées (50 dernières)</p>
+      {rows.map((r) => (
+        <p key={r.id}>{new Date(r.created_at).toLocaleString("fr-FR")}</p>
+      ))}
+    </div>
+  );
+}
+
 /** Vues en lecture seule : ce que voit le prestataire ou le client. */
 export function ApercuViews() {
   const [clientId, setClientId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const clientsQuery = useQuery({
     queryKey: ["apercu-premium-clients"],
     queryFn: listPremiumClientOptions,
   });
   const clients = clientsQuery.data ?? [];
   const selected = clients.find((c) => c.client_id === clientId) ?? clients[0] ?? null;
+
+  // Chaque ouverture d'un espace client est journalisée (aucune donnée n'est modifiée).
+  const logView = useMutation({
+    mutationFn: async (client: string) => {
+      const { error } = await supabase.rpc("log_admin_view", { p_client_id: client });
+      if (error) throw error;
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["admin-view-log"] }),
+  });
+  const selectedId = selected?.client_id ?? null;
+  useEffect(() => {
+    if (selectedId) logView.mutate(selectedId);
+    // Une entrée par changement de client affiché.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   return (
     <Card>
@@ -99,6 +147,7 @@ export function ApercuViews() {
                 </Select>
               </div>
             )}
+            <ViewLogCard />
             {selected && (
               <iframe
                 key={selected.share_token}
