@@ -14,6 +14,7 @@ type MyMission = {
   status: string;
   instructions: string | null;
   category: string | null;
+  hours_spent: number | null;
 };
 
 /** Vue prestataire : ses missions attribuées, sans aucun montant ni marge. */
@@ -23,7 +24,7 @@ export function SstMyMissions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("subcontractor_missions")
-        .select("id, mission_date, service_requested, status, instructions, category")
+        .select("id, mission_date, service_requested, status, instructions, category, hours_spent")
         .order("mission_date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -37,8 +38,15 @@ export function SstMyMissions() {
     return <EmptyState icon={ClipboardList} title="Aucune mission attribuée." compact />;
   }
 
+  // Heures déclarées sur l'ensemble de l'historique de ce prestataire (la politique RLS ne renvoie que ses missions).
+  const totalHours = missions.reduce((sum, m) => sum + (Number(m.hours_spent) || 0), 0);
+
   return (
     <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        {missions.length} mission{missions.length > 1 ? "s" : ""} ·{" "}
+        {totalHours.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} h déclarées au total
+      </p>
       {missions.map((m: MyMission) => {
         const meta = MISSION_STATUS_META[m.status as MissionStatus];
         return (
@@ -51,6 +59,7 @@ export function SstMyMissions() {
               <p className="text-xs text-muted-foreground">
                 {new Date(m.mission_date).toLocaleDateString("fr-FR")}
                 {m.category ? ` · ${m.category}` : ""}
+                {m.hours_spent != null ? ` · ${Number(m.hours_spent)} h` : ""}
               </p>
             </CardHeader>
             {m.instructions && (
