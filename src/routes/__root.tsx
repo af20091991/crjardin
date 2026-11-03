@@ -158,6 +158,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 const SPLASH_CSS = `
+html.js-client #pp-splash{display:none!important}
 #pp-splash{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 42%,#fffdf8 0%,#F9F7F2 58%,#F1ECDF 100%);overflow:hidden;transition:opacity .6s ease,visibility .6s;font-family:Fraunces,Georgia,serif}
 #pp-splash.pp-out{opacity:0;visibility:hidden;pointer-events:none}
 #pp-splash .pp-stage{position:relative;width:min(80vmin,440px);height:min(80vmin,440px)}
@@ -252,6 +253,13 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="fr">
       <head>
         <HeadContent />
+        {/* Espace client (appli Jardin Signature) : pas d'écran de démarrage PilotPro. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "if(/^\\/(jardin-signature|partage)/.test(location.pathname))document.documentElement.classList.add('js-client');",
+          }}
+        />
         <style dangerouslySetInnerHTML={{ __html: SPLASH_CSS }} />
       </head>
       <body>
