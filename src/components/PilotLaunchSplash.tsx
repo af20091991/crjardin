@@ -40,36 +40,41 @@ html.js-client #pp-splash{display:none!important}
 
 /** Écran de lancement PilotPro : graine → tige → feuille → cercle ouvert → nom. */
 export function PilotLaunchSplash() {
-  // Cercle ouvert : du bas-gauche, par le bas, la droite et le haut, jusqu'au haut-gauche.
-  const ring = "M 67 587 A 400 400 0 1 0 213 122";
-  const ring2 = "M 70 590 A 402 398 0 1 0 216 120";
+  // Un seul cercle parfait (centre 443,450 ; rayon 400), ouvert à gauche : du bas-gauche,
+  // par le bas, la droite et le haut, jusqu'au haut-gauche. Jamais fermé.
+  const ring = "M 67.1 586.8 A 400 400 0 1 0 213.6 122.3";
   return (
     <div id="pp-splash" aria-hidden="true">
       <svg viewBox="0 0 886 886">
         <defs>
-          <path id="pp-motto-path" d="M 430 820 A 372 372 0 0 0 822 470" />
+          <path id="pp-motto-path" d="M 476.1 828.6 A 380 380 0 0 0 810.1 548.4" />
+          <mask id="pp-ring-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="886" height="886">
+            <path
+              className="pp-ring"
+              pathLength={1}
+              d="M 67.1 586.8 A 400 400 0 1 0 213.6 122.3"
+              fill="none"
+              stroke="#FFFFFF"
+              strokeWidth="10"
+            />
+          </mask>
         </defs>
         <g className="pp-art">
-          {/* Trait brun d'épaisseur légèrement irrégulière (deux passes superposées) */}
-          <path
-            className="pp-ring"
-            pathLength={1}
-            d={ring}
-            fill="none"
-            stroke={C.brown}
-            strokeWidth="2.6"
-            strokeLinecap="round"
-          />
-          <path
-            className="pp-ring"
-            pathLength={1}
-            d={ring2}
-            fill="none"
-            stroke={C.brown}
-            strokeWidth="1.2"
-            strokeOpacity=".7"
-            strokeLinecap="round"
-          />
+          {/* Trait brun : même tracé, révélé par un masque ; des segments plus épais superposés
+              sur exactement la même ligne donnent une épaisseur légèrement vivante. */}
+          <g mask="url(#pp-ring-mask)">
+            <path d={ring} fill="none" stroke={C.brown} strokeWidth="1.7" strokeLinecap="round" />
+            <path
+              d={ring}
+              pathLength={1}
+              fill="none"
+              stroke={C.brown}
+              strokeWidth="2.6"
+              strokeOpacity=".55"
+              strokeLinecap="round"
+              strokeDasharray="0.09 0.05 0.14 0.07 0.06 0.04 0.12 0.06 0.1 0.05 0.08 0.14"
+            />
+          </g>
           {/* Tige / pétiole qui pousse depuis la graine */}
           <path
             className="pp-stem"
@@ -135,7 +140,7 @@ export function PilotLaunchSplash() {
             fontSize="44"
             fontStyle="italic"
           >
-            <textPath href="#pp-motto-path" startOffset="4%">
+            <textPath href="#pp-motto-path" startOffset="2%">
               au rythme de la nature
             </textPath>
           </text>
