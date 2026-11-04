@@ -188,7 +188,8 @@ function hideSplash() {
   if (!el) return;
   const start =
     (window as unknown as { __ppSplashStart?: number }).__ppSplashStart ?? performance.now();
-  const wait = Math.max(0, start + 4000 - performance.now());
+  // 4 s d'animation + 800 ms pour que la dernière image (logo complet) reste visible.
+  const wait = Math.max(0, start + 4800 - performance.now());
   window.setTimeout(() => {
     el.classList.add("pp-out");
     window.setTimeout(() => el.remove(), 300);
