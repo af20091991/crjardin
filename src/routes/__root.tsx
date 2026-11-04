@@ -175,18 +175,20 @@ function SplashOverlay() {
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},9000);",
+            "(function(){var i=document.querySelector('#pp-splash img');function s(){window.__ppSplashStart=performance.now();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
         }}
       />
     </>
   );
 }
 
-/** Masque l'écran à la fin de l'animation (4 s depuis l'ouverture), une fois l'appli affichée. */
+/** Masque l'écran une fois l'animation complète (4 s à partir de son affichage), appli prête. */
 function hideSplash() {
   const el = document.getElementById("pp-splash");
   if (!el) return;
-  const wait = Math.max(0, 4000 - performance.now());
+  const start =
+    (window as unknown as { __ppSplashStart?: number }).__ppSplashStart ?? performance.now();
+  const wait = Math.max(0, start + 4000 - performance.now());
   window.setTimeout(() => {
     el.classList.add("pp-out");
     window.setTimeout(() => el.remove(), 300);
