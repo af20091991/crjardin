@@ -182,8 +182,8 @@ function hideSplash() {
   if (!el) return;
   const start =
     (window as unknown as { __ppSplashStart?: number }).__ppSplashStart ?? performance.now();
-  // Animation accélérée (3,6 s) + 0,4 s de maintien sur le logo complet.
-  const wait = Math.max(0, start + 4000 - performance.now());
+  // Animation (4,1 s) + 0,4 s de maintien sur le logo complet.
+  const wait = Math.max(0, start + 4500 - performance.now());
   window.setTimeout(() => {
     el.classList.add("pp-out");
     window.setTimeout(() => el.remove(), 300);
