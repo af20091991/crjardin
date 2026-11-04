@@ -71,6 +71,8 @@ export function playHeartbeat(): () => void {
       }, delay),
     );
   });
-  timers.push(window.setTimeout(() => void ctx?.close().catch(() => {}), (LAUNCH_PHASES.end + 1) * 1000));
+  timers.push(
+    window.setTimeout(() => void ctx?.close().catch(() => {}), (LAUNCH_PHASES.end + 1) * 1000),
+  );
   return () => timers.forEach((id) => window.clearTimeout(id));
 }

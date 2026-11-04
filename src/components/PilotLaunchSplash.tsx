@@ -51,22 +51,90 @@ export function PilotLaunchSplash() {
         </defs>
         <g className="pp-art">
           {/* Trait brun d'épaisseur légèrement irrégulière (deux passes superposées) */}
-          <path className="pp-ring" pathLength={1} d={ring} fill="none" stroke={C.brown} strokeWidth="2.6" strokeLinecap="round" />
-          <path className="pp-ring" pathLength={1} d={ring2} fill="none" stroke={C.brown} strokeWidth="1.2" strokeOpacity=".7" strokeLinecap="round" />
+          <path
+            className="pp-ring"
+            pathLength={1}
+            d={ring}
+            fill="none"
+            stroke={C.brown}
+            strokeWidth="2.6"
+            strokeLinecap="round"
+          />
+          <path
+            className="pp-ring"
+            pathLength={1}
+            d={ring2}
+            fill="none"
+            stroke={C.brown}
+            strokeWidth="1.2"
+            strokeOpacity=".7"
+            strokeLinecap="round"
+          />
           {/* Tige / pétiole qui pousse depuis la graine */}
-          <path className="pp-stem" pathLength={1} d="M 300 712 C 210 706 128 650 112 528" fill="none" stroke={C.brown} strokeWidth="9" strokeLinecap="round" />
+          <path
+            className="pp-stem"
+            pathLength={1}
+            d="M 300 712 C 210 706 128 650 112 528"
+            fill="none"
+            stroke={C.brown}
+            strokeWidth="9"
+            strokeLinecap="round"
+          />
           <ellipse className="pp-seed" cx="300" cy="712" rx="22" ry="14" fill={C.dark} />
           {/* Parties colorées de la feuille */}
-          <path className="pp-leaf" style={{ animationDelay: leafAt(0) }} fill={C.brown} d="M 278 708 L 512 640 L 584 742 C 480 778 340 770 278 708 Z" />
-          <path className="pp-leaf" style={{ animationDelay: leafAt(1) }} fill={C.orange} d="M 270 703 C 292 590 362 470 466 440 L 552 540 C 520 602 402 680 270 703 Z" />
-          <path className="pp-leaf" style={{ animationDelay: leafAt(2) }} fill={C.yellow} d="M 482 425 C 560 362 612 292 626 186 C 640 290 628 400 572 520 Z" />
-          <path className="pp-leaf" style={{ animationDelay: leafAt(3) }} fill={C.green} d="M 632 186 C 760 262 790 420 762 560 C 738 652 682 712 602 728 L 512 630 C 602 540 644 400 632 186 Z" />
-          <path className="pp-leaf" style={{ animationDelay: leafAt(4) }} fill="none" stroke={C.blue} strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" d="M 628 186 C 642 380 582 520 510 626 L 584 742 M 274 710 C 380 690 470 652 510 626" />
+          <path
+            className="pp-leaf"
+            style={{ animationDelay: leafAt(0) }}
+            fill={C.brown}
+            d="M 278 708 L 512 640 L 584 742 C 480 778 340 770 278 708 Z"
+          />
+          <path
+            className="pp-leaf"
+            style={{ animationDelay: leafAt(1) }}
+            fill={C.orange}
+            d="M 270 703 C 292 590 362 470 466 440 L 552 540 C 520 602 402 680 270 703 Z"
+          />
+          <path
+            className="pp-leaf"
+            style={{ animationDelay: leafAt(2) }}
+            fill={C.yellow}
+            d="M 482 425 C 560 362 612 292 626 186 C 640 290 628 400 572 520 Z"
+          />
+          <path
+            className="pp-leaf"
+            style={{ animationDelay: leafAt(3) }}
+            fill={C.green}
+            d="M 632 186 C 760 262 790 420 762 560 C 738 652 682 712 602 728 L 512 630 C 602 540 644 400 632 186 Z"
+          />
+          <path
+            className="pp-leaf"
+            style={{ animationDelay: leafAt(4) }}
+            fill="none"
+            stroke={C.blue}
+            strokeWidth="11"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M 628 186 C 642 380 582 520 510 626 L 584 742 M 274 710 C 380 690 470 652 510 626"
+          />
           {/* Nom dans l'ouverture du cercle */}
-          <text className="pp-name" x="84" y="298" fill={C.name} fontFamily="'EB Garamond',Garamond,serif" fontSize="96" fontWeight="600">
+          <text
+            className="pp-name"
+            x="84"
+            y="298"
+            fill={C.name}
+            fontFamily="'EB Garamond',Garamond,serif"
+            fontSize="96"
+            fontWeight="600"
+          >
             PilotPro
           </text>
-          <text className="pp-motto" fill={C.name} fontFamily="'EB Garamond',Garamond,serif" fontSize="44" fontStyle="italic">
+          <text
+            className="pp-motto"
+            fill={C.name}
+            fontFamily="'EB Garamond',Garamond,serif"
+            fontSize="44"
+            fontStyle="italic"
+          >
             <textPath href="#pp-motto-path" startOffset="4%">
               au rythme de la nature
             </textPath>
