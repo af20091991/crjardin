@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-04",
+    version: "2.7.0",
+    theme: "Marque",
+    title: "Nouvelle animation de lancement PilotPro",
+    details: [
+      "La graine germe, la feuille se colore, le cercle se trace puis PilotPro apparaît.",
+      "Deux battements de cœur discrets, sans son imposé ; toucher l'écran pour passer.",
+    ],
+  },
+  {
     date: "2026-11-01",
     version: "2.6.9",
     theme: "Général",
