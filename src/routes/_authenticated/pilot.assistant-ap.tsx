@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -61,12 +61,7 @@ import { cn } from "@/lib/utils";
 import { describeApPlants, extractApQuoteLines } from "@/lib/assistant-ap-quote.functions";
 import { importQuoteFromFile } from "@/lib/assistant-ap-quote-import";
 import { AP_SUPPLIER_EMAIL_ENABLED, buildSupplierEmail } from "@/lib/assistant-ap-mail";
-import {
-  ISSUE_TEXT_CLASS,
-  isReadyForExport,
-  supplyIssues,
-  worksiteBlockers,
-} from "@/lib/assistant-ap-checks";
+import { ISSUE_TEXT_CLASS, supplyIssues, worksiteBlockers } from "@/lib/assistant-ap-checks";
 import { supplierByName } from "@/lib/assistant-ap-catalogue";
 import {
   buildOrderText,
@@ -327,6 +322,15 @@ function AssistantApPage() {
     };
   }, [list, search, supplierList]);
   const openedWorksite = openId ? visible.find((worksite) => worksite.id === openId) : undefined;
+  const openedDetail = openedWorksite ? (
+    <WorksiteDetail
+      worksite={openedWorksite}
+      suppliers={supplierList}
+      onClose={() => setOpenId(null)}
+      onDeleted={() => setOpenId(null)}
+      onChanged={invalidate}
+    />
+  ) : null;
 
   const goToWorksite = (id: string) => {
     setFilter("all");
@@ -486,30 +490,30 @@ function AssistantApPage() {
             />
           ) : (
             <>
-              {openedWorksite && (
-                <WorksiteDetail
-                  worksite={openedWorksite}
-                  suppliers={supplierList}
-                  onClose={() => setOpenId(null)}
-                  onDeleted={() => setOpenId(null)}
-                  onChanged={invalidate}
-                />
-              )}
               {viewMode === "cards" ? (
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                   {visible.map((worksite) => (
-                    <WorksiteCard
-                      key={worksite.id}
-                      worksite={worksite}
-                      open={openId === worksite.id}
-                      onToggle={() =>
-                        setOpenId((current) => (current === worksite.id ? null : worksite.id))
-                      }
-                    />
+                    <Fragment key={worksite.id}>
+                      <WorksiteCard
+                        worksite={worksite}
+                        open={openId === worksite.id}
+                        onToggle={() =>
+                          setOpenId((current) => (current === worksite.id ? null : worksite.id))
+                        }
+                      />
+                      {openId === worksite.id && openedDetail && (
+                        <div className="col-span-full">{openedDetail}</div>
+                      )}
+                    </Fragment>
                   ))}
                 </div>
               ) : (
-                <WorksiteTable worksites={visible} openId={openId} onOpen={setOpenId} />
+                <WorksiteTable
+                  worksites={visible}
+                  openId={openId}
+                  onOpen={setOpenId}
+                  detail={openedDetail}
+                />
               )}
             </>
           )}
@@ -604,10 +608,12 @@ function WorksiteTable({
   worksites,
   openId,
   onOpen,
+  detail,
 }: {
   worksites: ApWorksite[];
   openId: string | null;
   onOpen: (id: string | null) => void;
+  detail: React.ReactNode;
 }) {
   return (
     <Card className="overflow-hidden shadow-none">
@@ -624,41 +630,45 @@ function WorksiteTable({
           const stateView = STATE_VIEW[worksiteGlobalState(worksite.supplies)];
           const ready = worksite.supplies.length - counts.toHandle;
           return (
-            <Button
-              key={worksite.id}
-              variant="ghost"
-              className={cn(
-                "grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-3 py-2 text-left md:grid-cols-[minmax(0,1.5fr)_8rem_11rem_8rem_6rem] md:gap-3",
-                openId === worksite.id && "bg-primary/5",
+            <Fragment key={worksite.id}>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-3 py-2 text-left md:grid-cols-[minmax(0,1.5fr)_8rem_11rem_8rem_6rem] md:gap-3",
+                  openId === worksite.id && "bg-primary/5",
+                )}
+                onClick={() => onOpen(openId === worksite.id ? null : worksite.id)}
+              >
+                <span className="truncate text-sm font-medium">{worksite.client_label}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground md:hidden" />
+                <span className="text-xs font-normal text-muted-foreground">
+                  {frDate(worksite.scheduled_date, worksite.date_label)}
+                </span>
+                <span
+                  className={cn(
+                    "flex items-center gap-1 text-xs font-normal",
+                    stateView.tone.replace(/bg-[^ ]+ ?/g, ""),
+                  )}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", stateView.dot)} />
+                  {stateView.label}
+                </span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {ready} / {worksite.supplies.length} prêtes
+                </span>
+                <span
+                  className={cn(
+                    "text-xs font-normal",
+                    counts.toFollowUp ? "text-accent-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {counts.toFollowUp || "—"}
+                </span>
+              </Button>
+              {openId === worksite.id && detail && (
+                <div className="border-t bg-muted/20 p-2">{detail}</div>
               )}
-              onClick={() => onOpen(openId === worksite.id ? null : worksite.id)}
-            >
-              <span className="truncate text-sm font-medium">{worksite.client_label}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground md:hidden" />
-              <span className="text-xs font-normal text-muted-foreground">
-                {frDate(worksite.scheduled_date, worksite.date_label)}
-              </span>
-              <span
-                className={cn(
-                  "flex items-center gap-1 text-xs font-normal",
-                  stateView.tone.replace(/bg-[^ ]+ ?/g, ""),
-                )}
-              >
-                <span className={cn("h-1.5 w-1.5 rounded-full", stateView.dot)} />
-                {stateView.label}
-              </span>
-              <span className="text-xs font-normal text-muted-foreground">
-                {ready} / {worksite.supplies.length} prêtes
-              </span>
-              <span
-                className={cn(
-                  "text-xs font-normal",
-                  counts.toFollowUp ? "text-accent-foreground" : "text-muted-foreground",
-                )}
-              >
-                {counts.toFollowUp || "—"}
-              </span>
-            </Button>
+            </Fragment>
           );
         })}
       </div>
@@ -684,6 +694,8 @@ function WorksiteDetail({
   const [openSupplyId, setOpenSupplyId] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [allSupplies, setAllSupplies] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const state = worksiteGlobalState(worksite.supplies);
   const counts = worksiteCounts(worksite.supplies);
   const stateView = STATE_VIEW[state];
@@ -766,7 +778,7 @@ function WorksiteDetail({
             <h3 className="text-xs font-semibold uppercase text-muted-foreground">
               Fournitures ({worksite.supplies.length})
             </h3>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -774,6 +786,17 @@ function WorksiteDetail({
                 onClick={() => setExporting(true)}
               >
                 <FileText className="mr-1 h-4 w-4" /> Exporter
+              </Button>
+              <Button
+                variant={selecting ? "secondary" : "outline"}
+                size="sm"
+                disabled={worksite.supplies.length === 0}
+                onClick={() => {
+                  setSelecting((value) => !value);
+                  setSelectedIds([]);
+                }}
+              >
+                {selecting ? "Terminer" : "Sélection"}
               </Button>
               <ImportQuoteButton worksiteId={worksite.id} onDone={onChanged} />
               <Button variant="outline" size="sm" onClick={() => setAdding((value) => !value)}>
@@ -789,6 +812,19 @@ function WorksiteDetail({
               onOpenChange={setExporting}
             />
           )}
+          {selecting && (
+            <BulkSupplyBar
+              selectedIds={selectedIds}
+              total={worksite.supplies.length}
+              suppliers={suppliers}
+              onSelectAll={() => setSelectedIds(worksite.supplies.map((supply) => supply.id))}
+              onClearSelection={() => setSelectedIds([])}
+              onApplied={() => {
+                setSelectedIds([]);
+                onChanged();
+              }}
+            />
+          )}
           {worksite.supplies.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun approvisionnement enregistré.</p>
           ) : (
@@ -802,8 +838,16 @@ function WorksiteDetail({
                   supply={supply}
                   suppliers={suppliers}
                   open={openSupplyId === supply.id}
+                  selecting={selecting}
+                  selected={selectedIds.includes(supply.id)}
                   onToggle={() =>
-                    setOpenSupplyId((current) => (current === supply.id ? null : supply.id))
+                    selecting
+                      ? setSelectedIds((current) =>
+                          current.includes(supply.id)
+                            ? current.filter((id) => id !== supply.id)
+                            : [...current, supply.id],
+                        )
+                      : setOpenSupplyId((current) => (current === supply.id ? null : supply.id))
                   }
                   onChanged={onChanged}
                 />
@@ -961,19 +1005,146 @@ function ActionGroup({
   );
 }
 
+function BulkSupplyBar({
+  selectedIds,
+  total,
+  suppliers,
+  onSelectAll,
+  onClearSelection,
+  onApplied,
+}: {
+  selectedIds: string[];
+  total: number;
+  suppliers: ApSupplier[];
+  onSelectAll: () => void;
+  onClearSelection: () => void;
+  onApplied: () => void;
+}) {
+  const [status, setStatus] = useState<ApStatus | "">("");
+  const [mode, setMode] = useState<ApMode | "">("");
+  const [supplier, setSupplier] = useState("");
+  const [date, setDate] = useState("");
+  const count = selectedIds.length;
+  const apply = useMutation({
+    mutationFn: async () => {
+      const patch: Parameters<typeof updateApSupply>[1] = {};
+      if (status) patch.status = status;
+      if (mode) patch.mode = mode;
+      if (date) patch.fulfillment_date = date;
+      const name = supplier.trim();
+      if (name) {
+        const known = supplierByName(suppliers, name);
+        patch.supplier = known?.name ?? name;
+        patch.supplier_id = known?.id ?? null;
+      }
+      if (Object.keys(patch).length === 0) {
+        throw new Error("Choisissez au moins un champ à modifier");
+      }
+      await Promise.all(selectedIds.map((id) => updateApSupply(id, patch)));
+      return selectedIds.length;
+    },
+    onSuccess: (done) => {
+      toast.success(`${done} fourniture${done > 1 ? "s" : ""} modifiée${done > 1 ? "s" : ""}`);
+      setStatus("");
+      setMode("");
+      setSupplier("");
+      setDate("");
+      onApplied();
+    },
+    onError: (mutationError: Error) => toast.error(mutationError.message),
+  });
+
+  return (
+    <div className="sticky bottom-2 z-10 space-y-2 rounded-md border border-primary/40 bg-background p-2 shadow-md">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className="font-medium">
+          {count} sélectionnée{count > 1 ? "s" : ""} / {total}
+        </span>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="sm" onClick={onSelectAll} disabled={count === total}>
+            Tout
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClearSelection} disabled={count === 0}>
+            Aucune
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Select value={status || undefined} onValueChange={(value) => setStatus(value as ApStatus)}>
+          <SelectTrigger className="h-8 text-sm" aria-label="Statut en masse">
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            {AP_STATUSES.map((item) => (
+              <SelectItem key={item} value={item}>
+                {STATUS_VIEW[item].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={mode || undefined} onValueChange={(value) => setMode(value as ApMode)}>
+          <SelectTrigger className="h-8 text-sm" aria-label="Opération en masse">
+            <SelectValue placeholder="Opération" />
+          </SelectTrigger>
+          <SelectContent>
+            {AP_MODES.map((item) => (
+              <SelectItem key={item} value={item}>
+                {AP_MODE_LABELS[item]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          aria-label="Fournisseur en masse"
+          list="ap-bulk-suppliers"
+          placeholder="Fournisseur"
+          value={supplier}
+          onChange={(event) => setSupplier(event.target.value)}
+          className="h-8 text-sm"
+        />
+        <datalist id="ap-bulk-suppliers">
+          {suppliers.map((item) => (
+            <option key={item.id} value={item.name} />
+          ))}
+        </datalist>
+        <Input
+          aria-label="Date en masse"
+          type="date"
+          value={date}
+          onChange={(event) => setDate(event.target.value)}
+          className="h-8 text-sm"
+        />
+      </div>
+      <Button
+        size="sm"
+        className="w-full"
+        disabled={count === 0 || apply.isPending}
+        onClick={() => apply.mutate()}
+      >
+        Appliquer aux {count} sélectionnée{count > 1 ? "s" : ""}
+      </Button>
+    </div>
+  );
+}
+
 function SupplyRow({
   supply,
   suppliers,
   open,
+  selecting,
+  selected,
   onToggle,
   onChanged,
 }: {
   supply: ApSupply;
   suppliers: ApSupplier[];
   open: boolean;
+  selecting: boolean;
+  selected: boolean;
   onToggle: () => void;
   onChanged: () => void;
 }) {
+  const isOpen = open && !selecting;
   const updateSupply = useMutation({
     mutationFn: (patch: Parameters<typeof updateApSupply>[1]) => updateApSupply(supply.id, patch),
     onSuccess: onChanged,
@@ -1002,12 +1173,25 @@ function SupplyRow({
         variant="ghost"
         className="grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-2 py-2 text-left sm:grid-cols-[minmax(7rem,1.2fr)_5rem_minmax(7rem,1fr)_6rem_7rem_6rem_auto] sm:items-center"
         onClick={onToggle}
-        aria-expanded={open}
+        aria-expanded={isOpen}
       >
         <span
           className={cn("truncate text-sm font-medium", blocking && ISSUE_TEXT_CLASS.blocking)}
           title={issues.map((issue) => issue.label).join(" · ") || undefined}
         >
+          {selecting && (
+            <span
+              aria-hidden
+              className={cn(
+                "mr-2 inline-flex h-4 w-4 items-center justify-center rounded border align-middle text-[10px]",
+                selected
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-muted-foreground",
+              )}
+            >
+              {selected ? "✓" : ""}
+            </span>
+          )}
           {supply.item}
         </span>
         <span className="text-xs font-normal text-muted-foreground sm:hidden">
@@ -1043,7 +1227,7 @@ function SupplyRow({
           <span className={cn("h-1.5 w-1.5 rounded-full", statusView.dot)} />
           {statusView.label}
         </span>
-        {open ? (
+        {isOpen ? (
           <ChevronUp className="h-4 w-4 text-muted-foreground" />
         ) : (
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -1054,7 +1238,7 @@ function SupplyRow({
           </span>
         )}
       </Button>
-      {open && (
+      {isOpen && (
         <div className="border-t p-2">
           {issues.length > 0 && (
             <p className="mb-2 flex flex-wrap gap-x-3 text-xs">
@@ -1680,68 +1864,79 @@ function SupplyReadinessPanel({
 }) {
   const blockers = worksiteBlockers(worksite.supplies, suppliers);
   if (worksite.supplies.length === 0) return null;
-  if (blockers.length > 0) {
-    return (
-      <div
-        className={cn(
-          "flex items-start gap-2 rounded-md border border-red-300/60 bg-red-50/60 px-3 py-2 text-sm dark:bg-red-950/20",
-          ISSUE_TEXT_CLASS.blocking,
-        )}
-      >
-        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-        <p>
-          <span className="font-medium">
-            {blockers.length} fourniture{blockers.length > 1 ? "s" : ""} bloquante
-            {blockers.length > 1 ? "s" : ""}
-          </span>{" "}
-          — {blockers.map((b) => b.supply.item || "(sans nom)").join(", ")}. Renseignez le
-          fournisseur pour pouvoir exporter les commandes.
-        </p>
-      </div>
-    );
-  }
-  if (!isReadyForExport(worksite.supplies, suppliers)) return null;
+  // Les lignes bloquantes sont exclues, mais les autres fournisseurs restent exportables.
+  const blockedIds = new Set(blockers.map((blocker) => blocker.supply.id));
   const orders = groupSuppliesBySupplier(
-    worksite.supplies.filter((s) => s.status === "a_faire" && isOrderable(s)),
+    worksite.supplies.filter(
+      (supply) => supply.status === "a_faire" && isOrderable(supply) && !blockedIds.has(supply.id),
+    ),
   );
+  if (blockers.length === 0 && orders.length === 0) return null;
   return (
-    <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-      <p className="flex items-center gap-2 text-sm font-medium text-primary">
-        <FileText className="h-4 w-4" /> Tout est renseigné — exporter un PDF par fournisseur ?
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {orders.map((order) => {
-          const email = supplierByName(suppliers, order.supplier);
-          const draft = buildSupplierEmail(worksite, order, email?.email ?? null);
-          return (
-            <div key={order.supplier} className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  void exportOrderPdf(worksite, [order]).catch((error: unknown) =>
-                    toast.error(error instanceof Error ? error.message : "Export PDF impossible"),
-                  )
-                }
-              >
-                <FileText className="mr-1 h-3.5 w-3.5" />
-                {order.supplier} ({order.lines.length})
-              </Button>
-              {/* Envoi direct par e-mail : prêt côté données, volontairement désactivé. */}
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8"
-                disabled={!AP_SUPPLIER_EMAIL_ENABLED || !draft.to}
-                title="Envoi direct au fournisseur — bientôt disponible"
-                aria-label={`Envoyer la commande à ${order.supplier} par e-mail (bientôt disponible)`}
-              >
-                <Mail className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          );
-        })}
-      </div>
+    <div className="space-y-2">
+      {blockers.length > 0 && (
+        <div
+          className={cn(
+            "flex items-start gap-2 rounded-md border border-red-300/60 bg-red-50/60 px-3 py-2 text-sm dark:bg-red-950/20",
+            ISSUE_TEXT_CLASS.blocking,
+          )}
+        >
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            <span className="font-medium">
+              {blockers.length} fourniture{blockers.length > 1 ? "s" : ""} bloquante
+              {blockers.length > 1 ? "s" : ""}
+            </span>{" "}
+            — {blockers.map((b) => b.supply.item || "(sans nom)").join(", ")}. Renseignez le
+            fournisseur pour pouvoir exporter les commandes.
+          </p>
+        </div>
+      )}
+      {orders.length > 0 && (
+        <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+          <p className="flex items-center gap-2 text-sm font-medium text-primary">
+            <FileText className="h-4 w-4" />
+            {blockers.length === 0
+              ? "Tout est renseigné — exporter un PDF par fournisseur ?"
+              : "Exporter les commandes prêtes, par fournisseur :"}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {orders.map((order) => {
+              const email = supplierByName(suppliers, order.supplier);
+              const draft = buildSupplierEmail(worksite, order, email?.email ?? null);
+              return (
+                <div key={order.supplier} className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      void exportOrderPdf(worksite, [order]).catch((error: unknown) =>
+                        toast.error(
+                          error instanceof Error ? error.message : "Export PDF impossible",
+                        ),
+                      )
+                    }
+                  >
+                    <FileText className="mr-1 h-3.5 w-3.5" />
+                    {order.supplier} ({order.lines.length})
+                  </Button>
+                  {/* Envoi direct par e-mail : prêt côté données, volontairement désactivé. */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    disabled={!AP_SUPPLIER_EMAIL_ENABLED || !draft.to}
+                    title="Envoi direct au fournisseur — bientôt disponible"
+                    aria-label={`Envoyer la commande à ${order.supplier} par e-mail (bientôt disponible)`}
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 // Assistant AP — export de la liste des fournitures d'un chantier à destination d'un fournisseur.
 // Logique pure (groupement + texte) ; le PDF est généré à la demande avec jsPDF.
 import type { ApSupply, ApWorksite } from "@/lib/assistant-ap";
+import { isNativeApp, nativePlugin } from "@/lib/native-app";
 
 export interface ApOrderLine {
   item: string;
@@ -172,5 +173,31 @@ export async function exportOrderPdf(
     .replace(/[^\w]+/g, "-")
     .replace(/^-|-$/g, "")
     .toLowerCase();
-  doc.save(`commande-${safe || "fournisseurs"}.pdf`);
+  const fileName = `commande-${safe || "fournisseurs"}.pdf`;
+  if (!isNativeApp()) {
+    doc.save(fileName);
+    return;
+  }
+  // Dans l'appli Android, le WebView ne télécharge pas de blob : on écrit le PDF en cache
+  // puis on ouvre le partage natif (e-mail, messagerie, etc.).
+  try {
+    const filesystem = nativePlugin("Filesystem");
+    const share = nativePlugin("Share");
+    const base64 = doc.output("datauristring").split(",")[1] ?? "";
+    const written = await filesystem.writeFile({
+      path: fileName,
+      data: base64,
+      directory: "CACHE",
+      recursive: true,
+    });
+    await share.share({
+      title: fileName,
+      dialogTitle: "Envoyer la commande",
+      files: [written.uri],
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/cancel/i.test(message)) return;
+    throw new Error("Partage du PDF indisponible : mettez l'application à jour.");
+  }
 }
