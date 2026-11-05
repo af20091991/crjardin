@@ -68,7 +68,9 @@ import {
   exportOrderPdf,
   groupSuppliesBySupplier,
   isOrderable,
+  type OrderBrand,
 } from "@/lib/assistant-ap-export";
+import { getMyProfile } from "@/lib/profile";
 import {
   AP_MODES,
   AP_MODE_LABELS,
@@ -99,6 +101,19 @@ import {
   type ApSupply,
   type ApWorksite,
 } from "@/lib/assistant-ap";
+
+/** Nom et cachet de l'entreprise (profil) pour les PDF de commande ; vide si indisponible. */
+async function loadOrderBrand(): Promise<OrderBrand> {
+  try {
+    const profile = await getMyProfile();
+    return {
+      companyName: profile?.company_name?.trim() ?? "",
+      stampData: profile?.stamp_data ?? null,
+    };
+  } catch {
+    return { companyName: "", stampData: null };
+  }
+}
 
 export const Route = createFileRoute("/_authenticated/pilot/assistant-ap")({
   head: () => ({
@@ -1910,11 +1925,13 @@ function SupplyReadinessPanel({
                     size="sm"
                     variant="outline"
                     onClick={() =>
-                      void exportOrderPdf(worksite, [order]).catch((error: unknown) =>
-                        toast.error(
-                          error instanceof Error ? error.message : "Export PDF impossible",
-                        ),
-                      )
+                      void loadOrderBrand()
+                        .then((brand) => exportOrderPdf(worksite, [order], brand))
+                        .catch((error: unknown) =>
+                          toast.error(
+                            error instanceof Error ? error.message : "Export PDF impossible",
+                          ),
+                        )
                     }
                   >
                     <FileText className="mr-1 h-3.5 w-3.5" />
@@ -1993,7 +2010,7 @@ function ExportSuppliesDialog({
   };
   const pdf = async () => {
     try {
-      await exportOrderPdf(worksite, orders);
+      await exportOrderPdf(worksite, orders, await loadOrderBrand());
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Export PDF impossible");
     }
