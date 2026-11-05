@@ -203,6 +203,33 @@ export async function exportOrderPdf(
       doc.setDrawColor(...LINE).line(margin, y - 3, pageW - margin, y - 3);
     }
 
+    // Mention de confirmation sous le tableau : l'adresse ouvre un e-mail pré-rempli.
+    const contact = "contact@delagraineaujardin.com";
+    const subject = `Confirmation de commande — ${worksite.client_label.trim() || "chantier"}`;
+    const body = "Bonjour, je vous confirme la bonne réception de votre commande.";
+    const mailto = `mailto:${contact}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mention = doc.splitTextToSize(
+      "Merci de bien vouloir me confirmer le disponible et la prise en compte de la commande ci-dessus par mail à l'adresse :",
+      pageW - 2 * margin,
+    ) as string[];
+    if (y + mention.length * 5 + 16 > pageH - margin) {
+      doc.addPage();
+      y = margin;
+    }
+    y += 6;
+    doc
+      .setFont("helvetica", "normal")
+      .setFontSize(10)
+      .setTextColor(...DARK);
+    for (const line of mention) {
+      doc.text(line, margin, y);
+      y += 5;
+    }
+    doc.setFont("helvetica", "bold").setTextColor(...GREEN);
+    doc.textWithLink(contact, margin, y, { url: mailto });
+    y += 5;
+    doc.setTextColor(...DARK);
+
     // Cachet de l'entreprise en bas de la commande, à droite (aucun cachet inventé si absent).
     if (stampImg) {
       const stampW = 50;
