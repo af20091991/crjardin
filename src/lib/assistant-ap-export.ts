@@ -2,6 +2,25 @@
 // Logique pure (groupement + texte) ; le PDF est généré à la demande avec jsPDF.
 import type { ApSupply, ApWorksite } from "@/lib/assistant-ap";
 import { isNativeApp, nativePlugin } from "@/lib/native-app";
+import logo from "@/assets/logo.png";
+
+/** Identité de l'entreprise imprimée sur la commande (logo fixe de l'appli + nom et cachet du profil). */
+export interface OrderBrand {
+  companyName: string;
+  stampData: string | null;
+}
+
+const DEFAULT_COMPANY = "De la graine au jardin";
+
+async function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 export interface ApOrderLine {
   item: string;
@@ -95,6 +114,7 @@ const LINE: [number, number, number] = [221, 226, 215];
 export async function exportOrderPdf(
   worksite: Pick<ApWorksite, "scheduled_date" | "date_label">,
   orders: ApSupplierOrder[],
+  brand?: OrderBrand,
 ): Promise<void> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -102,6 +122,10 @@ export async function exportOrderPdf(
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 16;
   const chantier = worksiteDateText(worksite);
+  const company = brand?.companyName?.trim() || DEFAULT_COMPANY;
+  // Logo et cachet : chargés une fois, ajoutés seulement s'ils sont disponibles.
+  const logoImg = await loadImage(logo).catch(() => null);
+  const stampImg = brand?.stampData ? await loadImage(brand.stampData).catch(() => null) : null;
   // Colonnes : article, quantité, livraison, date souhaitée.
   const cols = [margin, margin + 78, margin + 112, margin + 134];
   const widths = [74, 30, 20, pageW - margin - cols[3]];
@@ -109,6 +133,16 @@ export async function exportOrderPdf(
   orders.forEach((order, index) => {
     if (index > 0) doc.addPage();
     let y = margin;
+
+    // En-tête d'identification : logo + nom de l'entreprise.
+    if (logoImg) doc.addImage(logoImg, "PNG", margin, y, 16, 16, undefined, "NONE");
+    doc
+      .setFont("helvetica", "bold")
+      .setFontSize(12)
+      .setTextColor(...GREEN);
+    doc.text(company, margin + 20, y + 7);
+    doc.setDrawColor(...LINE).line(margin, y + 20, pageW - margin, y + 20);
+    y += 26;
 
     doc
       .setFont("helvetica", "bold")
@@ -164,6 +198,34 @@ export async function exportOrderPdf(
       cells.forEach((cell, i) => doc.text(cell, cols[i], y));
       y += height;
       doc.setDrawColor(...LINE).line(margin, y - 3, pageW - margin, y - 3);
+    }
+
+    // Cachet de l'entreprise en bas de la commande, à droite (aucun cachet inventé si absent).
+    if (stampImg) {
+      const stampW = 50;
+      const stampH = 30;
+      const ratio = stampImg.naturalWidth / stampImg.naturalHeight || 1;
+      let w = stampW;
+      let h = w / ratio;
+      if (h > stampH) {
+        h = stampH;
+        w = h * ratio;
+      }
+      const need = stampH + 14;
+      if (y + need > pageH - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      const x = pageW - margin - stampW;
+      const top = Math.max(y + 8, pageH - margin - stampH - 8);
+      doc
+        .setFont("helvetica", "normal")
+        .setFontSize(8.5)
+        .setTextColor(...MUTED);
+      doc.text(company, x, top - 2);
+      const mime = brand?.stampData?.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+      doc.addImage(brand?.stampData ?? "", mime, x + stampW - w, top, w, h, undefined, "NONE");
+      doc.setTextColor(...DARK);
     }
   });
 
