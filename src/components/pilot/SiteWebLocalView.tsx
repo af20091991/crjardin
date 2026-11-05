@@ -27,17 +27,19 @@ type SearchRow = {
 };
 
 type BusinessMetric = {
-  metric?: string;
-  dailyMetricTimeSeries?: Array<{
-    timeSeries?: Array<{
+  dailyMetric?: string;
+  timeSeries?: {
+    datedValues?: Array<{
       date?: { year?: number; month?: number; day?: number };
-      value?: number;
+      value?: string | number;
     }>;
-  }>;
+  };
 };
 
 type BusinessPerformance = {
-  multiDailyMetricTimeSeries?: BusinessMetric[];
+  multiDailyMetricTimeSeries?: Array<{
+    dailyMetricTimeSeries?: BusinessMetric[];
+  }>;
 };
 
 type BusinessSeriesRow = Record<string, number>;
@@ -334,14 +336,16 @@ export function SiteWebLocalView() {
   const businessSeries = useMemo(() => {
     const byDate = new Map<string, BusinessSeriesRow>();
     for (const item of performance?.multiDailyMetricTimeSeries ?? []) {
-      const metric = item.metric ?? "";
-      for (const point of item.dailyMetricTimeSeries?.[0]?.timeSeries ?? []) {
-        const date = point.date;
-        if (!date?.year || !date.month || !date.day) continue;
-        const key = `${date.year}-${String(date.month).padStart(2, "0")}-${String(date.day).padStart(2, "0")}`;
-        const row = byDate.get(key) ?? {};
-        row[metric] = Number(point.value ?? 0);
-        byDate.set(key, row);
+      for (const entry of item.dailyMetricTimeSeries ?? []) {
+        const metric = entry.dailyMetric ?? "";
+        for (const point of entry.timeSeries?.datedValues ?? []) {
+          const date = point.date;
+          if (!date?.year || !date.month || !date.day) continue;
+          const key = `${date.year}-${String(date.month).padStart(2, "0")}-${String(date.day).padStart(2, "0")}`;
+          const row = byDate.get(key) ?? {};
+          row[metric] = Number(point.value ?? 0);
+          byDate.set(key, row);
+        }
       }
     }
     return Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b));
