@@ -112,7 +112,7 @@ const LINE: [number, number, number] = [221, 226, 215];
 
 /** Génère et télécharge le PDF (une section par fournisseur, une page par fournisseur). */
 export async function exportOrderPdf(
-  worksite: Pick<ApWorksite, "scheduled_date" | "date_label">,
+  worksite: Pick<ApWorksite, "client_label" | "scheduled_date" | "date_label">,
   orders: ApSupplierOrder[],
   brand?: OrderBrand,
 ): Promise<void> {
@@ -154,6 +154,9 @@ export async function exportOrderPdf(
     doc.setFontSize(11).setTextColor(...DARK);
     doc.setFont("helvetica", "bold").text("Fournisseur :", margin, y);
     doc.setFont("helvetica", "normal").text(order.supplier, margin + 30, y);
+    y += 6;
+    doc.setFont("helvetica", "bold").text("Référence chantier :", margin, y);
+    doc.setFont("helvetica", "normal").text(worksite.client_label.trim() || "—", margin + 40, y);
     y += 6;
     doc.setFont("helvetica", "bold").text("Date prévue du chantier :", margin, y);
     doc.setFont("helvetica", "normal").text(chantier, margin + 52, y);
