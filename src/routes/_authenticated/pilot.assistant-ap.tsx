@@ -60,12 +60,13 @@ import {
 import { cn } from "@/lib/utils";
 import { describeApPlants, extractApQuoteLines } from "@/lib/assistant-ap-quote.functions";
 import { importQuoteFromFile } from "@/lib/assistant-ap-quote-import";
-import { AP_SUPPLIER_EMAIL_ENABLED, buildSupplierEmail } from "@/lib/assistant-ap-mail";
+import { sendApSupplierOrder } from "@/lib/ap-order-send.functions";
 import { ISSUE_TEXT_CLASS, supplyIssues, worksiteBlockers } from "@/lib/assistant-ap-checks";
 import { supplierByName } from "@/lib/assistant-ap-catalogue";
 import {
   buildOrderText,
   exportOrderPdf,
+  orderPdfBase64,
   groupSuppliesBySupplier,
   isOrderable,
   type OrderBrand,
@@ -1877,6 +1878,40 @@ function SupplyReadinessPanel({
   worksite: ApWorksite;
   suppliers: ApSupplier[];
 }) {
+  const [sendingTo, setSendingTo] = useState<string | null>(null);
+  const sendOrder = async (
+    order: ReturnType<typeof groupSuppliesBySupplier>[number],
+    email: ApSupplier,
+  ) => {
+    if (!window.confirm(`Envoyer la commande à ${order.supplier} (${email.email}) avec le PDF ?`)) {
+      return;
+    }
+    setSendingTo(order.supplier);
+    try {
+      const brand = await loadOrderBrand();
+      const pdfBase64 = await orderPdfBase64(worksite, order, brand);
+      const result = await sendApSupplierOrder({
+        data: {
+          supplierId: email.id,
+          worksiteLabel: worksite.client_label,
+          pdfBase64,
+          orderText: buildOrderText(worksite, [order]),
+          attemptId: crypto.randomUUID(),
+        },
+      });
+      if (result.sent) {
+        toast.success(`Commande envoyée à ${order.supplier}`);
+      } else {
+        toast.error(
+          `${order.supplier} ne peut pas recevoir de mail (adresse supprimée ou désabonnée).`,
+        );
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Envoi impossible");
+    } finally {
+      setSendingTo(null);
+    }
+  };
   const blockers = worksiteBlockers(worksite.supplies, suppliers);
   if (worksite.supplies.length === 0) return null;
   // Les lignes bloquantes sont exclues, mais les autres fournisseurs restent exportables.
@@ -1918,7 +1953,6 @@ function SupplyReadinessPanel({
           <div className="flex flex-wrap gap-2">
             {orders.map((order) => {
               const email = supplierByName(suppliers, order.supplier);
-              const draft = buildSupplierEmail(worksite, order, email?.email ?? null);
               return (
                 <div key={order.supplier} className="flex items-center gap-1">
                   <Button
@@ -1937,14 +1971,19 @@ function SupplyReadinessPanel({
                     <FileText className="mr-1 h-3.5 w-3.5" />
                     {order.supplier} ({order.lines.length})
                   </Button>
-                  {/* Envoi direct par e-mail : prêt côté données, volontairement désactivé. */}
+                  {/* Envoi par e-mail : PDF en lien sécurisé + texte de la commande. */}
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8"
-                    disabled={!AP_SUPPLIER_EMAIL_ENABLED || !draft.to}
-                    title="Envoi direct au fournisseur — bientôt disponible"
-                    aria-label={`Envoyer la commande à ${order.supplier} par e-mail (bientôt disponible)`}
+                    disabled={!email?.email || sendingTo !== null}
+                    onClick={() => email && void sendOrder(order, email)}
+                    title={
+                      email?.email
+                        ? `Envoyer à ${email.email}`
+                        : "Ajoutez l'adresse e-mail du fournisseur"
+                    }
+                    aria-label={`Envoyer la commande à ${order.supplier} par e-mail`}
                   >
                     <Mail className="h-3.5 w-3.5" />
                   </Button>
