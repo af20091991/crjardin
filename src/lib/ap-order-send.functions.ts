@@ -49,6 +49,7 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
       errorMessage: string | null;
     }) => {
       // Table hors types générés courants : même accès que le reste de l'Assistant AP.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table hors types générés
       const { error: traceError } = await (context.supabase.from as any)("ap_order_sends").insert({
         worksite_id: data.worksiteId,
         worksite_label: data.worksiteLabel,

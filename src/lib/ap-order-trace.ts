@@ -13,6 +13,7 @@ export interface ApOrderSend {
 }
 
 // Table hors types générés courants : même accès que le reste de l'Assistant AP.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- table hors types générés
 const apFrom = (table: string) => (supabase.from as any)(table);
 
 export async function listApOrderSends(worksiteId: string): Promise<ApOrderSend[]> {
