@@ -61,6 +61,7 @@ import { cn } from "@/lib/utils";
 import { describeApPlants, extractApQuoteLines } from "@/lib/assistant-ap-quote.functions";
 import { importQuoteFromFile } from "@/lib/assistant-ap-quote-import";
 import { sendApSupplierOrder } from "@/lib/ap-order-send.functions";
+import { listApOrderSends } from "@/lib/ap-order-trace";
 import { ISSUE_TEXT_CLASS, supplyIssues, worksiteBlockers } from "@/lib/assistant-ap-checks";
 import { supplierByName } from "@/lib/assistant-ap-catalogue";
 import {
@@ -1879,6 +1880,11 @@ function SupplyReadinessPanel({
   suppliers: ApSupplier[];
 }) {
   const [sendingTo, setSendingTo] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: sends = [] } = useQuery({
+    queryKey: ["ap-order-sends", worksite.id],
+    queryFn: () => listApOrderSends(worksite.id),
+  });
   const sendOrder = async (
     order: ReturnType<typeof groupSuppliesBySupplier>[number],
     email: ApSupplier,
@@ -1893,6 +1899,7 @@ function SupplyReadinessPanel({
       const result = await sendApSupplierOrder({
         data: {
           supplierId: email.id,
+          worksiteId: worksite.id,
           worksiteLabel: worksite.client_label,
           pdfBase64,
           orderText: buildOrderText(worksite, [order]),
@@ -1910,6 +1917,7 @@ function SupplyReadinessPanel({
       toast.error(error instanceof Error ? error.message : "Envoi impossible");
     } finally {
       setSendingTo(null);
+      void queryClient.invalidateQueries({ queryKey: ["ap-order-sends", worksite.id] });
     }
   };
   const blockers = worksiteBlockers(worksite.supplies, suppliers);
@@ -1940,6 +1948,28 @@ function SupplyReadinessPanel({
             — {blockers.map((b) => b.supply.item || "(sans nom)").join(", ")}. Renseignez le
             fournisseur pour pouvoir exporter les commandes.
           </p>
+        </div>
+      )}
+      {sends.length > 0 && (
+        <div className="space-y-1 rounded-md border border-border px-3 py-2 text-xs">
+          <p className="font-medium">Envois de commande</p>
+          <ul className="space-y-0.5">
+            {sends.map((send) => (
+              <li key={send.id} className="text-muted-foreground">
+                {new Date(send.sent_at).toLocaleString("fr-FR", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                })}{" "}
+                — {send.supplier_name} ({send.recipient_email}) :{" "}
+                {send.status === "sent"
+                  ? "envoyé"
+                  : send.status === "suppressed"
+                    ? "non délivrable"
+                    : "échec"}
+                {send.error_message ? ` — ${send.error_message}` : ""}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {orders.length > 0 && (

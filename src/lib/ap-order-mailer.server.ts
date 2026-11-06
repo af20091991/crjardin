@@ -49,12 +49,14 @@ export function buildApOrderEmail(input: Omit<ApOrderEmailInput, "to" | "idempot
 
 export async function sendApOrderEmail(
   input: ApOrderEmailInput,
-): Promise<{ sent: true } | { sent: false; reason: "recipient_suppressed" }> {
+): Promise<
+  { sent: true; messageId: string | null } | { sent: false; reason: "recipient_suppressed" }
+> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
   const { subject, text, html } = buildApOrderEmail(input);
   try {
-    await sendLovableEmail(
+    const response = await sendLovableEmail(
       {
         to: input.to,
         from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
@@ -69,7 +71,7 @@ export async function sendApOrderEmail(
       },
       { apiKey, sendUrl: process.env["LOVABLE_SEND_URL"] },
     );
-    return { sent: true };
+    return { sent: true, messageId: response?.message_id ?? null };
   } catch (error) {
     if (error instanceof EmailAPIError && error.code === "recipient_suppressed") {
       return { sent: false, reason: "recipient_suppressed" };
