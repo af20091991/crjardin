@@ -3,6 +3,7 @@
 import type { ApSupply, ApWorksite } from "@/lib/assistant-ap";
 import { isNativeApp, nativePlugin } from "@/lib/native-app";
 import logo from "@/assets/logo.png";
+import type { jsPDF as JsPDF } from "jspdf";
 
 /** Identité de l'entreprise imprimée sur la commande (logo fixe de l'appli + nom et cachet du profil). */
 export interface OrderBrand {
@@ -110,12 +111,12 @@ const DARK: [number, number, number] = [48, 55, 45];
 const MUTED: [number, number, number] = [112, 116, 106];
 const LINE: [number, number, number] = [221, 226, 215];
 
-/** Génère et télécharge le PDF (une section par fournisseur, une page par fournisseur). */
-export async function exportOrderPdf(
+/** Construit le PDF (une section par fournisseur, une page par fournisseur). */
+async function renderOrderPdf(
   worksite: Pick<ApWorksite, "client_label" | "scheduled_date" | "date_label">,
   orders: ApSupplierOrder[],
   brand?: OrderBrand,
-): Promise<void> {
+): Promise<JsPDF> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -259,6 +260,26 @@ export async function exportOrderPdf(
     }
   });
 
+  return doc;
+}
+
+/** PDF d'une commande en base64 (pour l'envoi par e-mail). */
+export async function orderPdfBase64(
+  worksite: Pick<ApWorksite, "client_label" | "scheduled_date" | "date_label">,
+  order: ApSupplierOrder,
+  brand?: OrderBrand,
+): Promise<string> {
+  const doc = await renderOrderPdf(worksite, [order], brand);
+  return doc.output("datauristring").split(",")[1] ?? "";
+}
+
+/** Génère et télécharge (ou partage sur Android) le PDF des commandes. */
+export async function exportOrderPdf(
+  worksite: Pick<ApWorksite, "client_label" | "scheduled_date" | "date_label">,
+  orders: ApSupplierOrder[],
+  brand?: OrderBrand,
+): Promise<void> {
+  const doc = await renderOrderPdf(worksite, orders, brand);
   const suffix = orders.length === 1 ? orders[0].supplier : "fournisseurs";
   const safe = suffix
     .normalize("NFD")
