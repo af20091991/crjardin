@@ -7,6 +7,7 @@ const SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
 
 export interface SendApOrderInput {
   supplierId: string;
+  worksiteId: string;
   worksiteLabel: string;
   pdfBase64: string;
   orderText: string;
@@ -40,28 +41,67 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
       throw new Error("Adresse e-mail du fournisseur invalide.");
     }
 
-    const bytes = decodePdf(data.pdfBase64);
+    // Journal d'envoi dans PP (module Assistant AP) : une ligne par tentative, réussie ou non.
+    const writeTrace = async (row: {
+      status: "sent" | "suppressed" | "failed";
+      pdfPath: string | null;
+      messageId: string | null;
+      errorMessage: string | null;
+    }) => {
+      // Table hors types générés courants : même accès que le reste de l'Assistant AP.
+      const { error: traceError } = await (context.supabase.from as any)("ap_order_sends").insert({
+        worksite_id: data.worksiteId,
+        worksite_label: data.worksiteLabel,
+        supplier_id: supplier.id,
+        supplier_name: supplier.name,
+        recipient_email: to,
+        pdf_path: row.pdfPath,
+        message_id: row.messageId,
+        status: row.status,
+        error_message: row.errorMessage,
+        sent_by: context.userId,
+      });
+      if (traceError) console.error("ap_order_sends insert failed", traceError.code);
+    };
+
     const attempt = data.attemptId.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 40);
-    const path = `${context.userId}/${attempt}-${supplier.id}.pdf`;
+    let pdfPath: string | null = null;
+    try {
+      const bytes = decodePdf(data.pdfBase64);
+      pdfPath = `${context.userId}/${attempt}-${supplier.id}.pdf`;
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from("ap-orders")
-      .upload(path, bytes, { contentType: "application/pdf", upsert: true });
-    if (uploadError) throw uploadError;
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("ap-orders")
+        .upload(pdfPath, bytes, { contentType: "application/pdf", upsert: true });
+      if (uploadError) throw uploadError;
 
-    const { data: signed, error: signError } = await supabaseAdmin.storage
-      .from("ap-orders")
-      .createSignedUrl(path, SIGNED_URL_SECONDS);
-    if (signError || !signed?.signedUrl) throw signError ?? new Error("Lien PDF indisponible.");
+      const { data: signed, error: signError } = await supabaseAdmin.storage
+        .from("ap-orders")
+        .createSignedUrl(pdfPath, SIGNED_URL_SECONDS);
+      if (signError || !signed?.signedUrl) throw signError ?? new Error("Lien PDF indisponible.");
 
-    const { sendApOrderEmail } = await import("@/lib/ap-order-mailer.server");
-    return sendApOrderEmail({
-      to,
-      supplierName: supplier.name,
-      worksiteLabel: data.worksiteLabel,
-      orderText: data.orderText,
-      pdfUrl: signed.signedUrl,
-      idempotencyKey: `ap-order-${attempt}-${supplier.id}`,
-    });
+      const { sendApOrderEmail } = await import("@/lib/ap-order-mailer.server");
+      const result = await sendApOrderEmail({
+        to,
+        supplierName: supplier.name,
+        worksiteLabel: data.worksiteLabel,
+        orderText: data.orderText,
+        pdfUrl: signed.signedUrl,
+        idempotencyKey: `ap-order-${attempt}-${supplier.id}`,
+      });
+      await writeTrace({
+        status: result.sent ? "sent" : "suppressed",
+        pdfPath,
+        messageId: result.sent ? result.messageId : null,
+        errorMessage: result.sent
+          ? null
+          : "Adresse désactivée côté envoi (désabonnée ou invalide).",
+      });
+      return result;
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Envoi impossible";
+      await writeTrace({ status: "failed", pdfPath, messageId: null, errorMessage: message });
+      throw caught;
+    }
   });
