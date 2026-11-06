@@ -180,14 +180,22 @@ function SplashOverlay() {
 function hideSplash() {
   const el = document.getElementById("pp-splash");
   if (!el) return;
-  const start =
-    (window as unknown as { __ppSplashStart?: number }).__ppSplashStart ?? performance.now();
-  // Animation (4,1 s) + 0,4 s de maintien sur le logo complet.
-  const wait = Math.max(0, start + 4500 - performance.now());
-  window.setTimeout(() => {
-    el.classList.add("pp-out");
-    window.setTimeout(() => el.remove(), 300);
-  }, wait);
+  const w = window as unknown as { __ppSplashStart?: number };
+  // Animation complète (4,1 s) + 1 s de pause sur le logo final, puis seulement l'appli.
+  const schedule = (start: number) => {
+    const wait = Math.max(0, start + 4100 + 1000 - performance.now());
+    window.setTimeout(() => {
+      el.classList.add("pp-out");
+      window.setTimeout(() => el.remove(), 300);
+    }, wait);
+  };
+  if (w.__ppSplashStart !== undefined) return schedule(w.__ppSplashStart);
+  // L'animation n'a pas encore commencé (image en cours de chargement) : on attend son début.
+  const img = el.querySelector("img");
+  if (!img) return schedule(performance.now());
+  img.addEventListener("load", () => schedule(w.__ppSplashStart ?? performance.now()), {
+    once: true,
+  });
 }
 
 function RootShell({ children }: { children: ReactNode }) {
