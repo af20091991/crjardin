@@ -257,6 +257,7 @@ export type StoredPoste = {
 
 export type StoredQuoteLine = StoredLine & {
   id: string;
+  quote_id: string;
   poste_id: string | null;
   position: number;
   source_ref: string | null;
@@ -326,11 +327,13 @@ export async function chooseSupplier(line: StoredQuoteLine, option: SupplierOpti
     })
     .eq("id", line.id);
   if (error) throw error;
+  await refreshClientBlocks(line.quote_id);
 }
 
-export async function updateLineFields(lineId: string, patch: Record<string, unknown>): Promise<void> {
+export async function updateLineFields(quoteId: string, lineId: string, patch: Record<string, unknown>): Promise<void> {
   const { error } = await db().from("predevis_lines").update(patch).eq("id", lineId);
   if (error) throw error;
+  await refreshClientBlocks(quoteId);
 }
 
 export async function setPosteReview(posteId: string, review_status: "a_verifier" | "valide"): Promise<void> {

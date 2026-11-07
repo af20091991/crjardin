@@ -65,7 +65,7 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
     onError: fail,
   });
   const patchMut = useMutation({
-    mutationFn: (args: { id: string; patch: Record<string, unknown> }) => updateLineFields(args.id, args.patch),
+    mutationFn: (args: { quoteId: string; id: string; patch: Record<string, unknown> }) => updateLineFields(args.quoteId, args.id, args.patch),
     onSuccess: refresh,
     onError: fail,
   });
@@ -196,7 +196,7 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
                                     </SelectContent>
                                   </Select>
                                 )}
-                                <ManualPau line={line} onSave={(v) => patchMut.mutate({ id: line.id, patch: { pau_ht_applied: v, cost_status: v == null ? "manquant" : "manuel", supplier_id: null } })} />
+                                <ManualPau line={line} onSave={(v) => patchMut.mutate({ quoteId, id: line.id, patch: { pau_ht_applied: v, cost_status: v == null ? "manquant" : "manuel", supplier_id: null } })} />
                                 <Input
                                   className="h-8 w-28"
                                   type="number"
@@ -205,12 +205,12 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
                                   defaultValue={line.unit_multiplier ?? ""}
                                   onBlur={(e) => {
                                     const v = e.target.value === "" ? null : Number(e.target.value);
-                                    patchMut.mutate({ id: line.id, patch: { unit_multiplier: v, unit_status: v == null ? "non_verifiee" : "ok" } });
+                                    patchMut.mutate({ quoteId, id: line.id, patch: { unit_multiplier: v, unit_status: v == null ? "non_verifiee" : "ok" } });
                                   }}
                                 />
                               </div>
                             ) : (
-                              <MoCost line={line} onSave={(v, reason) => patchMut.mutate({ id: line.id, patch: { manual_cost_ht: v, cost_status: v == null ? "manquant" : "manuel", zero_cost_reason: reason } })} />
+                              <MoCost line={line} onSave={(v, reason) => patchMut.mutate({ quoteId, id: line.id, patch: { manual_cost_ht: v, cost_status: v == null ? "manquant" : "manuel", zero_cost_reason: reason } })} />
                             )}
                           </td>
                           <td className="text-right">{eur(line.ht)}</td>
@@ -238,7 +238,38 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
                 <Textarea readOnly rows={Math.max(3, (poste.client_block ?? "").split("\n").length)} value={poste.client_block ?? ""} />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!poste.client_block}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(poste.client_block ?? "");
+                      toast.success("Bloc client copié.");
+                    } catch {
+                      toast.error("Copie impossible : sélectionne le texte et copie-le à la main.");
+                    }
+                  }}
+                >
+                  Copier le bloc client
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!poste.client_block}
+                  onClick={() => {
+                    const blob = new Blob([`${poste.title}\n\n${poste.client_block ?? ""}\n`], { type: "text/plain;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${poste.title.replace(/[^\p{L}\p{N}]+/gu, "_").slice(0, 60)}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  Télécharger le bloc (.txt)
+                </Button>
                 <Button
                   size="sm"
                   disabled={!fin.complete || poste.review_status === "valide"}
