@@ -11,7 +11,7 @@ import {
   type RawRow,
   type ExistingOffer,
 } from "./predevis-catalogue-import";
-import { suppliersToCreate, toWriteRows } from "./predevis-catalogue-write";
+import { dedupeOfferRows, suppliersToCreate, toWriteRows } from "./predevis-catalogue-write";
 import {
   matchQuoteRow,
   supplierOptions,
@@ -163,15 +163,17 @@ export async function applyCatalogueImport(args: {
       };
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);
+  // Un même lot ne peut pas contenir deux fois la même offre (ON CONFLICT) : la plus haute gagne.
+  const dedupedOffers = dedupeOfferRows(offerRows);
 
-  for (let i = 0; i < offerRows.length; i += CHUNK) {
+  for (let i = 0; i < dedupedOffers.length; i += CHUNK) {
     const { error } = await db()
       .from("predevis_offers")
-      .upsert(offerRows.slice(i, i + CHUNK), { onConflict: "product_id,supplier_key,source" });
+      .upsert(dedupedOffers.slice(i, i + CHUNK), { onConflict: "product_id,supplier_key,source" });
     if (error) throw error;
   }
 
-  return { importId, productCount: productIdByCode.size, offerCount: offerRows.length };
+  return { importId, productCount: productIdByCode.size, offerCount: dedupedOffers.length };
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +212,20 @@ export async function saveQuoteDraft(args: {
   if (qe) throw qe;
   const quoteId: string = quote.id;
 
+  try {
+    return await writePostesAndLines(quoteId, parse, products);
+  } catch (e) {
+    // Pas de transaction côté client : on retire le devis partiel pour ne pas laisser un brouillon incomplet.
+    await db().from("predevis_quotes").delete().eq("id", quoteId);
+    throw e;
+  }
+}
+
+async function writePostesAndLines(
+  quoteId: string,
+  parse: QuoteParse,
+  products: CatalogueProduct[],
+): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
   let lineCount = 0;
   for (const poste of parse.postes) {
     const rows = poste.rows.map((r) => {

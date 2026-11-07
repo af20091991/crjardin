@@ -71,3 +71,21 @@ export function effectivePau(offers: Array<{ pau_ht: number | null; source: Cata
   }
   return best;
 }
+
+/** Une seule offre par (produit, fournisseur, source) : la plus haute l'emporte, un prix manquant ne l'emporte jamais. */
+export function dedupeOfferRows<
+  T extends {
+    product_id: string;
+    supplier_id: string | null;
+    source: string;
+    pau_ht: number | null;
+  },
+>(rows: T[]): T[] {
+  const best = new Map<string, T>();
+  for (const r of rows) {
+    const key = `${r.product_id}|${r.supplier_id ?? ""}|${r.source}`;
+    const cur = best.get(key);
+    if (!cur || (r.pau_ht ?? -Infinity) > (cur.pau_ht ?? -Infinity)) best.set(key, r);
+  }
+  return [...best.values()];
+}
