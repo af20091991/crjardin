@@ -7,7 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CatalogueSource } from "./predevis-catalogue-normalize";
 import { buildCatalogueImport, type ImportPlan, type RawRow, type ExistingOffer } from "./predevis-catalogue-import";
 import { suppliersToCreate, toWriteRows } from "./predevis-catalogue-write";
-import { matchQuoteRow, type CatalogueProduct } from "./predevis-match";
+import { matchQuoteRow, supplierOptions, type CatalogueOffer, type CatalogueProduct, type SupplierOption } from "./predevis-match";
+import { lineFinance, suggestedMultiplier, type StoredLine } from "./predevis-lines";
+import { posteFinance, type PosteFinance } from "./predevis-finance";
 import type { QuoteParse } from "./predevis-quote-parse";
 import { clientBlock } from "./predevis-client-block";
 
@@ -226,4 +228,116 @@ export async function saveQuoteDraft(args: {
   }
 
   return { quoteId, posteCount: parse.postes.length, lineCount };
+}
+
+// ---------------------------------------------------------------------------
+// Pré-devis : lecture et mise à jour d'un devis enregistré.
+// ---------------------------------------------------------------------------
+
+export type QuoteSummary = { id: string; title: string; devis_number: string | null; total_ht_declared: number | null; status: string; created_at: string };
+
+export async function listQuotes(): Promise<QuoteSummary[]> {
+  const { data, error } = await db()
+    .from("predevis_quotes")
+    .select("id, title, devis_number, total_ht_declared, status, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export type StoredPoste = {
+  id: string;
+  position: number;
+  title: string;
+  review_status: "a_verifier" | "valide";
+  subtotal_ht: number | null;
+  client_block: string | null;
+};
+
+export type StoredQuoteLine = StoredLine & {
+  id: string;
+  poste_id: string | null;
+  position: number;
+  source_ref: string | null;
+  designation: string;
+  quantity: number | null;
+  catalogue_product_id: string | null;
+  supplier_id: string | null;
+  match_status: string;
+  unit: string | null;
+  client_description: string | null;
+};
+
+export type QuoteDetail = {
+  quote: QuoteSummary;
+  postes: StoredPoste[];
+  lines: StoredQuoteLine[];
+  products: CatalogueProduct[];
+  offers: CatalogueOffer[];
+  suppliers: Array<{ id: string; name: string }>;
+};
+
+export async function loadQuoteDetail(quoteId: string): Promise<QuoteDetail> {
+  const [quote, postes, lines, products, offers, suppliers] = await Promise.all([
+    db().from("predevis_quotes").select("id, title, devis_number, total_ht_declared, status, created_at").eq("id", quoteId).single(),
+    db().from("predevis_postes").select("id, position, title, review_status, subtotal_ht, client_block").eq("quote_id", quoteId).order("position"),
+    db().from("predevis_lines").select("*").eq("quote_id", quoteId).order("position"),
+    loadCatalogueProducts(),
+    db().from("predevis_offers").select("product_id, supplier_id, source, pau_ht"),
+    db().from("predevis_suppliers").select("id, name"),
+  ]);
+  for (const r of [quote, postes, lines, offers, suppliers]) if (r.error) throw r.error;
+
+  const supplierName = new Map((suppliers.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
+  return {
+    quote: quote.data,
+    postes: postes.data ?? [],
+    lines: lines.data ?? [],
+    products,
+    offers: (offers.data ?? []).map((o: { product_id: string; supplier_id: string | null; source: CatalogueSource; pau_ht: number | null }) => ({
+      product_id: o.product_id,
+      supplier_id: o.supplier_id,
+      supplier_name: o.supplier_id ? (supplierName.get(o.supplier_id) ?? null) : null,
+      source: o.source,
+      pau_ht: o.pau_ht,
+    })),
+    suppliers: suppliers.data ?? [],
+  };
+}
+
+/** Fournisseurs proposés pour la fourniture rattachée à une ligne, avec leur prix. */
+export function linePurchaseOptions(line: StoredQuoteLine, offers: CatalogueOffer[]): SupplierOption[] {
+  return line.catalogue_product_id ? supplierOptions(line.catalogue_product_id, offers) : [];
+}
+
+/** Choisit un fournisseur : le PAU de son offre est copié dans la ligne. */
+export async function chooseSupplier(line: StoredQuoteLine, option: SupplierOption, productUnit: string | null): Promise<void> {
+  const cost_status = option.pau_ht == null ? "manquant" : "connu";
+  const multiplier = suggestedMultiplier(productUnit);
+  const { error } = await db()
+    .from("predevis_lines")
+    .update({
+      supplier_id: option.supplier_id,
+      pau_ht_applied: option.pau_ht,
+      cost_status,
+      unit_multiplier: line.unit_multiplier ?? multiplier,
+      unit_status: line.unit_status === "ok" || multiplier != null ? "ok" : "non_verifiee",
+    })
+    .eq("id", line.id);
+  if (error) throw error;
+}
+
+export async function updateLineFields(lineId: string, patch: Record<string, unknown>): Promise<void> {
+  const { error } = await db().from("predevis_lines").update(patch).eq("id", lineId);
+  if (error) throw error;
+}
+
+export async function setPosteReview(posteId: string, review_status: "a_verifier" | "valide"): Promise<void> {
+  const { error } = await db().from("predevis_postes").update({ review_status }).eq("id", posteId);
+  if (error) throw error;
+}
+
+/** Indicateurs d'un poste, calculés depuis ses lignes enregistrées. */
+export function computePosteFinance(lines: StoredQuoteLine[]): PosteFinance {
+  return posteFinance(lines.map(lineFinance));
 }
