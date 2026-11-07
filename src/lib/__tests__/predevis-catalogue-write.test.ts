@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { effectivePau, suppliersToCreate, toWriteRows } from "../predevis-catalogue-write";
+import {
+  dedupeOfferRows,
+  effectivePau,
+  suppliersToCreate,
+  toWriteRows,
+} from "../predevis-catalogue-write";
 import { buildCatalogueImport } from "../predevis-catalogue-import";
 
 describe("suppliersToCreate", () => {
@@ -61,5 +66,20 @@ describe("effectivePau", () => {
       value: null,
       source: null,
     });
+  });
+});
+
+describe("dedupeOfferRows", () => {
+  test("garde une offre par produit, fournisseur et source, la plus haute", () => {
+    const rows = [
+      { product_id: "p1", supplier_id: "s1", source: "excel", pau_ht: 2 },
+      { product_id: "p1", supplier_id: "s1", source: "excel", pau_ht: 5 },
+      { product_id: "p1", supplier_id: null, source: "excel", pau_ht: null },
+      { product_id: "p1", supplier_id: null, source: "excel", pau_ht: 1 },
+    ];
+    const out = dedupeOfferRows(rows);
+    expect(out.length).toBe(2);
+    expect(out.find((r) => r.supplier_id === "s1")?.pau_ht).toBe(5);
+    expect(out.find((r) => r.supplier_id === null)?.pau_ht).toBe(1);
   });
 });

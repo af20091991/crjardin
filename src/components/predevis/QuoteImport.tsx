@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export function QuoteImport() {
   const [fileName, setFileName] = useState<string>("");
   const [selected, setSelected] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
 
   async function analyse(file: File) {
     setBusy(true);
@@ -152,6 +154,7 @@ export function QuoteImport() {
                     const userId = auth.user?.id;
                     if (!userId) throw new Error("Session expirée, reconnecte-toi.");
                     const res = await saveQuoteDraft({ parse: quote, fileName, userId });
+                    await qc.invalidateQueries({ queryKey: ["predevis"] });
                     toast.success(
                       `Pré-devis enregistré : ${res.posteCount} postes, ${res.lineCount} lignes.`,
                     );
