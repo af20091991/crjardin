@@ -14,16 +14,17 @@ type Pending = { source: MatrixSource; fileName: string; plan: ImportPlan };
 
 export function CatalogueImport() {
   const [excel, setExcel] = useState<File | null>(null);
+  const [henrri, setHenrri] = useState<File | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [confirmed, setConfirmed] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
-  async function analyse(file: File) {
+  async function analyse(file: File, source: MatrixSource) {
     setBusy(true);
     try {
-      const rows = await readCatalogueFile(file);
-      const plan = await analyseCatalogue("excel", rows);
-      setPending({ source: "excel", fileName: file.name, plan });
+      const rows = await readCatalogueFile(file, source);
+      const plan = await analyseCatalogue(source, rows);
+      setPending({ source, fileName: file.name, plan });
       setConfirmed([]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Lecture du fichier impossible.");
@@ -63,19 +64,39 @@ export function CatalogueImport() {
           <CardTitle>Catalogue fournisseurs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="predevis-excel">
-              Excel fournisseurs (onglet « Référence » ou « Produits »)
-            </Label>
-            <input
-              id="predevis-excel"
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(e) => setExcel(e.target.files?.[0] ?? null)}
-            />
-            <Button size="sm" disabled={!excel || busy} onClick={() => excel && analyse(excel)}>
-              Analyser
-            </Button>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="predevis-excel">Excel fournisseurs (onglet « Produits »)</Label>
+              <input
+                id="predevis-excel"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => setExcel(e.target.files?.[0] ?? null)}
+              />
+              <Button
+                size="sm"
+                disabled={!excel || busy}
+                onClick={() => excel && analyse(excel, "excel")}
+              >
+                Analyser
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="predevis-henrri">Export Henrri (onglet « Référence »)</Label>
+              <input
+                id="predevis-henrri"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => setHenrri(e.target.files?.[0] ?? null)}
+              />
+              <Button
+                size="sm"
+                disabled={!henrri || busy}
+                onClick={() => henrri && analyse(henrri, "henrri")}
+              >
+                Analyser
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
