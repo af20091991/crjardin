@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CatalogueSource } from "./predevis-catalogue-normalize";
 import { buildCatalogueImport, type ImportPlan, type RawRow, type ExistingOffer } from "./predevis-catalogue-import";
 import { suppliersToCreate, toWriteRows } from "./predevis-catalogue-write";
+import { matchQuoteRow, type CatalogueProduct } from "./predevis-match";
+import type { QuoteParse } from "./predevis-quote-parse";
+import { clientBlock } from "./predevis-client-block";
 
 const db = () => supabase as unknown as { from: (table: string) => any };
 const CHUNK = 500;
@@ -129,3 +132,98 @@ export async function applyCatalogueImport(args: {
   return { importId, productCount: productIdByCode.size, offerCount: offerRows.length };
 }
 
+
+// ---------------------------------------------------------------------------
+// Pré-devis : enregistrement d'un devis lu (brouillon). Aucune valeur inventée :
+// prix d'achat, fournisseur et unité restent à compléter.
+// ---------------------------------------------------------------------------
+
+export async function loadCatalogueProducts(): Promise<CatalogueProduct[]> {
+  const { data, error } = await db()
+    .from("predevis_products")
+    .select("id, norm_code, code, designation, norm_designation, unit");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function saveQuoteDraft(args: {
+  parse: QuoteParse;
+  fileName: string;
+  userId: string;
+}): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
+  const { parse, fileName, userId } = args;
+  const products = await loadCatalogueProducts();
+
+  const { data: quote, error: qe } = await db()
+    .from("predevis_quotes")
+    .insert({
+      title: `Pré-devis ${parse.devisNumber ?? fileName}`,
+      devis_number: parse.devisNumber,
+      source_file_name: fileName,
+      total_ht_declared: parse.totalHtDeclared,
+      status: "brouillon",
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (qe) throw qe;
+  const quoteId: string = quote.id;
+
+  let lineCount = 0;
+  for (const poste of parse.postes) {
+    const rows = poste.rows.map((r) => {
+      const m = matchQuoteRow({ ref: r.ref, designation: r.designation }, products);
+      return { row: r, match: m };
+    });
+
+    const { data: created, error: pe } = await db()
+      .from("predevis_postes")
+      .insert({
+        quote_id: quoteId,
+        position: poste.index,
+        title: poste.title ?? `Poste ${poste.index}`,
+        description_lines: poste.descriptionLines,
+        detection: "auto",
+        review_status: "a_verifier",
+        subtotal_ht: poste.subtotalHt,
+        client_block: clientBlock(
+          poste.rows.map((r) => ({
+            kind: r.kind,
+            designation: r.designation,
+            clientDescription: null,
+            quantity: r.quantity,
+            unit: null,
+          })),
+        ),
+      })
+      .select("id")
+      .single();
+    if (pe) throw pe;
+
+    const lineRows = rows.map(({ row, match }) => ({
+      quote_id: quoteId,
+      poste_id: created.id,
+      position: row.position,
+      source_ref: row.refRaw,
+      designation: row.designation,
+      line_kind: row.kind,
+      continued: row.continued,
+      quantity: row.quantity,
+      pu_ht: row.pu,
+      tva_rate: row.tvaRate,
+      ht: row.ht,
+      ttc: row.ttc,
+      catalogue_product_id: match.productId,
+      match_status: match.status,
+      unit_status: "non_verifiee",
+      cost_status: "manquant",
+    }));
+    for (let i = 0; i < lineRows.length; i += CHUNK) {
+      const { error } = await db().from("predevis_lines").insert(lineRows.slice(i, i + CHUNK));
+      if (error) throw error;
+    }
+    lineCount += lineRows.length;
+  }
+
+  return { quoteId, posteCount: parse.postes.length, lineCount };
+}

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { pdfFileToWords } from "@/lib/predevis-quote-pdf";
 import { parseQuote, type QuoteParse } from "@/lib/predevis-quote-parse";
+import { saveQuoteDraft } from "@/lib/predevis-data";
+import { supabase } from "@/integrations/supabase/client";
 
 const eur = (n: number | null) => (n == null ? "données insuffisantes" : `${n.toFixed(2).replace(".", ",")} €`);
 
@@ -117,9 +119,31 @@ export function QuoteImport() {
               </section>
             )}
 
-            <Button variant="outline" size="sm" onClick={() => setQuote(null)}>
-              Fermer
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                disabled={busy || quote.postes.length === 0}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const { data: auth } = await supabase.auth.getUser();
+                    const userId = auth.user?.id;
+                    if (!userId) throw new Error("Session expirée, reconnecte-toi.");
+                    const res = await saveQuoteDraft({ parse: quote, fileName, userId });
+                    toast.success(`Pré-devis enregistré : ${res.posteCount} postes, ${res.lineCount} lignes.`);
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Enregistrement impossible.");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Enregistrer le pré-devis (brouillon)
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setQuote(null)}>
+                Fermer
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
