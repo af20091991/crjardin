@@ -35,6 +35,7 @@ import {
   MapPin,
   PackageSearch,
   Truck,
+  Calculator,
   Crown,
 } from "lucide-react";
 import {
@@ -322,6 +323,18 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: false,
         },
+        ...(isAdmin
+          ? [
+              {
+                to: "/pilot/predevis",
+                label: "Pré-devis",
+                short: "PD",
+                icon: Calculator,
+                exact: false,
+                primary: false,
+              },
+            ]
+          : []),
         ...(canView
           ? [
               {
