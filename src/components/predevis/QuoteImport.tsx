@@ -14,6 +14,7 @@ const eur = (n: number | null) =>
 export function QuoteImport() {
   const [quote, setQuote] = useState<QuoteParse | null>(null);
   const [fileName, setFileName] = useState<string>("");
+  const [selected, setSelected] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function analyse(file: File) {
@@ -41,14 +42,22 @@ export function QuoteImport() {
       <CardContent className="space-y-4 text-sm">
         <div className="flex flex-wrap items-center gap-3">
           <input
+            id="predevis-quote-pdf"
             type="file"
             accept=".pdf"
             disabled={busy}
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) analyse(f);
+              setSelected(e.target.files?.[0] ?? null);
+              setQuote(null);
             }}
           />
+          <Button
+            size="sm"
+            disabled={!selected || busy}
+            onClick={() => selected && analyse(selected)}
+          >
+            Analyser le devis
+          </Button>
           {busy && <span className="text-muted-foreground">Lecture…</span>}
         </div>
 
