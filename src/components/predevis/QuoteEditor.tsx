@@ -14,11 +14,13 @@ import {
   listQuotes,
   loadQuoteDetail,
   setPosteReview,
+  moveLineToPoste,
   updateLineFields,
   type QuoteDetail,
   type StoredQuoteLine,
 } from "@/lib/predevis-data";
 import type { SupplierOption } from "@/lib/predevis-match";
+import { unaffected } from "@/lib/predevis-moves";
 
 const KEY = ["predevis"] as const;
 const eur = (n: number | null) => (n == null ? "données insuffisantes" : `${n.toFixed(2).replace(".", ",")} €`);
@@ -73,6 +75,12 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
     onError: fail,
   });
 
+  const moveMut = useMutation({
+    mutationFn: (args: { lineId: string; posteId: string | null }) => moveLineToPoste(quoteId, args.lineId, args.posteId),
+    onSuccess: refresh,
+    onError: fail,
+  });
+
   if (isLoading) return <p className="text-sm text-muted-foreground">Chargement…</p>;
   if (error || !data) return <p className="text-sm text-destructive">{(error as Error | undefined)?.message ?? "Introuvable."}</p>;
 
@@ -88,11 +96,33 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
         </Button>
       </div>
 
+      {unaffected(detail.lines).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Lignes non affectées ({unaffected(detail.lines).length})</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Glisse une ligne dans un poste, ou utilise « Déplacer vers » pour l'affecter. Elles ne comptent dans aucun poste.
+          </CardContent>
+          <CardContent>
+            <LineList lines={unaffected(detail.lines)} postes={detail.postes} onMove={(lineId, posteId) => moveMut.mutate({ lineId, posteId })} />
+          </CardContent>
+        </Card>
+      )}
+
       {detail.postes.map((poste) => {
         const lines = detail.lines.filter((l) => l.poste_id === poste.id);
         const fin = computePosteFinance(lines);
         return (
-          <Card key={poste.id}>
+          <Card
+            key={poste.id}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const lineId = e.dataTransfer.getData("text/plain");
+              if (lineId) moveMut.mutate({ lineId, posteId: poste.id });
+            }}
+          >
             <CardHeader>
               <CardTitle className="flex flex-wrap items-center gap-2 text-base">
                 {poste.position}. {poste.title}
@@ -116,16 +146,29 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
                   </thead>
                   <tbody>
                     {lines.map((line) => {
+                      const moveRow = (
+                        <div className="mt-1">
+                          <MoveSelect postes={detail.postes} current={line.poste_id} onMove={(posteId) => moveMut.mutate({ lineId: line.id, posteId })} />
+                        </div>
+                      );
                       const options = linePurchaseOptions(line, detail.offers);
                       const selected = options.find((o) => o.supplier_id === line.supplier_id && line.pau_ht_applied != null);
                       const cost = line.kind === "fourniture" && line.cost_status === "connu" && line.unit_status === "ok" && line.pau_ht_applied != null && line.quantity != null && line.unit_multiplier != null
                         ? Math.round(line.quantity * line.unit_multiplier * line.pau_ht_applied * 100) / 100
                         : null;
                       return (
-                        <tr key={line.id} className="border-t align-top">
-                          <td className="py-2 pr-2">{line.source_ref ?? "—"}</td>
+                        <tr
+                          key={line.id}
+                          className="border-t align-top"
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData("text/plain", line.id)}
+                        >
+                          <td className="py-2 pr-2">
+                            <span aria-hidden="true" className="cursor-grab select-none text-muted-foreground">⠿</span> {line.source_ref ?? "—"}
+                          </td>
                           <td className="pr-2">
                             {line.designation}
+                            {moveRow}
                             {line.kind === "mo" && <Badge variant="outline" className="ml-2">MO</Badge>}
                             {line.match_status === "a_confirmer" && <Badge variant="outline" className="ml-2">rattachement à confirmer</Badge>}
                           </td>
@@ -260,5 +303,36 @@ function MoCost({ line, onSave }: { line: StoredQuoteLine; onSave: (v: number | 
         </SelectContent>
       </Select>
     </div>
+  );
+}
+
+function MoveSelect({ postes, current, onMove }: { postes: Array<{ id: string; position: number; title: string }>; current: string | null; onMove: (posteId: string | null) => void }) {
+  return (
+    <Select value={current ?? "__none__"} onValueChange={(v) => onMove(v === "__none__" ? null : v)}>
+      <SelectTrigger className="h-8 w-56" aria-label="Déplacer vers un poste">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__">Non affectée</SelectItem>
+        {postes.map((p) => (
+          <SelectItem key={p.id} value={p.id}>
+            {p.position}. {p.title}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function LineList({ lines, postes, onMove }: { lines: StoredQuoteLine[]; postes: Array<{ id: string; position: number; title: string }>; onMove: (lineId: string, posteId: string | null) => void }) {
+  return (
+    <ul className="divide-y text-sm">
+      {lines.map((l) => (
+        <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 py-2" draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", l.id)}>
+          <span>{l.source_ref ? `${l.source_ref} — ` : ""}{l.designation}</span>
+          <MoveSelect postes={postes} current={null} onMove={(posteId) => onMove(l.id, posteId)} />
+        </li>
+      ))}
+    </ul>
   );
 }

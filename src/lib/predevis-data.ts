@@ -10,6 +10,7 @@ import { suppliersToCreate, toWriteRows } from "./predevis-catalogue-write";
 import { matchQuoteRow, supplierOptions, type CatalogueOffer, type CatalogueProduct, type SupplierOption } from "./predevis-match";
 import { lineFinance, suggestedMultiplier, type StoredLine } from "./predevis-lines";
 import { posteFinance, type PosteFinance } from "./predevis-finance";
+
 import type { QuoteParse } from "./predevis-quote-parse";
 import { clientBlock } from "./predevis-client-block";
 
@@ -341,3 +342,42 @@ export async function setPosteReview(posteId: string, review_status: "a_verifier
 export function computePosteFinance(lines: StoredQuoteLine[]): PosteFinance {
   return posteFinance(lines.map(lineFinance));
 }
+
+// ---------------------------------------------------------------------------
+// Pré-devis : déplacement de ligne et régénération des blocs texte client.
+// ---------------------------------------------------------------------------
+
+export async function moveLineToPoste(quoteId: string, lineId: string, posteId: string | null): Promise<void> {
+  const { error } = await db().from("predevis_lines").update({ poste_id: posteId }).eq("id", lineId);
+  if (error) throw error;
+  await refreshClientBlocks(quoteId);
+}
+
+/** Recalcule le bloc texte client de chaque poste à partir des lignes actuelles. Sans prix ni marge. */
+export async function refreshClientBlocks(quoteId: string): Promise<void> {
+  const [postes, lines, products] = await Promise.all([
+    db().from("predevis_postes").select("id").eq("quote_id", quoteId),
+    db().from("predevis_lines").select("id, poste_id, line_kind, designation, client_description, quantity, catalogue_product_id, ht").eq("quote_id", quoteId),
+    loadCatalogueProducts(),
+  ]);
+  if (postes.error) throw postes.error;
+  if (lines.error) throw lines.error;
+  const unitById = new Map(products.map((p) => [p.id, p.unit]));
+
+  for (const poste of postes.data ?? []) {
+    const block = clientBlock(
+      (lines.data ?? [])
+        .filter((l: { poste_id: string | null }) => l.poste_id === poste.id)
+        .map((l: { line_kind: "fourniture" | "mo"; designation: string; client_description: string | null; quantity: number | null; catalogue_product_id: string | null }) => ({
+          kind: l.line_kind,
+          designation: l.designation,
+          clientDescription: l.client_description,
+          quantity: l.quantity,
+          unit: l.catalogue_product_id ? (unitById.get(l.catalogue_product_id) ?? null) : null,
+        })),
+    );
+    const { error } = await db().from("predevis_postes").update({ client_block: block }).eq("id", poste.id);
+    if (error) throw error;
+  }
+}
+
