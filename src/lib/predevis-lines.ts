@@ -32,3 +32,38 @@ export function lineFinance(row: StoredLine): FinanceLine {
 export function suggestedMultiplier(catalogUnit: string | null): number | null {
   return catalogUnit === "pièce" ? 1 : null;
 }
+
+export type OfferRow = { supplier_id: string | null; source: string; pau_ht: number | null };
+
+/**
+ * Achat appliqué automatiquement à l'enregistrement, seulement si le produit n'a qu'un fournisseur :
+ * le PAU est celui de l'offre (jamais estimé). Plusieurs fournisseurs : rien, le choix reste à faire.
+ */
+export function uniqueSupplierPurchase(
+  offers: OfferRow[],
+  productUnit: string | null,
+): {
+  supplier_id: string | null;
+  pau_ht_applied: number | null;
+  cost_status: "connu" | "manquant";
+  unit_multiplier: number | null;
+  unit_status: "ok" | "non_verifiee";
+} | null {
+  const groups = new Map<string, OfferRow[]>();
+  for (const o of offers) {
+    const key = o.supplier_id ?? "__non_precise__";
+    groups.set(key, [...(groups.get(key) ?? []), o]);
+  }
+  if (groups.size !== 1) return null;
+  const [group] = [...groups.values()];
+  const priced = group.map((o) => o.pau_ht).filter((v): v is number => v != null);
+  const value = priced.length > 0 ? Math.max(...priced) : null;
+  const multiplier = suggestedMultiplier(productUnit);
+  return {
+    supplier_id: group[0].supplier_id,
+    pau_ht_applied: value,
+    cost_status: value == null ? "manquant" : "connu",
+    unit_multiplier: multiplier,
+    unit_status: multiplier != null ? "ok" : "non_verifiee",
+  };
+}

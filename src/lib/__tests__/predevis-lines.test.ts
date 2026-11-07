@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { lineFinance, suggestedMultiplier, type StoredLine } from "../predevis-lines";
+import {
+  lineFinance,
+  suggestedMultiplier,
+  uniqueSupplierPurchase,
+  type StoredLine,
+} from "../predevis-lines";
 
 const base: StoredLine = {
   kind: "fourniture",
@@ -47,5 +52,32 @@ describe("suggestedMultiplier", () => {
     expect(suggestedMultiplier("pièce")).toBe(1);
     expect(suggestedMultiplier("kg")).toBeNull();
     expect(suggestedMultiplier(null)).toBeNull();
+  });
+});
+
+describe("uniqueSupplierPurchase", () => {
+  test("un seul fournisseur : PAU de l'offre, coût connu, pièce = multiplicateur 1", () => {
+    const r = uniqueSupplierPurchase(
+      [{ supplier_id: "s1", source: "excel", pau_ht: 4.2 }],
+      "pièce",
+    );
+    expect(r?.pau_ht_applied).toBe(4.2);
+    expect(r?.cost_status).toBe("connu");
+    expect(r?.unit_status).toBe("ok");
+  });
+  test("plusieurs fournisseurs : aucun choix automatique", () => {
+    const r = uniqueSupplierPurchase(
+      [
+        { supplier_id: "s1", source: "excel", pau_ht: 4 },
+        { supplier_id: "s2", source: "excel", pau_ht: 5 },
+      ],
+      "pièce",
+    );
+    expect(r).toBeNull();
+  });
+  test("prix manquant : coût manquant, jamais estimé", () => {
+    const r = uniqueSupplierPurchase([{ supplier_id: null, source: "henrri", pau_ht: null }], null);
+    expect(r?.pau_ht_applied).toBeNull();
+    expect(r?.cost_status).toBe("manquant");
   });
 });
