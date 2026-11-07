@@ -26,7 +26,9 @@ export function normText(value: string): string {
 /** Code produit : majuscules, sans espaces, tirets ni points. Le libellé d'origine est gardé ailleurs. */
 export function normCode(code: string | null | undefined): string | null {
   if (code == null) return null;
-  const c = String(code).toUpperCase().replace(/[\s\-.]/g, "");
+  const c = String(code)
+    .toUpperCase()
+    .replace(/[\s\-.]/g, "");
   return c.length > 0 ? c : null;
 }
 
@@ -98,7 +100,11 @@ export function normUnit(raw: unknown): string | null {
 }
 
 /** Lignes qui ne sont pas des fournitures catalogue : services et main-d'œuvre (vivent dans les devis). */
-export function isCatalogueExcluded(input: { family?: string | null; designation?: string | null; code?: string | null }): boolean {
+export function isCatalogueExcluded(input: {
+  family?: string | null;
+  designation?: string | null;
+  code?: string | null;
+}): boolean {
   const family = normText(input.family ?? "");
   if (family === "services") return true;
   const designation = normText(input.designation ?? "");
@@ -118,9 +124,7 @@ export function resolvePriceConflict(
   if (incoming.value == null) return { ...current, conflict: false };
   if (current.value == null) return { ...incoming, conflict: false };
   const conflict = current.value !== incoming.value;
-  return incoming.value > current.value
-    ? { ...incoming, conflict }
-    : { ...current, conflict };
+  return incoming.value > current.value ? { ...incoming, conflict } : { ...current, conflict };
 }
 
 /** Références présentes plusieurs fois (à trancher par l'utilisateur, jamais écrasées silencieusement). */

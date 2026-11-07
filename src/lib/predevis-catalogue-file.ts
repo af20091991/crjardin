@@ -22,7 +22,9 @@ export async function readCatalogueFile(file: File, source: MatrixSource): Promi
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: true });
   const rows = matrixToRows(matrix, source);
   if (rows.length === 0) {
-    throw new CatalogueFileError(`En-tête non reconnu dans « ${SHEET_NAME[source]} » de ${file.name}.`);
+    throw new CatalogueFileError(
+      `En-tête non reconnu dans « ${SHEET_NAME[source]} » de ${file.name}.`,
+    );
   }
   return rows;
 }

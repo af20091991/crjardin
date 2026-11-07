@@ -24,11 +24,19 @@ describe("lineFinance", () => {
   });
 
   test("PAU absent : coût inconnu", () => {
-    expect(lineFinance({ ...base, pau_ht_applied: null, cost_status: "manquant" }).costHt).toBeNull();
+    expect(
+      lineFinance({ ...base, pau_ht_applied: null, cost_status: "manquant" }).costHt,
+    ).toBeNull();
   });
 
   test("main-d'œuvre : coût saisi, 0 € accepté avec motif", () => {
-    const mo: StoredLine = { ...base, kind: "mo", pau_ht_applied: null, manual_cost_ht: 0, zero_cost_reason: "sav" };
+    const mo: StoredLine = {
+      ...base,
+      kind: "mo",
+      pau_ht_applied: null,
+      manual_cost_ht: 0,
+      zero_cost_reason: "sav",
+    };
     expect(lineFinance(mo).costHt).toBe(0);
     expect(lineFinance(mo).zeroCostReason).toBe("sav");
   });

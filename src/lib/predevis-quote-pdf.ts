@@ -19,7 +19,12 @@ export async function pdfFileToWords(file: File): Promise<PdfWord[]> {
     const content = await page.getTextContent();
     const styles = (content.styles ?? {}) as Record<string, { fontFamily?: string }>;
 
-    for (const raw of content.items as Array<{ str?: string; transform: number[]; width: number; fontName: string }>) {
+    for (const raw of content.items as Array<{
+      str?: string;
+      transform: number[];
+      width: number;
+      fontName: string;
+    }>) {
       const str = raw.str?.trim();
       if (!str) continue;
       const x = raw.transform[4];

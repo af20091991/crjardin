@@ -51,7 +51,11 @@ export type ImportReport = {
   source: CatalogueSource;
   rows_read: number;
   products: number;
-  excluded: Array<{ code: string; designation: string; reason: "service_ou_mo" | "sans_reference" | "sans_designation" }>;
+  excluded: Array<{
+    code: string;
+    designation: string;
+    reason: "service_ou_mo" | "sans_reference" | "sans_designation";
+  }>;
   duplicates: string[];
   missing_price: Array<{ norm_code: string; designation: string; pau_raw: string | null }>;
   unknown_suppliers: string[];
@@ -66,8 +70,20 @@ export type ImportPlan = {
 
 // Libellés d'en-tête attendus, par source (tolérants : accents et casse ignorés).
 const HEADERS = {
-  excel: { code: "Code produit", designation: "Désignation", pau: "PAU HT", description: "Description", supplier: "Fournisseur 1" },
-  henrri: { code: "Référence", designation: "Désignation", pau: "P.A HT", family: "Famille", unit: "Unité" },
+  excel: {
+    code: "Code produit",
+    designation: "Désignation",
+    pau: "PAU HT",
+    description: "Description",
+    supplier: "Fournisseur 1",
+  },
+  henrri: {
+    code: "Référence",
+    designation: "Désignation",
+    pau: "P.A HT",
+    family: "Famille",
+    unit: "Unité",
+  },
 } as const;
 
 function cell(row: RawRow, label: string | undefined): unknown {
@@ -176,10 +192,22 @@ export function buildCatalogueImport(args: {
     }
 
     if (suppliers.length === 0) {
-      offers.push({ norm_code: c.norm, supplier_name: null, source, pau_ht: price.value, pau_raw: price.raw });
+      offers.push({
+        norm_code: c.norm,
+        supplier_name: null,
+        source,
+        pau_ht: price.value,
+        pau_raw: price.raw,
+      });
     } else {
       for (const name of suppliers) {
-        offers.push({ norm_code: c.norm, supplier_name: name, source, pau_ht: price.value, pau_raw: price.raw });
+        offers.push({
+          norm_code: c.norm,
+          supplier_name: name,
+          source,
+          pau_ht: price.value,
+          pau_raw: price.raw,
+        });
       }
     }
   }
@@ -188,7 +216,8 @@ export function buildCatalogueImport(args: {
   const conflicts: ImportConflict[] = [];
   for (const o of offers) {
     const other = existingOffers.find(
-      (e) => e.norm_code === o.norm_code && e.supplier_name === o.supplier_name && e.source !== o.source,
+      (e) =>
+        e.norm_code === o.norm_code && e.supplier_name === o.supplier_name && e.source !== o.source,
     );
     if (!other) continue;
     const incoming = { value: o.pau_ht, source: o.source };

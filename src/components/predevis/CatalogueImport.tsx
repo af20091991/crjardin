@@ -67,15 +67,33 @@ export function CatalogueImport() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="predevis-excel">Excel fournisseurs (onglet « Produits »)</Label>
-              <input id="predevis-excel" type="file" accept=".xlsx,.xls" onChange={(e) => setExcel(e.target.files?.[0] ?? null)} />
-              <Button size="sm" disabled={!excel || busy} onClick={() => excel && analyse(excel, "excel")}>
+              <input
+                id="predevis-excel"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => setExcel(e.target.files?.[0] ?? null)}
+              />
+              <Button
+                size="sm"
+                disabled={!excel || busy}
+                onClick={() => excel && analyse(excel, "excel")}
+              >
                 Analyser
               </Button>
             </div>
             <div className="space-y-2">
               <Label htmlFor="predevis-henrri">Export Henrri (onglet « Export »)</Label>
-              <input id="predevis-henrri" type="file" accept=".xlsx,.xls" onChange={(e) => setHenrri(e.target.files?.[0] ?? null)} />
-              <Button size="sm" disabled={!henrri || busy} onClick={() => henrri && analyse(henrri, "henrri")}>
+              <input
+                id="predevis-henrri"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => setHenrri(e.target.files?.[0] ?? null)}
+              />
+              <Button
+                size="sm"
+                disabled={!henrri || busy}
+                onClick={() => henrri && analyse(henrri, "henrri")}
+              >
                 Analyser
               </Button>
             </div>
@@ -90,7 +108,8 @@ export function CatalogueImport() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p>
-              {r.rows_read} lignes lues · {r.products} produits à enregistrer · {r.excluded.length} exclues (services, main-d'œuvre, sans référence)
+              {r.rows_read} lignes lues · {r.products} produits à enregistrer · {r.excluded.length}{" "}
+              exclues (services, main-d'œuvre, sans référence)
             </p>
 
             {r.duplicates.length > 0 && (
@@ -115,14 +134,18 @@ export function CatalogueImport() {
             {r.unknown_suppliers.length > 0 && (
               <section className="space-y-2">
                 <h3 className="font-medium">Fournisseurs inconnus</h3>
-                <p className="text-muted-foreground">Cochés = créés. Non cochés = ignorés pour l'instant.</p>
+                <p className="text-muted-foreground">
+                  Cochés = créés. Non cochés = ignorés pour l'instant.
+                </p>
                 {r.unknown_suppliers.map((name) => (
                   <div key={name} className="flex items-center gap-2">
                     <Checkbox
                       id={`sup-${name}`}
                       checked={confirmed.includes(name)}
                       onCheckedChange={(v) =>
-                        setConfirmed((prev) => (v ? [...prev, name] : prev.filter((n) => n !== name)))
+                        setConfirmed((prev) =>
+                          v ? [...prev, name] : prev.filter((n) => n !== name),
+                        )
                       }
                     />
                     <Label htmlFor={`sup-${name}`}>{name}</Label>
@@ -138,7 +161,9 @@ export function CatalogueImport() {
                 <ul className="list-disc pl-5">
                   {r.conflicts.map((c) => (
                     <li key={`${c.norm_code}-${c.supplier_name}`}>
-                      {c.norm_code} {c.supplier_name ? `(${c.supplier_name})` : ""} : retenu {c.kept.value} € ({c.kept.source}) · autre {c.other.value} € ({c.other.source})
+                      {c.norm_code} {c.supplier_name ? `(${c.supplier_name})` : ""} : retenu{" "}
+                      {c.kept.value} € ({c.kept.source}) · autre {c.other.value} € ({c.other.source}
+                      )
                     </li>
                   ))}
                 </ul>

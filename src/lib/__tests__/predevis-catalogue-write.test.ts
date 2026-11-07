@@ -17,7 +17,12 @@ describe("toWriteRows", () => {
   const plan = buildCatalogueImport({
     source: "excel",
     rows: [
-      { "Code produit": "H2", "Désignation": "Arbuste", "PAU HT": 14.4, "Fournisseur 1": "SJ34, Inconnu" },
+      {
+        "Code produit": "H2",
+        Désignation: "Arbuste",
+        "PAU HT": 14.4,
+        "Fournisseur 1": "SJ34, Inconnu",
+      },
     ],
     knownSuppliers: new Set(["sj34"]),
   });
@@ -43,10 +48,18 @@ describe("effectivePau", () => {
   });
 
   test("valeurs absentes ignorées ; tout absent → null", () => {
-    expect(effectivePau([{ pau_ht: null, source: "henrri" }, { pau_ht: 3, source: "excel" }])).toEqual({
+    expect(
+      effectivePau([
+        { pau_ht: null, source: "henrri" },
+        { pau_ht: 3, source: "excel" },
+      ]),
+    ).toEqual({
       value: 3,
       source: "excel",
     });
-    expect(effectivePau([{ pau_ht: null, source: "excel" }])).toEqual({ value: null, source: null });
+    expect(effectivePau([{ pau_ht: null, source: "excel" }])).toEqual({
+      value: null,
+      source: null,
+    });
   });
 });

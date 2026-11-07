@@ -9,7 +9,11 @@ const f = (ht: number, costHt: number | null, ttc?: number): FinanceLine => ({
   costHt,
   zeroCostReason: null,
 });
-const mo = (ht: number, costHt: number | null, zero: "remise" | "sav" | null = null): FinanceLine => ({
+const mo = (
+  ht: number,
+  costHt: number | null,
+  zero: "remise" | "sav" | null = null,
+): FinanceLine => ({
   kind: "mo",
   ht,
   ttc: Math.round(ht * 1.2 * 100) / 100,
@@ -66,8 +70,20 @@ describe("posteFinance — données manquantes (jamais 0)", () => {
 
 describe("clientBlock", () => {
   const lines: ClientBlockLine[] = [
-    { kind: "fourniture", designation: "Terre végétale criblée enrichie - 35L", clientDescription: null, quantity: 22, unit: "pièce" },
-    { kind: "fourniture", designation: "Billes d'argile - T5", clientDescription: "Billes d'argile 20 L, calibrées", quantity: 5, unit: null },
+    {
+      kind: "fourniture",
+      designation: "Terre végétale criblée enrichie - 35L",
+      clientDescription: null,
+      quantity: 22,
+      unit: "pièce",
+    },
+    {
+      kind: "fourniture",
+      designation: "Billes d'argile - T5",
+      clientDescription: "Billes d'argile 20 L, calibrées",
+      quantity: 5,
+      unit: null,
+    },
     { kind: "mo", designation: "Main d'oeuvre", clientDescription: null, quantity: 1, unit: null },
   ];
 
@@ -80,7 +96,9 @@ describe("clientBlock", () => {
   });
 
   test("donnée absente signalée, jamais inventée", () => {
-    const text = clientBlock([{ kind: "fourniture", designation: "X", clientDescription: null, quantity: null, unit: null }]);
+    const text = clientBlock([
+      { kind: "fourniture", designation: "X", clientDescription: null, quantity: null, unit: null },
+    ]);
     expect(text).toBe("- X : quantité à préciser unité à préciser");
   });
 });

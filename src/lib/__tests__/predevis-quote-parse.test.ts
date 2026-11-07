@@ -22,13 +22,15 @@ describe("devis Henrri réel — postes", () => {
   test("trois postes, sous-totaux contrôlés", () => {
     expect(quote.postes.map((p) => p.subtotalHt)).toEqual([1935.85, 1000.22, 711.91]);
     expect(quote.postes.every((p) => p.status === "ok")).toBe(true);
-    expect(Math.max(...quote.postes.map((p) => Math.abs(p.deltaHt ?? 99)))).toBeLessThanOrEqual(0.05);
+    expect(quote.postes.every((p) => Math.abs(p.deltaHt ?? 99) <= 0.05)).toBe(true);
   });
 
   test("titres de poste en gras", () => {
     expect(quote.postes[0].title).toBe("Travaux préparatoires:");
     expect(quote.postes[1].title?.startsWith("Aménagement de la cour:")).toBe(true);
-    expect(quote.postes[2].title).toBe("Mise en place d'un goutte à goutte avec programmateur Bluetooth");
+    expect(quote.postes[2].title).toBe(
+      "Mise en place d'un goutte à goutte avec programmateur Bluetooth",
+    );
   });
 
   test("nombre de lignes par poste", () => {

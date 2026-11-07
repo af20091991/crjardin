@@ -32,10 +32,12 @@ export function lineCostHt(line: FinanceLine): number | null {
 export function posteFinance(lines: FinanceLine[]): PosteFinance {
   const issues: string[] = [];
 
-  const hts = lines.map((l) => l.ht);
-  const pvHt = hts.some((h) => h == null) ? null : round2(hts.reduce((s, h) => s + (h as number), 0));
-  const ttcs = lines.map((l) => l.ttc);
-  const pvTtc = ttcs.some((t) => t == null) ? null : round2(ttcs.reduce((s, t) => s + (t as number), 0));
+  const pvHt = lines.every((l) => l.ht != null)
+    ? round2(lines.reduce((s, l) => s + (l.ht as number), 0))
+    : null;
+  const pvTtc = lines.every((l) => l.ttc != null)
+    ? round2(lines.reduce((s, l) => s + (l.ttc as number), 0))
+    : null;
 
   let prixAchatHt: number | null = 0;
   for (const l of lines) {
@@ -55,17 +57,19 @@ export function posteFinance(lines: FinanceLine[]): PosteFinance {
   if (prixAchatHt != null) prixAchatHt = round2(prixAchatHt);
 
   const margeHt = pvHt != null && prixAchatHt != null ? round2(pvHt - prixAchatHt) : null;
-  const tauxMarge = margeHt != null && pvHt != null && pvHt > 0 ? round2((margeHt / pvHt) * 100) : null;
+  const tauxMarge =
+    margeHt != null && pvHt != null && pvHt > 0 ? round2((margeHt / pvHt) * 100) : null;
 
   const sumKind = (kind: FinanceLine["kind"]) => {
     const subset = lines.filter((l) => l.kind === kind);
-    if (subset.some((l) => l.ht == null)) return null;
+    if (!subset.every((l) => l.ht != null)) return null;
     return round2(subset.reduce((s, l) => s + (l.ht as number), 0));
   };
   const moHt = sumKind("mo");
   const fournHt = sumKind("fourniture");
   const partMo = moHt != null && pvHt != null && pvHt > 0 ? round2((moHt / pvHt) * 100) : null;
-  const partFournitures = fournHt != null && pvHt != null && pvHt > 0 ? round2((fournHt / pvHt) * 100) : null;
+  const partFournitures =
+    fournHt != null && pvHt != null && pvHt > 0 ? round2((fournHt / pvHt) * 100) : null;
 
   return {
     pvHt,
@@ -76,6 +80,11 @@ export function posteFinance(lines: FinanceLine[]): PosteFinance {
     partMo,
     partFournitures,
     issues,
-    complete: issues.length === 0 && prixAchatHt != null && tauxMarge != null && partMo != null && partFournitures != null,
+    complete:
+      issues.length === 0 &&
+      prixAchatHt != null &&
+      tauxMarge != null &&
+      partMo != null &&
+      partFournitures != null,
   };
 }

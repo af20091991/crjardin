@@ -1,7 +1,12 @@
 // Pré-devis — rattachement pur d'une ligne de devis au catalogue.
 // Règles : code exact d'abord, puis désignation exacte, puis candidats (jamais de choix automatique).
 // Le fournisseur n'est jamais choisi ici : il est proposé avec son prix, c'est l'utilisateur qui tranche.
-import { normCode, normDesignation, normText, type CatalogueSource } from "./predevis-catalogue-normalize";
+import {
+  normCode,
+  normDesignation,
+  normText,
+  type CatalogueSource,
+} from "./predevis-catalogue-normalize";
 import { effectivePau } from "./predevis-catalogue-write";
 
 export type CatalogueProduct = {
@@ -28,7 +33,12 @@ export type SupplierOption = {
   source: CatalogueSource | null;
 };
 
-export type MatchCandidate = { productId: string; code: string; designation: string; score: number };
+export type MatchCandidate = {
+  productId: string;
+  code: string;
+  designation: string;
+  score: number;
+};
 
 export type MatchResult = {
   status: "code" | "designation" | "a_confirmer" | "aucun";
@@ -37,7 +47,21 @@ export type MatchResult = {
   reason: string;
 };
 
-const STOP = new Set(["de", "du", "des", "la", "le", "les", "et", "en", "a", "au", "aux", "d", "l"]);
+const STOP = new Set([
+  "de",
+  "du",
+  "des",
+  "la",
+  "le",
+  "les",
+  "et",
+  "en",
+  "a",
+  "au",
+  "aux",
+  "d",
+  "l",
+]);
 const CANDIDATE_MIN = 0.5;
 
 function tokens(designation: string): Set<string> {
@@ -63,13 +87,23 @@ export function matchQuoteRow(
   if (code) {
     const byCode = products.filter((p) => p.norm_code === code);
     if (byCode.length === 1) {
-      return { status: "code", productId: byCode[0].id, candidates: [], reason: "Référence identique au catalogue." };
+      return {
+        status: "code",
+        productId: byCode[0].id,
+        candidates: [],
+        reason: "Référence identique au catalogue.",
+      };
     }
     if (byCode.length > 1) {
       return {
         status: "a_confirmer",
         productId: null,
-        candidates: byCode.map((p) => ({ productId: p.id, code: p.code, designation: p.designation, score: 1 })),
+        candidates: byCode.map((p) => ({
+          productId: p.id,
+          code: p.code,
+          designation: p.designation,
+          score: 1,
+        })),
         reason: "Référence présente plusieurs fois : à choisir.",
       };
     }
@@ -78,27 +112,52 @@ export function matchQuoteRow(
   const desig = normDesignation(row.designation);
   const byDesig = products.filter((p) => p.norm_designation === desig);
   if (byDesig.length === 1) {
-    return { status: "designation", productId: byDesig[0].id, candidates: [], reason: "Désignation identique au catalogue." };
+    return {
+      status: "designation",
+      productId: byDesig[0].id,
+      candidates: [],
+      reason: "Désignation identique au catalogue.",
+    };
   }
   if (byDesig.length > 1) {
     return {
       status: "a_confirmer",
       productId: null,
-      candidates: byDesig.map((p) => ({ productId: p.id, code: p.code, designation: p.designation, score: 1 })),
+      candidates: byDesig.map((p) => ({
+        productId: p.id,
+        code: p.code,
+        designation: p.designation,
+        score: 1,
+      })),
       reason: "Désignation présente plusieurs fois : à choisir.",
     };
   }
 
   const wanted = tokens(row.designation);
   const candidates = products
-    .map((p) => ({ productId: p.id, code: p.code, designation: p.designation, score: jaccard(wanted, tokens(p.designation)) }))
+    .map((p) => ({
+      productId: p.id,
+      code: p.code,
+      designation: p.designation,
+      score: jaccard(wanted, tokens(p.designation)),
+    }))
     .filter((c) => c.score >= CANDIDATE_MIN)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
   if (candidates.length > 0) {
-    return { status: "a_confirmer", productId: null, candidates, reason: "Aucune correspondance exacte : à confirmer." };
+    return {
+      status: "a_confirmer",
+      productId: null,
+      candidates,
+      reason: "Aucune correspondance exacte : à confirmer.",
+    };
   }
-  return { status: "aucun", productId: null, candidates: [], reason: "Aucun produit au catalogue : saisie manuelle du prix." };
+  return {
+    status: "aucun",
+    productId: null,
+    candidates: [],
+    reason: "Aucun produit au catalogue : saisie manuelle du prix.",
+  };
 }
 
 /** Fournisseurs proposés pour un produit, avec le prix retenu pour chacun (le plus haut entre sources). */

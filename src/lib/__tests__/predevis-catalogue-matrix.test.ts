@@ -49,6 +49,14 @@ describe("matrixToRows — export Henrri", () => {
   });
 
   test("fichier sans en-tête reconnu → aucune ligne", () => {
-    expect(matrixToRows([["a", "b"], [1, 2]], "excel")).toEqual([]);
+    expect(
+      matrixToRows(
+        [
+          ["a", "b"],
+          [1, 2],
+        ],
+        "excel",
+      ),
+    ).toEqual([]);
   });
 });

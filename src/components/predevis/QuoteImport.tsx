@@ -8,7 +8,8 @@ import { parseQuote, type QuoteParse } from "@/lib/predevis-quote-parse";
 import { saveQuoteDraft } from "@/lib/predevis-data";
 import { supabase } from "@/integrations/supabase/client";
 
-const eur = (n: number | null) => (n == null ? "données insuffisantes" : `${n.toFixed(2).replace(".", ",")} €`);
+const eur = (n: number | null) =>
+  n == null ? "données insuffisantes" : `${n.toFixed(2).replace(".", ",")} €`;
 
 export function QuoteImport() {
   const [quote, setQuote] = useState<QuoteParse | null>(null);
@@ -56,7 +57,9 @@ export function QuoteImport() {
             <p className="text-muted-foreground">
               {fileName}
               {quote.devisNumber ? ` · devis n° ${quote.devisNumber}` : ""}
-              {quote.totalHtDeclared != null ? ` · total HT déclaré ${eur(quote.totalHtDeclared)}` : ""}
+              {quote.totalHtDeclared != null
+                ? ` · total HT déclaré ${eur(quote.totalHtDeclared)}`
+                : ""}
             </p>
 
             {quote.warnings.length > 0 && (
@@ -70,7 +73,9 @@ export function QuoteImport() {
             {quote.postes.map((p) => (
               <section key={p.index} className="space-y-2 rounded-md border p-3">
                 <header className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-medium">Poste {p.index} — {p.title ?? "sans titre (à nommer)"}</h3>
+                  <h3 className="font-medium">
+                    Poste {p.index} — {p.title ?? "sans titre (à nommer)"}
+                  </h3>
                   <Badge variant={p.status === "ok" ? "secondary" : "destructive"}>
                     {p.status === "ok" ? "contrôle OK" : "à vérifier"}
                   </Badge>
@@ -97,8 +102,16 @@ export function QuoteImport() {
                           <td className="py-1 pr-2">{r.ref ?? "—"}</td>
                           <td className="pr-2">
                             {r.designation}
-                            {r.continued && <Badge variant="outline" className="ml-2">suite</Badge>}
-                            {r.kind === "mo" && <Badge variant="outline" className="ml-2">MO</Badge>}
+                            {r.continued && (
+                              <Badge variant="outline" className="ml-2">
+                                suite
+                              </Badge>
+                            )}
+                            {r.kind === "mo" && (
+                              <Badge variant="outline" className="ml-2">
+                                MO
+                              </Badge>
+                            )}
                           </td>
                           <td className="text-right">{r.quantity ?? "—"}</td>
                           <td className="text-right">{eur(r.pu)}</td>
@@ -130,7 +143,9 @@ export function QuoteImport() {
                     const userId = auth.user?.id;
                     if (!userId) throw new Error("Session expirée, reconnecte-toi.");
                     const res = await saveQuoteDraft({ parse: quote, fileName, userId });
-                    toast.success(`Pré-devis enregistré : ${res.posteCount} postes, ${res.lineCount} lignes.`);
+                    toast.success(
+                      `Pré-devis enregistré : ${res.posteCount} postes, ${res.lineCount} lignes.`,
+                    );
                   } catch (e) {
                     toast.error(e instanceof Error ? e.message : "Enregistrement impossible.");
                   } finally {

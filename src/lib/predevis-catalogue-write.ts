@@ -22,7 +22,10 @@ export type OfferRow = {
 };
 
 /** Fournisseurs à créer : seulement ceux que l'utilisateur a confirmés. */
-export function suppliersToCreate(unknownNames: string[], confirmed: string[]): Array<{ name: string; norm_name: string }> {
+export function suppliersToCreate(
+  unknownNames: string[],
+  confirmed: string[],
+): Array<{ name: string; norm_name: string }> {
   const allowed = new Set(confirmed.map((n) => normText(n)));
   const out = new Map<string, { name: string; norm_name: string }>();
   for (const name of unknownNames) {
@@ -40,7 +43,9 @@ export function toWriteRows(
   const products: ProductRow[] = plan.products.map((p) => ({ ...p }));
   const offers: OfferRow[] = plan.offers.map((o) => ({
     norm_code: o.norm_code,
-    supplier_id: o.supplier_name ? (supplierIdByNormName.get(normText(o.supplier_name)) ?? null) : null,
+    supplier_id: o.supplier_name
+      ? (supplierIdByNormName.get(normText(o.supplier_name)) ?? null)
+      : null,
     source: o.source,
     pau_ht: o.pau_ht,
     pau_raw: o.pau_raw,
@@ -52,10 +57,14 @@ export function toWriteRows(
  * Prix retenu pour un produit × fournisseur : le plus haut entre les sources (règle validée).
  * Une valeur absente ne gagne jamais.
  */
-export function effectivePau(
-  offers: Array<{ pau_ht: number | null; source: CatalogueSource }>,
-): { value: number | null; source: CatalogueSource | null } {
-  let best: { value: number | null; source: CatalogueSource | null } = { value: null, source: null };
+export function effectivePau(offers: Array<{ pau_ht: number | null; source: CatalogueSource }>): {
+  value: number | null;
+  source: CatalogueSource | null;
+} {
+  let best: { value: number | null; source: CatalogueSource | null } = {
+    value: null,
+    source: null,
+  };
   for (const o of offers) {
     if (o.pau_ht == null) continue;
     if (best.value == null || o.pau_ht > best.value) best = { value: o.pau_ht, source: o.source };

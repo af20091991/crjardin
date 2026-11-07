@@ -69,7 +69,9 @@ describe("isCatalogueExcluded", () => {
   });
 
   test("fournitures conservées", () => {
-    expect(isCatalogueExcluded({ family: "Produits", designation: "Terre végétale", code: "TVC35" })).toBe(false);
+    expect(
+      isCatalogueExcluded({ family: "Produits", designation: "Terre végétale", code: "TVC35" }),
+    ).toBe(false);
   });
 });
 
@@ -85,10 +87,7 @@ describe("resolvePriceConflict", () => {
   });
 
   test("une baisse dans le nouvel import ne remplace pas un prix plus haut", () => {
-    const r = resolvePriceConflict(
-      { value: 10, source: "henrri" },
-      { value: 9, source: "excel" },
-    );
+    const r = resolvePriceConflict({ value: 10, source: "henrri" }, { value: 9, source: "excel" });
     expect(r.value).toBe(10);
   });
 

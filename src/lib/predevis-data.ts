@@ -5,26 +5,48 @@
 // À retirer après la resynchronisation des types dans l'éditeur Lovable.
 import { supabase } from "@/integrations/supabase/client";
 import type { CatalogueSource } from "./predevis-catalogue-normalize";
-import { buildCatalogueImport, type ImportPlan, type RawRow, type ExistingOffer } from "./predevis-catalogue-import";
+import {
+  buildCatalogueImport,
+  type ImportPlan,
+  type RawRow,
+  type ExistingOffer,
+} from "./predevis-catalogue-import";
 import { suppliersToCreate, toWriteRows } from "./predevis-catalogue-write";
-import { matchQuoteRow, supplierOptions, type CatalogueOffer, type CatalogueProduct, type SupplierOption } from "./predevis-match";
+import {
+  matchQuoteRow,
+  supplierOptions,
+  type CatalogueOffer,
+  type CatalogueProduct,
+  type SupplierOption,
+} from "./predevis-match";
 import { lineFinance, suggestedMultiplier, type StoredLine } from "./predevis-lines";
 import { posteFinance, type PosteFinance } from "./predevis-finance";
 
 import type { QuoteParse } from "./predevis-quote-parse";
 import { clientBlock } from "./predevis-client-block";
 
+// Temporaire : types.ts ne contient pas encore les tables predevis_* (resynchronisation Lovable à faire).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = () => supabase as unknown as { from: (table: string) => any };
 const CHUNK = 500;
 
 export async function loadSupplierIndex(): Promise<Map<string, { id: string; name: string }>> {
   const { data, error } = await db().from("predevis_suppliers").select("id, name, norm_name");
   if (error) throw error;
-  return new Map((data ?? []).map((s: { id: string; name: string; norm_name: string }) => [s.norm_name, { id: s.id, name: s.name }]));
+  return new Map(
+    (data ?? []).map((s: { id: string; name: string; norm_name: string }) => [
+      s.norm_name,
+      { id: s.id, name: s.name },
+    ]),
+  );
 }
 
 export async function loadExistingOffers(): Promise<ExistingOffer[]> {
-  const [{ data: products, error: pe }, { data: suppliers, error: se }, { data: offers, error: oe }] = await Promise.all([
+  const [
+    { data: products, error: pe },
+    { data: suppliers, error: se },
+    { data: offers, error: oe },
+  ] = await Promise.all([
     db().from("predevis_products").select("id, norm_code"),
     db().from("predevis_suppliers").select("id, name"),
     db().from("predevis_offers").select("product_id, supplier_id, source, pau_ht"),
@@ -32,18 +54,32 @@ export async function loadExistingOffers(): Promise<ExistingOffer[]> {
   if (pe) throw pe;
   if (se) throw se;
   if (oe) throw oe;
-  const codeById = new Map((products ?? []).map((p: { id: string; norm_code: string }) => [p.id, p.norm_code]));
-  const nameById = new Map((suppliers ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
-  return (offers ?? []).map((o: { product_id: string; supplier_id: string | null; source: CatalogueSource; pau_ht: number | null }) => ({
-    norm_code: codeById.get(o.product_id) ?? "",
-    supplier_name: o.supplier_id ? (nameById.get(o.supplier_id) ?? null) : null,
-    source: o.source,
-    pau_ht: o.pau_ht,
-  }));
+  const codeById = new Map(
+    (products ?? []).map((p: { id: string; norm_code: string }) => [p.id, p.norm_code]),
+  );
+  const nameById = new Map(
+    (suppliers ?? []).map((s: { id: string; name: string }) => [s.id, s.name]),
+  );
+  return (offers ?? []).map(
+    (o: {
+      product_id: string;
+      supplier_id: string | null;
+      source: CatalogueSource;
+      pau_ht: number | null;
+    }) => ({
+      norm_code: codeById.get(o.product_id) ?? "",
+      supplier_name: o.supplier_id ? (nameById.get(o.supplier_id) ?? null) : null,
+      source: o.source,
+      pau_ht: o.pau_ht,
+    }),
+  );
 }
 
 /** Analyse le fichier sans rien écrire. */
-export async function analyseCatalogue(source: CatalogueSource, rows: RawRow[]): Promise<ImportPlan> {
+export async function analyseCatalogue(
+  source: CatalogueSource,
+  rows: RawRow[],
+): Promise<ImportPlan> {
   const [suppliers, existing] = await Promise.all([loadSupplierIndex(), loadExistingOffers()]);
   return buildCatalogueImport({
     source,
@@ -72,7 +108,10 @@ export async function applyCatalogueImport(args: {
   if (toCreate.length > 0) {
     const { error } = await db()
       .from("predevis_suppliers")
-      .upsert(toCreate.map((s) => ({ ...s, created_by: userId })), { onConflict: "norm_name", ignoreDuplicates: true });
+      .upsert(
+        toCreate.map((s) => ({ ...s, created_by: userId })),
+        { onConflict: "norm_name", ignoreDuplicates: true },
+      );
     if (error) throw error;
   }
   const suppliers = await loadSupplierIndex();
@@ -134,7 +173,6 @@ export async function applyCatalogueImport(args: {
 
   return { importId, productCount: productIdByCode.size, offerCount: offerRows.length };
 }
-
 
 // ---------------------------------------------------------------------------
 // Pré-devis : enregistrement d'un devis lu (brouillon). Aucune valeur inventée :
@@ -222,7 +260,9 @@ export async function saveQuoteDraft(args: {
       cost_status: "manquant",
     }));
     for (let i = 0; i < lineRows.length; i += CHUNK) {
-      const { error } = await db().from("predevis_lines").insert(lineRows.slice(i, i + CHUNK));
+      const { error } = await db()
+        .from("predevis_lines")
+        .insert(lineRows.slice(i, i + CHUNK));
       if (error) throw error;
     }
     lineCount += lineRows.length;
@@ -235,7 +275,14 @@ export async function saveQuoteDraft(args: {
 // Pré-devis : lecture et mise à jour d'un devis enregistré.
 // ---------------------------------------------------------------------------
 
-export type QuoteSummary = { id: string; title: string; devis_number: string | null; total_ht_declared: number | null; status: string; created_at: string };
+export type QuoteSummary = {
+  id: string;
+  title: string;
+  devis_number: string | null;
+  total_ht_declared: number | null;
+  status: string;
+  created_at: string;
+};
 
 export async function listQuotes(): Promise<QuoteSummary[]> {
   const { data, error } = await db()
@@ -281,8 +328,16 @@ export type QuoteDetail = {
 
 export async function loadQuoteDetail(quoteId: string): Promise<QuoteDetail> {
   const [quote, postes, lines, products, offers, suppliers] = await Promise.all([
-    db().from("predevis_quotes").select("id, title, devis_number, total_ht_declared, status, created_at").eq("id", quoteId).single(),
-    db().from("predevis_postes").select("id, position, title, review_status, subtotal_ht, client_block").eq("quote_id", quoteId).order("position"),
+    db()
+      .from("predevis_quotes")
+      .select("id, title, devis_number, total_ht_declared, status, created_at")
+      .eq("id", quoteId)
+      .single(),
+    db()
+      .from("predevis_postes")
+      .select("id, position, title, review_status, subtotal_ht, client_block")
+      .eq("quote_id", quoteId)
+      .order("position"),
     db().from("predevis_lines").select("*").eq("quote_id", quoteId).order("position"),
     loadCatalogueProducts(),
     db().from("predevis_offers").select("product_id, supplier_id, source, pau_ht"),
@@ -290,30 +345,46 @@ export async function loadQuoteDetail(quoteId: string): Promise<QuoteDetail> {
   ]);
   for (const r of [quote, postes, lines, offers, suppliers]) if (r.error) throw r.error;
 
-  const supplierName = new Map((suppliers.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
+  const supplierName = new Map(
+    (suppliers.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name]),
+  );
   return {
     quote: quote.data,
     postes: postes.data ?? [],
     lines: lines.data ?? [],
     products,
-    offers: (offers.data ?? []).map((o: { product_id: string; supplier_id: string | null; source: CatalogueSource; pau_ht: number | null }) => ({
-      product_id: o.product_id,
-      supplier_id: o.supplier_id,
-      supplier_name: o.supplier_id ? (supplierName.get(o.supplier_id) ?? null) : null,
-      source: o.source,
-      pau_ht: o.pau_ht,
-    })),
+    offers: (offers.data ?? []).map(
+      (o: {
+        product_id: string;
+        supplier_id: string | null;
+        source: CatalogueSource;
+        pau_ht: number | null;
+      }) => ({
+        product_id: o.product_id,
+        supplier_id: o.supplier_id,
+        supplier_name: o.supplier_id ? (supplierName.get(o.supplier_id) ?? null) : null,
+        source: o.source,
+        pau_ht: o.pau_ht,
+      }),
+    ),
     suppliers: suppliers.data ?? [],
   };
 }
 
 /** Fournisseurs proposés pour la fourniture rattachée à une ligne, avec leur prix. */
-export function linePurchaseOptions(line: StoredQuoteLine, offers: CatalogueOffer[]): SupplierOption[] {
+export function linePurchaseOptions(
+  line: StoredQuoteLine,
+  offers: CatalogueOffer[],
+): SupplierOption[] {
   return line.catalogue_product_id ? supplierOptions(line.catalogue_product_id, offers) : [];
 }
 
 /** Choisit un fournisseur : le PAU de son offre est copié dans la ligne. */
-export async function chooseSupplier(line: StoredQuoteLine, option: SupplierOption, productUnit: string | null): Promise<void> {
+export async function chooseSupplier(
+  line: StoredQuoteLine,
+  option: SupplierOption,
+  productUnit: string | null,
+): Promise<void> {
   const cost_status = option.pau_ht == null ? "manquant" : "connu";
   const multiplier = suggestedMultiplier(productUnit);
   const { error } = await db()
@@ -330,13 +401,20 @@ export async function chooseSupplier(line: StoredQuoteLine, option: SupplierOpti
   await refreshClientBlocks(line.quote_id);
 }
 
-export async function updateLineFields(quoteId: string, lineId: string, patch: Record<string, unknown>): Promise<void> {
+export async function updateLineFields(
+  quoteId: string,
+  lineId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
   const { error } = await db().from("predevis_lines").update(patch).eq("id", lineId);
   if (error) throw error;
   await refreshClientBlocks(quoteId);
 }
 
-export async function setPosteReview(posteId: string, review_status: "a_verifier" | "valide"): Promise<void> {
+export async function setPosteReview(
+  posteId: string,
+  review_status: "a_verifier" | "valide",
+): Promise<void> {
   const { error } = await db().from("predevis_postes").update({ review_status }).eq("id", posteId);
   if (error) throw error;
 }
@@ -350,8 +428,15 @@ export function computePosteFinance(lines: StoredQuoteLine[]): PosteFinance {
 // Pré-devis : déplacement de ligne et régénération des blocs texte client.
 // ---------------------------------------------------------------------------
 
-export async function moveLineToPoste(quoteId: string, lineId: string, posteId: string | null): Promise<void> {
-  const { error } = await db().from("predevis_lines").update({ poste_id: posteId }).eq("id", lineId);
+export async function moveLineToPoste(
+  quoteId: string,
+  lineId: string,
+  posteId: string | null,
+): Promise<void> {
+  const { error } = await db()
+    .from("predevis_lines")
+    .update({ poste_id: posteId })
+    .eq("id", lineId);
   if (error) throw error;
   await refreshClientBlocks(quoteId);
 }
@@ -360,7 +445,12 @@ export async function moveLineToPoste(quoteId: string, lineId: string, posteId: 
 export async function refreshClientBlocks(quoteId: string): Promise<void> {
   const [postes, lines, products] = await Promise.all([
     db().from("predevis_postes").select("id").eq("quote_id", quoteId),
-    db().from("predevis_lines").select("id, poste_id, line_kind, designation, client_description, quantity, catalogue_product_id, ht").eq("quote_id", quoteId),
+    db()
+      .from("predevis_lines")
+      .select(
+        "id, poste_id, line_kind, designation, client_description, quantity, catalogue_product_id, ht",
+      )
+      .eq("quote_id", quoteId),
     loadCatalogueProducts(),
   ]);
   if (postes.error) throw postes.error;
@@ -371,16 +461,26 @@ export async function refreshClientBlocks(quoteId: string): Promise<void> {
     const block = clientBlock(
       (lines.data ?? [])
         .filter((l: { poste_id: string | null }) => l.poste_id === poste.id)
-        .map((l: { line_kind: "fourniture" | "mo"; designation: string; client_description: string | null; quantity: number | null; catalogue_product_id: string | null }) => ({
-          kind: l.line_kind,
-          designation: l.designation,
-          clientDescription: l.client_description,
-          quantity: l.quantity,
-          unit: l.catalogue_product_id ? (unitById.get(l.catalogue_product_id) ?? null) : null,
-        })),
+        .map(
+          (l: {
+            line_kind: "fourniture" | "mo";
+            designation: string;
+            client_description: string | null;
+            quantity: number | null;
+            catalogue_product_id: string | null;
+          }) => ({
+            kind: l.line_kind,
+            designation: l.designation,
+            clientDescription: l.client_description,
+            quantity: l.quantity,
+            unit: l.catalogue_product_id ? (unitById.get(l.catalogue_product_id) ?? null) : null,
+          }),
+        ),
     );
-    const { error } = await db().from("predevis_postes").update({ client_block: block }).eq("id", poste.id);
+    const { error } = await db()
+      .from("predevis_postes")
+      .update({ client_block: block })
+      .eq("id", poste.id);
     if (error) throw error;
   }
 }
-

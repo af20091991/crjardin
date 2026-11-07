@@ -13,12 +13,28 @@ describe("splitSupplierNames", () => {
 
 describe("import Excel « Produits »", () => {
   const rows = [
-    { "Code produit": "Code produit", "Désignation": "Arbustes", "PAU HT": "" },
-    { "Code produit": "TVC35", "Désignation": "Terre végétale 35L", "PAU HT": 0.675, "Description": "Conteneur 35L", "Fournisseur 1": "B&Fils" },
-    { "Code produit": "T4", "Désignation": "Terreau biologique professionnel", "PAU HT": "#REF!", "Fournisseur 1": "Touchat" },
-    { "Code produit": "H2", "Désignation": "Arbuste de haie", "PAU HT": 14.4, "Fournisseur 1": "SJ34, P-C, Ruiz" },
-    { "Code produit": "MO1", "Désignation": "Main d'oeuvre", "PAU HT": 0 },
-    { "Code produit": "", "Désignation": "Sans code", "PAU HT": 1 },
+    { "Code produit": "Code produit", Désignation: "Arbustes", "PAU HT": "" },
+    {
+      "Code produit": "TVC35",
+      Désignation: "Terre végétale 35L",
+      "PAU HT": 0.675,
+      Description: "Conteneur 35L",
+      "Fournisseur 1": "B&Fils",
+    },
+    {
+      "Code produit": "T4",
+      Désignation: "Terreau biologique professionnel",
+      "PAU HT": "#REF!",
+      "Fournisseur 1": "Touchat",
+    },
+    {
+      "Code produit": "H2",
+      Désignation: "Arbuste de haie",
+      "PAU HT": 14.4,
+      "Fournisseur 1": "SJ34, P-C, Ruiz",
+    },
+    { "Code produit": "MO1", Désignation: "Main d'oeuvre", "PAU HT": 0 },
+    { "Code produit": "", Désignation: "Sans code", "PAU HT": 1 },
   ];
 
   const plan = buildCatalogueImport({ source: "excel", rows, knownSuppliers: known });
@@ -36,7 +52,9 @@ describe("import Excel « Produits »", () => {
   test("une offre par fournisseur listé", () => {
     const h2 = plan.offers.filter((o) => o.norm_code === "H2").map((o) => o.supplier_name);
     expect(h2).toEqual(["SJ34", "P-C", "Ruiz"]);
-    expect(plan.offers.filter((o) => o.norm_code === "H2").every((o) => o.pau_ht === 14.4)).toBe(true);
+    expect(plan.offers.filter((o) => o.norm_code === "H2").every((o) => o.pau_ht === 14.4)).toBe(
+      true,
+    );
   });
 
   test("fournisseur inconnu remonté", () => {
@@ -50,11 +68,17 @@ describe("import Excel « Produits »", () => {
 
 describe("import export Henrri", () => {
   const rows = [
-    { "Référence": "TVC35", "Désignation": "Terre végétale 35L", "Famille": "Produits", "P.A HT": 0.68, "Unité": "Pièce" },
-    { "Référence": "MO", "Désignation": "Main d'oeuvre", "Famille": "Services", "P.A HT": 0 },
-    { "Référence": "GEO", "Désignation": "geotex", "Famille": "Produits", "P.A HT": 0, "Unité": "" },
-    { "Référence": "DUP", "Désignation": "A", "Famille": "Produits", "P.A HT": 1 },
-    { "Référence": "DUP", "Désignation": "B", "Famille": "Produits", "P.A HT": 2 },
+    {
+      Référence: "TVC35",
+      Désignation: "Terre végétale 35L",
+      Famille: "Produits",
+      "P.A HT": 0.68,
+      Unité: "Pièce",
+    },
+    { Référence: "MO", Désignation: "Main d'oeuvre", Famille: "Services", "P.A HT": 0 },
+    { Référence: "GEO", Désignation: "geotex", Famille: "Produits", "P.A HT": 0, Unité: "" },
+    { Référence: "DUP", Désignation: "A", Famille: "Produits", "P.A HT": 1 },
+    { Référence: "DUP", Désignation: "B", Famille: "Produits", "P.A HT": 2 },
   ];
 
   test("unité normalisée, service exclu, doublons écartés", () => {
@@ -76,7 +100,9 @@ describe("import export Henrri", () => {
       source: "henrri",
       rows,
       knownSuppliers: known,
-      existingOffers: [{ norm_code: "TVC35", supplier_name: "B&Fils", source: "excel", pau_ht: 0.675 }],
+      existingOffers: [
+        { norm_code: "TVC35", supplier_name: "B&Fils", source: "excel", pau_ht: 0.675 },
+      ],
     });
     const offer = plan.offers.find((o) => o.norm_code === "TVC35");
     expect(offer?.supplier_name).toBe("B&Fils");

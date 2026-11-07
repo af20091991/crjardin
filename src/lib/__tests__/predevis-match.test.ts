@@ -1,11 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import { matchQuoteRow, supplierOptions, type CatalogueOffer, type CatalogueProduct } from "../predevis-match";
+import {
+  matchQuoteRow,
+  supplierOptions,
+  type CatalogueOffer,
+  type CatalogueProduct,
+} from "../predevis-match";
 import { normCode, normDesignation } from "../predevis-catalogue-normalize";
 import { parseQuote, type PdfWord } from "../predevis-quote-parse";
 import henrri from "./fixtures/predevis/henrri-subset.json";
 import quoteFixture from "./fixtures/predevis/quote-body.json";
 
-type HenrriItem = { reference: string; designation: string; pa_ht: number | null; unit: string | null };
+type HenrriItem = {
+  reference: string;
+  designation: string;
+  pa_ht: number | null;
+  unit: string | null;
+};
 const items = (henrri as { items: HenrriItem[] }).items;
 
 const products: CatalogueProduct[] = items.map((i, n) => ({
@@ -40,7 +50,9 @@ describe("rattachement au catalogue — devis réel", () => {
     const m = matchQuoteRow(t4, products);
     expect(m.status).toBe("code");
     const opts = supplierOptions(m.productId!, offers);
-    expect(opts).toEqual([{ supplier_id: null, supplier_name: null, pau_ht: 16.5, source: "henrri" }]);
+    expect(opts).toEqual([
+      { supplier_id: null, supplier_name: null, pau_ht: 16.5, source: "henrri" },
+    ]);
   });
 
   test("terreau biologique professionnel ≠ terreau biologique (désignation conservée)", () => {
@@ -58,13 +70,19 @@ describe("rattachement — cas de repli", () => {
   });
 
   test("pas de correspondance : aucun choix automatique, prix à saisir", () => {
-    const m = matchQuoteRow({ ref: "ZZZ999", designation: "Produit inexistant hors catalogue" }, products);
+    const m = matchQuoteRow(
+      { ref: "ZZZ999", designation: "Produit inexistant hors catalogue" },
+      products,
+    );
     expect(m.status).toBe("aucun");
     expect(m.productId).toBeNull();
   });
 
   test("candidats proposés sans choix automatique", () => {
-    const m = matchQuoteRow({ ref: "XX", designation: "Terre végétale criblée enrichie" }, products);
+    const m = matchQuoteRow(
+      { ref: "XX", designation: "Terre végétale criblée enrichie" },
+      products,
+    );
     expect(m.productId).toBeNull();
     expect(m.status).toBe("a_confirmer");
     expect(m.candidates.length).toBeGreaterThan(0);

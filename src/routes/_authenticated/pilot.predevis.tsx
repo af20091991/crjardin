@@ -8,7 +8,10 @@ export const Route = createFileRoute("/_authenticated/pilot/predevis")({
   head: () => ({
     meta: [
       { title: "Pré-devis — catalogue fournisseurs" },
-      { name: "description", content: "Import du catalogue fournisseurs pour le module Pré-devis." },
+      {
+        name: "description",
+        content: "Import du catalogue fournisseurs pour le module Pré-devis.",
+      },
       { property: "og:title", content: "Pré-devis — catalogue fournisseurs" },
     ],
   }),

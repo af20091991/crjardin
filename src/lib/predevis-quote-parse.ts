@@ -62,7 +62,7 @@ type Line = { page: number; y: number; words: PdfWord[] };
 type Cells = { ref: string; designation: string; qty: string; pu: string; tva: string; ht: string };
 type Columns = { ref: number; desig: number; qty: number; pu: number; tva: number; ht: number };
 
-const NUMERIC_RE = /^[\d.,  ]+€?$|^€$|^%$/;
+const NUMERIC_RE = /^[\d.,\u00a0\u202f]+€?$|^€$|^%$/;
 const NOISE_RE = [
   /^DEVIS N°/,
   /^Le (lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche) /,
@@ -113,7 +113,8 @@ function splitCells(line: Line, cols: Columns): Cells {
   for (const w of line.words) {
     const center = (w.x + w.x1) / 2;
     if (NUMERIC_RE.test(w.str) && center >= cols.qty) {
-      const key = center < cols.pu ? "qty" : center < cols.tva ? "pu" : center < cols.ht ? "tva" : "ht";
+      const key =
+        center < cols.pu ? "qty" : center < cols.tva ? "pu" : center < cols.ht ? "tva" : "ht";
       cells[key] = [cells[key], w.str].filter(Boolean).join(" ");
     } else if (w.x < cols.desig - 2) {
       cells.ref = [cells.ref, w.str].filter(Boolean).join(" ");
@@ -151,10 +152,20 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
   const cols = findColumns(firstLines);
   const warnings: string[] = [];
   if (!cols) {
-    return { devisNumber: null, postes: [], orphanText: [], totalHtDeclared: null, warnings: ["En-tête du tableau introuvable."] };
+    return {
+      devisNumber: null,
+      postes: [],
+      orphanText: [],
+      totalHtDeclared: null,
+      warnings: ["En-tête du tableau introuvable."],
+    };
   }
   // Tout ce qui est au-dessus du premier en-tête (page 1) : coordonnées de l'émetteur et du client. Ignoré.
-  const headerY = firstLines.find((l) => l.words.some((w) => w.str === "Référence") && l.words.some((w) => w.str === "Désignation"))?.y ?? 0;
+  const headerY =
+    firstLines.find(
+      (l) =>
+        l.words.some((w) => w.str === "Référence") && l.words.some((w) => w.str === "Désignation"),
+    )?.y ?? 0;
   const lines = groupLines(words.filter((w) => !(w.page === 1 && w.y < headerY - 2)));
 
   const fullText = firstLines.map((l) => l.words.map((w) => w.str).join(" ")).join("\n");
@@ -198,8 +209,14 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
     const lineText = line.words.map((w) => w.str).join(" ");
     const cells = splitCells(line, cols);
 
-    if (END_RE.test(lineText)) { stop = true; break; }
-    if (CLAUSE_START_RE.test(lineText)) { inClause = true; continue; }
+    if (END_RE.test(lineText)) {
+      stop = true;
+      break;
+    }
+    if (CLAUSE_START_RE.test(lineText)) {
+      inClause = true;
+      continue;
+    }
     if (inClause) {
       if (/^Fait avec Henrri/.test(lineText)) inClause = false;
       continue;
@@ -241,7 +258,11 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
     }
 
     const isRow =
-      cells.qty !== "" && cells.pu !== "" && cells.tva !== "" && cells.ht !== "" && cells.designation !== "";
+      cells.qty !== "" &&
+      cells.pu !== "" &&
+      cells.tva !== "" &&
+      cells.ht !== "" &&
+      cells.designation !== "";
     if (isRow) {
       if (!current) openPoste();
       const poste: QuotePoste = current!;
@@ -301,7 +322,9 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
   if (totalHtDeclared != null) {
     const sum = roundCents(postes.reduce((s, p) => s + p.sumHt, 0));
     if (Math.abs(sum - totalHtDeclared) > SUBTOTAL_TOLERANCE) {
-      warnings.push(`Total des postes ${sum.toFixed(2)} € ≠ Total HT déclaré ${totalHtDeclared.toFixed(2)} €.`);
+      warnings.push(
+        `Total des postes ${sum.toFixed(2)} € ≠ Total HT déclaré ${totalHtDeclared.toFixed(2)} €.`,
+      );
     }
   }
 
