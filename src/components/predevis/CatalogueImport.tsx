@@ -64,7 +64,9 @@ export function CatalogueImport() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="predevis-excel">Excel fournisseurs (onglet « Produits »)</Label>
+            <Label htmlFor="predevis-excel">
+              Excel fournisseurs (onglet « Référence » ou « Produits »)
+            </Label>
             <input
               id="predevis-excel"
               type="file"

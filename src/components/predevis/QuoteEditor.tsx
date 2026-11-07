@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,12 +36,24 @@ const pct = (n: number | null) =>
   n == null ? "données insuffisantes" : `${n.toFixed(2).replace(".", ",")} %`;
 const optKey = (o: SupplierOption) => o.supplier_id ?? "__non_precise__";
 
-export function QuotesPanel({ onOpen }: { onOpen: (id: string) => void }) {
+export function QuotesPanel({
+  onOpen,
+  onCreate,
+}: {
+  onOpen: (id: string) => void;
+  onCreate?: () => void;
+}) {
   const { data, isLoading, error } = useQuery({ queryKey: [...KEY, "list"], queryFn: listQuotes });
   if (isLoading) return <p className="text-sm text-muted-foreground">Chargement…</p>;
   if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
   if (!data || data.length === 0)
-    return <p className="text-sm text-muted-foreground">Aucun pré-devis enregistré.</p>;
+    return (
+      <EmptyState
+        title="Aucun pré-devis enregistré"
+        description="Importez un devis détaillé Henrri pour commencer."
+        action={onCreate ? { label: "Importer un devis", onClick: onCreate } : undefined}
+      />
+    );
   return (
     <ul className="divide-y rounded-md border">
       {data.map((q) => (
