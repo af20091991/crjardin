@@ -19,7 +19,13 @@ import {
   type CatalogueProduct,
   type SupplierOption,
 } from "./predevis-match";
-import { lineFinance, suggestedMultiplier, type StoredLine } from "./predevis-lines";
+import {
+  lineFinance,
+  suggestedMultiplier,
+  uniqueSupplierPurchase,
+  type OfferRow,
+  type StoredLine,
+} from "./predevis-lines";
 import { posteFinance, type PosteFinance } from "./predevis-finance";
 
 import type { QuoteParse } from "./predevis-quote-parse";
@@ -181,6 +187,24 @@ export async function applyCatalogueImport(args: {
 // prix d'achat, fournisseur et unité restent à compléter.
 // ---------------------------------------------------------------------------
 
+export async function loadOffersByProduct(): Promise<Map<string, OfferRow[]>> {
+  const { data, error } = await db()
+    .from("predevis_offers")
+    .select("product_id, supplier_id, source, pau_ht");
+  if (error) throw error;
+  const map = new Map<string, OfferRow[]>();
+  for (const r of data ?? []) {
+    const list = map.get(r.product_id) ?? [];
+    list.push({
+      supplier_id: r.supplier_id ?? null,
+      source: r.source,
+      pau_ht: r.pau_ht == null ? null : Number(r.pau_ht),
+    });
+    map.set(r.product_id, list);
+  }
+  return map;
+}
+
 export async function loadCatalogueProducts(): Promise<CatalogueProduct[]> {
   const { data, error } = await db()
     .from("predevis_products")
@@ -226,6 +250,8 @@ async function writePostesAndLines(
   parse: QuoteParse,
   products: CatalogueProduct[],
 ): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
+  const offersByProduct = await loadOffersByProduct();
+  const unitById = new Map(products.map((p) => [p.id, p.unit]));
   let lineCount = 0;
   for (const poste of parse.postes) {
     const rows = poste.rows.map((r) => {
@@ -274,6 +300,13 @@ async function writePostesAndLines(
       match_status: match.status,
       unit_status: "non_verifiee",
       cost_status: "manquant",
+      // Achat appliqué seulement si le produit n'a qu'un fournisseur ; sinon le choix se fait dans l'éditeur.
+      ...(match.productId
+        ? (uniqueSupplierPurchase(
+            offersByProduct.get(match.productId) ?? [],
+            unitById.get(match.productId) ?? null,
+          ) ?? {})
+        : {}),
     }));
     for (let i = 0; i < lineRows.length; i += CHUNK) {
       const { error } = await db()
