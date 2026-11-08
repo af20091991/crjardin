@@ -5,6 +5,8 @@
 // À retirer après la resynchronisation des types dans l'éditeur Lovable.
 import { supabase } from "@/integrations/supabase/client";
 import type { CatalogueSource } from "./predevis-catalogue-normalize";
+import type { AefSpecies } from "./predevis-catalogue-aef";
+import { potKey } from "./predevis-catalogue-aef";
 import {
   buildCatalogueImport,
   type ImportPlan,
@@ -622,4 +624,58 @@ export async function refreshClientBlocks(quoteId: string): Promise<void> {
       .eq("id", poste.id);
     if (error) throw error;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Catalogue AEF : une espèce de référence par produit générique (taille).
+// Le prix pro HT de l'espèce devient l'offre « aef » du produit ; il prime sur Henrri.
+// ---------------------------------------------------------------------------
+
+/** Produits génériques AEF (libellé « … AEF »), avec leur clé de taille. */
+export async function loadAefProducts(): Promise<
+  Array<{ id: string; code: string; designation: string; sizeKey: string | null }>
+> {
+  const products = await loadCatalogueProducts();
+  return products
+    .filter((p) => /aef/i.test(`${p.code} ${p.designation}`))
+    .map((p) => ({
+      id: p.id,
+      code: p.code,
+      designation: p.designation,
+      sizeKey: potKey(p.designation),
+    }))
+    .sort((a, b) => a.designation.localeCompare(b.designation, "fr"));
+}
+
+/** Enregistre l'espèce choisie pour chaque produit AEF (une offre « aef » par produit). */
+export async function saveAefChoices(args: {
+  choices: Record<string, AefSpecies>;
+  userId: string;
+}): Promise<{ offerCount: number }> {
+  const entries = Object.entries(args.choices);
+  if (entries.length === 0) return { offerCount: 0 };
+  const { error: se } = await db()
+    .from("predevis_suppliers")
+    .upsert([{ name: "AEF", norm_name: "aef", created_by: args.userId }], {
+      onConflict: "norm_name",
+      ignoreDuplicates: true,
+    });
+  if (se) throw se;
+  const supplierId = (await loadSupplierIndex()).get("aef")?.id;
+  if (!supplierId) throw new Error("Fournisseur AEF introuvable.");
+
+  const rows = entries.map(([productId, sp]) => ({
+    product_id: productId,
+    supplier_id: supplierId,
+    source: "aef",
+    pau_ht: sp.proPriceHt,
+    pau_raw: `${sp.species} (${sp.size})`,
+  }));
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error } = await db()
+      .from("predevis_offers")
+      .upsert(rows.slice(i, i + CHUNK), { onConflict: "product_id,supplier_key,source" });
+    if (error) throw error;
+  }
+  return { offerCount: rows.length };
 }

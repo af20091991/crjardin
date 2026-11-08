@@ -38,6 +38,7 @@ export type OfferRow = { supplier_id: string | null; source: string; pau_ht: num
 
 /**
  * Achat appliqué automatiquement à l'enregistrement :
+ * - offre AEF (espèce choisie) : son prix pro ;
  * - offre Henrri présente : son PAU (Henrri fait référence) ;
  * - sinon, un seul fournisseur : son PAU ;
  * - plusieurs fournisseurs : rien, le choix reste à faire. Jamais de valeur estimée.
@@ -52,10 +53,14 @@ export function uniqueSupplierPurchase(
   unit_multiplier: number | null;
   unit_status: "ok" | "non_verifiee";
 } | null {
-  // Henrri fait référence : son PAU prime sur celui des fichiers fournisseurs.
+  // Espèce AEF choisie pour le produit : son prix pro prime (choix explicite).
+  // Sinon Henrri fait référence : son PAU prime sur celui des fichiers fournisseurs.
+  const aef = offers.filter((o) => o.source === "aef" && o.pau_ht != null);
   const henrri = offers.filter((o) => o.source === "henrri" && o.pau_ht != null);
   let group: OfferRow[];
-  if (henrri.length > 0) {
+  if (aef.length > 0) {
+    group = aef;
+  } else if (henrri.length > 0) {
     group = henrri;
   } else {
     const groups = new Map<string, OfferRow[]>();
