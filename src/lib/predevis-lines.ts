@@ -28,9 +28,10 @@ export function lineFinance(row: StoredLine): FinanceLine {
   return { kind: row.kind, ht: row.ht, ttc: row.ttc, costHt, zeroCostReason: row.zero_cost_reason };
 }
 
-/** Multiplicateur proposé automatiquement : 1 pour une unité « pièce » du catalogue, sinon à saisir. */
+/** Multiplicateur proposé automatiquement : 1 pour « pièce » ou « kg » du catalogue, sinon à saisir. */
 export function suggestedMultiplier(catalogUnit: string | null): number | null {
-  return catalogUnit === "pièce" ? 1 : null;
+  // Pièce ou kilo : la quantité du devis est déjà dans l'unité de l'article.
+  return catalogUnit === "pièce" || catalogUnit === "kg" ? 1 : null;
 }
 
 export type OfferRow = { supplier_id: string | null; source: string; pau_ht: number | null };

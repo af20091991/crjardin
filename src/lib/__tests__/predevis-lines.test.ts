@@ -96,3 +96,11 @@ describe("uniqueSupplierPurchase : Henrri fait référence", () => {
     expect(r?.supplier_id).toBe("s1");
   });
 });
+
+describe("suggestedMultiplier : kg", () => {
+  test("kg et pièce proposent 1, une autre unité reste à saisir", () => {
+    expect(suggestedMultiplier("kg")).toBe(1);
+    expect(suggestedMultiplier("pièce")).toBe(1);
+    expect(suggestedMultiplier("L")).toBeNull();
+  });
+});
