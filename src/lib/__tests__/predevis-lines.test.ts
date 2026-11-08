@@ -48,9 +48,10 @@ describe("lineFinance", () => {
 });
 
 describe("suggestedMultiplier", () => {
-  test("pièce → 1 ; autre unité → à saisir", () => {
+  test("pièce et kg → 1 ; autre unité → à saisir", () => {
     expect(suggestedMultiplier("pièce")).toBe(1);
-    expect(suggestedMultiplier("kg")).toBeNull();
+    expect(suggestedMultiplier("kg")).toBe(1);
+    expect(suggestedMultiplier("L")).toBeNull();
     expect(suggestedMultiplier(null)).toBeNull();
   });
 });
