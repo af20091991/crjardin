@@ -34,7 +34,6 @@ import {
   Legend,
 } from "recharts";
 import { toast } from "sonner";
-import { currentYear } from "@/lib/date-utils";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatHourlyRate, formatRatio } from "@/lib/format-utils";
