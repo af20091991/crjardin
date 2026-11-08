@@ -514,6 +514,8 @@ export type LineAmountPatch = {
   pu_ht?: number | null;
   ht?: number | null;
   ttc?: number | null;
+  unit_multiplier?: number | null;
+  unit_status?: "ok" | "non_verifiee";
   pau_ht_applied?: number | null;
   manual_cost_ht?: number | null;
 };

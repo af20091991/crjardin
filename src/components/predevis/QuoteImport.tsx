@@ -202,16 +202,29 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
     kind: string,
   ) {
     if (kind !== "fourniture" || !ctx) return <span className="text-muted-foreground">—</span>;
+    const key = quoteRowKey(posteIndex, position);
     const m = effectiveMatch(posteIndex, position, ref, designation);
-    if (!m?.productId) return <span className="text-muted-foreground">—</span>;
-    const purchase = uniqueSupplierPurchase(
-      ctx.offersByProduct.get(m.productId) ?? [],
-      ctx.unitById.get(m.productId) ?? null,
-    );
-    return purchase?.pau_ht_applied != null ? (
-      eur(purchase.pau_ht_applied)
-    ) : (
-      <span className="text-destructive">prix manquant</span>
+    const purchase = m?.productId
+      ? uniqueSupplierPurchase(
+          ctx.offersByProduct.get(m.productId) ?? [],
+          ctx.unitById.get(m.productId) ?? null,
+        )
+      : null;
+    const detected = purchase?.pau_ht_applied ?? null;
+    const manualPau = manual[key]?.pau;
+    if (manualPau == null && detected != null) return eur(detected);
+    // Prix non détecté (ou saisi à la main) : saisie directe dans la ligne.
+    return (
+      <Input
+        type="number"
+        inputMode="decimal"
+        step="0.01"
+        min="0"
+        placeholder="À saisir"
+        className={`h-8 w-28 text-right ${manualPau == null ? "border-destructive" : ""}`}
+        value={manualPau ?? ""}
+        onChange={(e) => setManualField(key, "pau", e.target.value)}
+      />
     );
   }
 

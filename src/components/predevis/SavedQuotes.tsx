@@ -14,7 +14,7 @@ import {
   type StoredQuoteLine,
 } from "@/lib/predevis-data";
 import type { StoredLine } from "@/lib/predevis-lines";
-import { storedPosteRecap } from "@/lib/predevis-recap";
+import { pauCompletionFields, storedPosteRecap } from "@/lib/predevis-recap";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
 import { eur } from "@/components/predevis/predevis-format";
 
@@ -194,6 +194,12 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
         const f = field as LineField;
         lines[lineId] = { ...(lines[lineId] ?? {}), [f]: value };
       }
+    }
+    // Un PAU saisi complète l'unité de la ligne (multiplicateur 1 si aucun) : sinon le poste reste bloqué.
+    for (const [lineId, patch] of Object.entries(lines)) {
+      if (patch.pau_ht_applied == null) continue;
+      const line = current.lines.find((l) => l.id === lineId);
+      lines[lineId] = { ...patch, ...pauCompletionFields(num(line?.unit_multiplier)) };
     }
     setSaving(true);
     try {
