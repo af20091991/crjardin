@@ -102,3 +102,22 @@ describe("clientBlock", () => {
     expect(text).toBe("- X : quantité à préciser unité à préciser");
   });
 });
+
+describe("posteFinance : achat des fournitures indépendant de la main-d'œuvre", () => {
+  test("fournitures chiffrées, MO non saisie : achat fournitures affiché, revient non calculé", () => {
+    const r = posteFinance([
+      { kind: "fourniture", ht: 100, ttc: 120, costHt: 40, zeroCostReason: null },
+      { kind: "fourniture", ht: 50, ttc: 60, costHt: 10, zeroCostReason: null },
+      { kind: "mo", ht: 80, ttc: 96, costHt: null, zeroCostReason: null },
+    ]);
+    expect(r.achatFournituresHt).toBe(50);
+    expect(r.prixAchatHt).toBeNull();
+  });
+  test("une fourniture sans prix : achat fournitures non calculé", () => {
+    const r = posteFinance([
+      { kind: "fourniture", ht: 100, ttc: 120, costHt: null, zeroCostReason: null },
+      { kind: "mo", ht: 80, ttc: 96, costHt: 30, zeroCostReason: null },
+    ]);
+    expect(r.achatFournituresHt).toBeNull();
+  });
+});

@@ -14,7 +14,10 @@ export type FinanceLine = {
 export type PosteFinance = {
   pvHt: number | null;
   pvTtc: number | null;
+  /** Prix de revient du poste : fournitures + main-d'œuvre saisie. */
   prixAchatHt: number | null;
+  /** Achat HT des seules fournitures, reporté du catalogue : indépendant de la main-d'œuvre. */
+  achatFournituresHt: number | null;
   margeHt: number | null;
   tauxMarge: number | null; // en %
   partMo: number | null; // en % du PV HT
@@ -56,6 +59,11 @@ export function posteFinance(lines: FinanceLine[]): PosteFinance {
   }
   if (prixAchatHt != null) prixAchatHt = round2(prixAchatHt);
 
+  const fournCosts = lines.filter((l) => l.kind === "fourniture").map((l) => l.costHt);
+  const achatFournituresHt = fournCosts.every((c) => c != null)
+    ? round2(fournCosts.reduce<number>((s, c) => s + (c as number), 0))
+    : null;
+
   const margeHt = pvHt != null && prixAchatHt != null ? round2(pvHt - prixAchatHt) : null;
   const tauxMarge =
     margeHt != null && pvHt != null && pvHt > 0 ? round2((margeHt / pvHt) * 100) : null;
@@ -75,6 +83,7 @@ export function posteFinance(lines: FinanceLine[]): PosteFinance {
     pvHt,
     pvTtc,
     prixAchatHt,
+    achatFournituresHt,
     margeHt,
     tauxMarge,
     partMo,
