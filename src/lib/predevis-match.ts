@@ -41,7 +41,7 @@ export type MatchCandidate = {
 };
 
 export type MatchResult = {
-  status: "code" | "designation" | "a_confirmer" | "aucun";
+  status: "code" | "designation" | "a_confirmer" | "manuel" | "aucun";
   productId: string | null;
   candidates: MatchCandidate[];
   reason: string;
