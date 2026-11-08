@@ -172,3 +172,19 @@ describe("storedPosteRecap", () => {
     expect(fin.issues).toEqual([]);
   });
 });
+
+describe("montants saisis à la main", () => {
+  test("HT et TTC saisis : remplacent ceux du devis dans les totaux", () => {
+    const fin = posteRecap([frn(), mo()], { "1-1": { ht: 30, ttc: 36 }, "1-2": { cost: 10 } });
+    expect(fin.pvHt).toBe(110);
+    expect(fin.pvTtc).toBe(132);
+  });
+
+  test("manualLineFields : PU, HT, TTC écrits pour fournitures et main-d'œuvre", () => {
+    expect(manualLineFields("mo", { ht: 50, ttc: 60, pu: 50 })).toEqual({
+      pu_ht: 50,
+      ht: 50,
+      ttc: 60,
+    });
+  });
+});

@@ -37,6 +37,7 @@ function initialDrafts(data: QuoteDetail): Record<string, string> {
   }
   for (const p of data.postes) out[`p:${p.id}`] = show(num(p.subtotal_ht));
   out.q = show(num(data.quote.total_ht_declared));
+  out.t = data.quote.title;
   return out;
 }
 
@@ -167,8 +168,17 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     const lines: Record<string, LineAmountPatch> = {};
     const postes: Record<string, number | null> = {};
     let totalHtDeclared: number | null | undefined;
+    let title: string | undefined;
     for (const [key, raw] of Object.entries(drafts)) {
       if (raw === (init[key] ?? "")) continue; // inchangé : rien à écrire
+      if (key === "t") {
+        if (raw.trim() === "") {
+          toast.error("Le nom du devis ne peut pas être vide.");
+          return;
+        }
+        title = raw.trim();
+        continue;
+      }
       const value = parseAmount(raw);
       if (value === undefined) {
         toast.error("Montant invalide : saisis un nombre positif, ou laisse vide.");
@@ -187,7 +197,7 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     }
     setSaving(true);
     try {
-      await saveQuoteAmounts({ quoteId, lines, postes, totalHtDeclared });
+      await saveQuoteAmounts({ quoteId, lines, postes, totalHtDeclared, title });
       await qc.invalidateQueries({ queryKey: ["predevis"] });
       toast.success("Montants enregistrés.");
       setEditing(false);
@@ -233,7 +243,16 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
           )}
         </div>
         <div>
-          <h2 className="font-display text-xl">{data.quote.title}</h2>
+          {editing ? (
+            <Input
+              className="h-9 max-w-2xl font-display text-xl"
+              value={drafts.t ?? ""}
+              onChange={(e) => setDraft("t", e.target.value)}
+              aria-label="Nom du devis"
+            />
+          ) : (
+            <h2 className="font-display text-xl">{data.quote.title}</h2>
+          )}
           <p className="text-sm text-muted-foreground">
             {data.quote.devis_number ? `Devis n° ${data.quote.devis_number} · ` : ""}
             Total HT déclaré {editing ? field("q", "w-32") : eur(num(data.quote.total_ht_declared))}
