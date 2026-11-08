@@ -19,6 +19,7 @@ import {
   posteClientText,
   posteRecap,
   type ManualFields,
+  type ManualHeader,
   type ManualValues,
   type RecapRow,
 } from "@/lib/predevis-recap";
@@ -37,7 +38,20 @@ const FIELD_LABEL: Record<keyof ManualFields, string> = {
   pau: "PAU HT (€)",
   multiplier: "Multiplicateur d'unité",
   cost: "Coût HT (€)",
+  pu: "PU HT (€)",
+  ht: "HT (€)",
+  ttc: "TTC (€)",
 };
+
+/** Montant affiché dans un champ de saisie (vide si absent). */
+const numText = (n: number | null | undefined) => (n == null ? "" : String(n));
+
+/** Vide = null (effacé) ; non numérique ou négatif = undefined (refusé). */
+function parseAmountDraft(raw: string): number | null | undefined {
+  if (raw.trim() === "") return null;
+  const n = Number(raw.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
 
 type Ctx = Awaited<ReturnType<typeof loadMatchContext>>;
 type ParsedPoste = QuoteParse["postes"][number];
@@ -48,6 +62,9 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
   const [choices, setChoices] = useState<MatchChoices>({});
   const [manual, setManual] = useState<ManualValues>({});
   const [fileName, setFileName] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
+  const [totalDraft, setTotalDraft] = useState<string>("");
+  const [subDrafts, setSubDrafts] = useState<Record<number, string>>({});
   const [selected, setSelected] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
@@ -60,6 +77,9 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
       setCtx(await loadMatchContext());
       setChoices({});
       setManual({});
+      setSubDrafts({});
+      setTitle(parsed.title ?? "");
+      setTotalDraft(numText(parsed.totalHtDeclared));
       if (parsed.postes.length === 0) {
         toast.error("Aucun poste lu dans ce PDF. Vérifie que c'est un devis détaillé Henrri.");
       }
@@ -194,12 +214,40 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
 
   async function save() {
     if (!quote) return;
+    if (!title.trim()) {
+      toast.error("Donne un nom au devis.");
+      return;
+    }
+    const totalHtDeclared = parseAmountDraft(totalDraft);
+    const subtotals: Record<number, number | null> = {};
+    for (const p of quote.postes) {
+      const v = parseAmountDraft(subDrafts[p.index] ?? numText(p.subtotalHt));
+      if (v === undefined) {
+        toast.error(
+          `Sous-total du poste ${p.index} invalide : saisis un nombre positif, ou laisse vide.`,
+        );
+        return;
+      }
+      subtotals[p.index] = v;
+    }
+    if (totalHtDeclared === undefined) {
+      toast.error("Total HT déclaré invalide : saisis un nombre positif, ou laisse vide.");
+      return;
+    }
+    const header: ManualHeader = { title: title.trim(), totalHtDeclared, subtotals };
     setBusy(true);
     try {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id;
       if (!userId) throw new Error("Session expirée, reconnecte-toi.");
-      const res = await saveQuoteDraft({ parse: quote, fileName, userId, choices, manual });
+      const res = await saveQuoteDraft({
+        parse: quote,
+        fileName,
+        userId,
+        choices,
+        manual,
+        header,
+      });
       await qc.invalidateQueries({ queryKey: ["predevis"] });
       toast.success(`Devis enregistré : ${res.posteCount} postes, ${res.lineCount} lignes.`);
       setQuote(null);
@@ -245,13 +293,34 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
 
       {quote && (
         <div className="space-y-8">
-          <p className="text-sm text-muted-foreground">
-            {fileName}
-            {quote.devisNumber ? ` · devis n° ${quote.devisNumber}` : ""}
-            {quote.totalHtDeclared != null
-              ? ` · total HT déclaré ${eur(quote.totalHtDeclared)}`
-              : ""}
-          </p>
+          <section className="grid gap-4 rounded-xl border bg-card p-6 md:grid-cols-[1fr_auto] md:items-end">
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">
+                Nom du devis (titre de l'en-tête du PDF)
+              </span>
+              <Input
+                className="h-9 font-medium"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">Total HT déclaré (€)</span>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                className="h-9 w-40 text-right"
+                value={totalDraft}
+                onChange={(e) => setTotalDraft(e.target.value)}
+              />
+            </label>
+            <p className="text-sm text-muted-foreground md:col-span-2">
+              {fileName}
+              {quote.devisNumber ? ` · devis n° ${quote.devisNumber}` : ""}
+            </p>
+          </section>
 
           {quote.warnings.length > 0 && (
             <ul className="list-disc space-y-1 pl-5 text-sm text-destructive">
@@ -266,19 +335,39 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
             const fin = posteRecap(recapRows, manual);
             const missing = missingFields(recapRows, manual);
             const noQuantity = recapRows.filter((r) => r.quantity == null);
-            const rows: ViewRow[] = p.rows.map((r) => ({
-              key: String(r.position),
-              ref: r.ref,
-              designation: r.designation,
-              kind: r.kind,
-              continued: r.continued,
-              quantity: r.quantity,
-              pu: r.pu,
-              ht: r.ht,
-              ttc: r.ttc,
-              pau: renderPau(p.index, r.position, r.ref, r.designation, r.kind),
-              rattachement: renderMatch(p.index, r.position, r.ref, r.designation, r.kind),
-            }));
+            const rows: ViewRow[] = p.rows.map((r) => {
+              const key = quoteRowKey(p.index, r.position);
+              const amountField = (f: "pu" | "ht" | "ttc", fallback: number | null) => (
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  className="h-8 w-28 text-right"
+                  value={manual[key]?.[f] ?? numText(fallback)}
+                  onChange={(e) => setManualField(key, f, e.target.value)}
+                />
+              );
+              return {
+                key: String(r.position),
+                ref: r.ref,
+                designation: r.designation,
+                kind: r.kind,
+                continued: r.continued,
+                quantity: r.quantity,
+                pu: r.pu,
+                ht: r.ht,
+                ttc: r.ttc,
+                pau: renderPau(p.index, r.position, r.ref, r.designation, r.kind),
+                rattachement: renderMatch(p.index, r.position, r.ref, r.designation, r.kind),
+                editable: {
+                  quantity: r.quantity ?? "—",
+                  pu: amountField("pu", r.pu),
+                  ht: amountField("ht", r.ht),
+                  ttc: amountField("ttc", r.ttc),
+                },
+              };
+            });
             return (
               <PosteSection
                 key={p.index}
@@ -289,8 +378,18 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                     <Badge variant={p.status === "ok" ? "secondary" : "destructive"}>
                       {p.status === "ok" ? "contrôle OK" : "à vérifier"}
                     </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {p.rows.length} lignes · Sous-total {eur(p.subtotalHt)} · TTC {eur(p.sumTtc)}
+                    <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      {p.rows.length} lignes · Sous-total
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        min="0"
+                        className="h-8 w-32 text-right"
+                        value={subDrafts[p.index] ?? numText(p.subtotalHt)}
+                        onChange={(e) => setSubDrafts((d) => ({ ...d, [p.index]: e.target.value }))}
+                      />
+                      · TTC {eur(p.sumTtc)}
                     </span>
                     {p.reasons.length > 0 && (
                       <span className="w-full text-sm text-destructive">{p.reasons.join(" ")}</span>

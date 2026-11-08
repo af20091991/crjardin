@@ -31,7 +31,7 @@ import { posteFinance, type PosteFinance } from "./predevis-finance";
 
 import type { QuoteParse } from "./predevis-quote-parse";
 import { clientBlock } from "./predevis-client-block";
-import { manualLineFields, type ManualValues } from "./predevis-recap";
+import { manualLineFields, type ManualHeader, type ManualValues } from "./predevis-recap";
 
 // Temporaire : types.ts ne contient pas encore les tables predevis_* (resynchronisation Lovable à faire).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -240,18 +240,21 @@ export async function saveQuoteDraft(args: {
   userId: string;
   choices?: MatchChoices;
   manual?: ManualValues;
+  header?: ManualHeader;
 }): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
-  const { parse, fileName, userId, choices = {}, manual = {} } = args;
+  const { parse, fileName, userId, choices = {}, manual = {}, header = {} } = args;
   const products = await loadCatalogueProducts();
+  const totalHtDeclared =
+    header.totalHtDeclared !== undefined ? header.totalHtDeclared : parse.totalHtDeclared;
 
   const { data: quote, error: qe } = await db()
     .from("predevis_quotes")
     .insert({
-      // Nom = titre de l'en-tête du PDF ; à défaut, le nom du fichier.
-      title: parse.title ?? fileName,
+      // Nom = titre de l'en-tête du PDF (modifiable à l'import) ; à défaut, le nom du fichier.
+      title: header.title?.trim() || parse.title || fileName,
       devis_number: parse.devisNumber,
       source_file_name: fileName,
-      total_ht_declared: parse.totalHtDeclared,
+      total_ht_declared: totalHtDeclared,
       status: "brouillon",
       created_by: userId,
     })
@@ -261,7 +264,7 @@ export async function saveQuoteDraft(args: {
   const quoteId: string = quote.id;
 
   try {
-    return await writePostesAndLines(quoteId, parse, products, choices, manual);
+    return await writePostesAndLines(quoteId, parse, products, choices, manual, header);
   } catch (e) {
     // Pas de transaction côté client : on retire le devis partiel pour ne pas laisser un brouillon incomplet.
     await db().from("predevis_quotes").delete().eq("id", quoteId);
@@ -275,6 +278,7 @@ async function writePostesAndLines(
   products: CatalogueProduct[],
   choices: MatchChoices,
   manual: ManualValues,
+  header: ManualHeader,
 ): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
   const offersByProduct = await loadOffersByProduct();
   const unitById = new Map(products.map((p) => [p.id, p.unit]));
@@ -303,7 +307,10 @@ async function writePostesAndLines(
         description_lines: poste.descriptionLines,
         detection: "auto",
         review_status: "a_verifier",
-        subtotal_ht: poste.subtotalHt,
+        subtotal_ht:
+          header.subtotals && poste.index in header.subtotals
+            ? header.subtotals[poste.index]
+            : poste.subtotalHt,
         client_block: clientBlock(
           rows.map(({ row, match }) => ({
             kind: row.kind,
@@ -520,9 +527,13 @@ export async function saveQuoteAmounts(args: {
   lines: Record<string, LineAmountPatch>;
   postes: Record<string, number | null>;
   totalHtDeclared?: number | null;
+  title?: string;
 }): Promise<void> {
-  const { quoteId, lines, postes, totalHtDeclared } = args;
+  const { quoteId, lines, postes, totalHtDeclared, title } = args;
   const ops: PromiseLike<{ error: unknown }>[] = [];
+  if (title !== undefined) {
+    ops.push(db().from("predevis_quotes").update({ title }).eq("id", quoteId));
+  }
   for (const [id, patch] of Object.entries(lines)) {
     // Un achat saisi rend la ligne « connue », comme à l'import.
     const row = patch.pau_ht_applied != null ? { ...patch, cost_status: "connu" } : patch;

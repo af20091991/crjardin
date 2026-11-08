@@ -6,8 +6,24 @@ import { posteFinance, type PosteFinance } from "./predevis-finance";
 import { clientBlock } from "./predevis-client-block";
 
 /** Valeurs saisies à la main, par ligne (clé = quoteRowKey). Absentes = non saisies. */
-export type ManualFields = { pau?: number; multiplier?: number; cost?: number };
+export type ManualFields = {
+  pau?: number;
+  multiplier?: number;
+  cost?: number;
+  pu?: number;
+  ht?: number;
+  ttc?: number;
+};
 export type ManualValues = Record<string, ManualFields>;
+
+/** En-tête et sous-totaux saisis à la main à l'import (absents = valeurs du PDF). */
+export type ManualHeader = {
+  title?: string;
+  /** null = effacé. */
+  totalHtDeclared?: number | null;
+  /** Par numéro de poste ; null = effacé. */
+  subtotals?: Record<number, number | null>;
+};
 
 export type RecapRow = {
   key: string;
@@ -35,6 +51,9 @@ export function manualLineFields(
 ): Record<string, number | string> {
   const out: Record<string, number | string> = {};
   if (!m) return out;
+  if (m.pu != null) out.pu_ht = m.pu;
+  if (m.ht != null) out.ht = m.ht;
+  if (m.ttc != null) out.ttc = m.ttc;
   if (kind === "mo") {
     if (m.cost != null) out.manual_cost_ht = m.cost;
     return out;
@@ -59,8 +78,8 @@ export function previewStoredLine(row: RecapRow, m: ManualFields | undefined): S
   return {
     kind: row.kind,
     quantity: row.quantity,
-    ht: row.ht,
-    ttc: row.ttc,
+    ht: (f.ht as number | undefined) ?? row.ht,
+    ttc: (f.ttc as number | undefined) ?? row.ttc,
     pau_ht_applied: (f.pau_ht_applied as number | undefined) ?? null,
     cost_status: (f.cost_status as StoredLine["cost_status"] | undefined) ?? "manquant",
     unit_status: (f.unit_status as StoredLine["unit_status"] | undefined) ?? "non_verifiee",
