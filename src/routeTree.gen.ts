@@ -57,6 +57,7 @@ import { Route as AuthenticatedPilotRapprochementRouteImport } from './routes/_a
 import { Route as AuthenticatedPilotRapportsRouteImport } from './routes/_authenticated/pilot.rapports'
 import { Route as AuthenticatedPilotQualiteRouteImport } from './routes/_authenticated/pilot.qualite'
 import { Route as AuthenticatedPilotPrestationsRouteImport } from './routes/_authenticated/pilot.prestations'
+import { Route as AuthenticatedPilotPredevisRouteImport } from './routes/_authenticated/pilot.predevis'
 import { Route as AuthenticatedPilotPilotageRouteImport } from './routes/_authenticated/pilot.pilotage'
 import { Route as AuthenticatedPilotParametresRouteImport } from './routes/_authenticated/pilot.parametres'
 import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
@@ -344,6 +345,12 @@ const AuthenticatedPilotPrestationsRoute =
     path: '/prestations',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotPredevisRoute =
+  AuthenticatedPilotPredevisRouteImport.update({
+    id: '/predevis',
+    path: '/predevis',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotPilotageRoute =
   AuthenticatedPilotPilotageRouteImport.update({
     id: '/pilotage',
@@ -586,6 +593,7 @@ export interface FileRoutesByFullPath {
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/pilot/pilotage': typeof AuthenticatedPilotPilotageRoute
+  '/pilot/predevis': typeof AuthenticatedPilotPredevisRoute
   '/pilot/prestations': typeof AuthenticatedPilotPrestationsRoute
   '/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
@@ -666,6 +674,7 @@ export interface FileRoutesByTo {
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/pilot/pilotage': typeof AuthenticatedPilotPilotageRoute
+  '/pilot/predevis': typeof AuthenticatedPilotPredevisRoute
   '/pilot/prestations': typeof AuthenticatedPilotPrestationsRoute
   '/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
@@ -750,6 +759,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/_authenticated/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/_authenticated/pilot/pilotage': typeof AuthenticatedPilotPilotageRoute
+  '/_authenticated/pilot/predevis': typeof AuthenticatedPilotPredevisRoute
   '/_authenticated/pilot/prestations': typeof AuthenticatedPilotPrestationsRoute
   '/_authenticated/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/_authenticated/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
@@ -834,6 +844,7 @@ export interface FileRouteTypes {
     | '/pilot/objectifs'
     | '/pilot/parametres'
     | '/pilot/pilotage'
+    | '/pilot/predevis'
     | '/pilot/prestations'
     | '/pilot/qualite'
     | '/pilot/rapports'
@@ -914,6 +925,7 @@ export interface FileRouteTypes {
     | '/pilot/objectifs'
     | '/pilot/parametres'
     | '/pilot/pilotage'
+    | '/pilot/predevis'
     | '/pilot/prestations'
     | '/pilot/qualite'
     | '/pilot/rapports'
@@ -997,6 +1009,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/objectifs'
     | '/_authenticated/pilot/parametres'
     | '/_authenticated/pilot/pilotage'
+    | '/_authenticated/pilot/predevis'
     | '/_authenticated/pilot/prestations'
     | '/_authenticated/pilot/qualite'
     | '/_authenticated/pilot/rapports'
@@ -1393,6 +1406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotPrestationsRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/predevis': {
+      id: '/_authenticated/pilot/predevis'
+      path: '/predevis'
+      fullPath: '/pilot/predevis'
+      preLoaderRoute: typeof AuthenticatedPilotPredevisRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/pilotage': {
       id: '/_authenticated/pilot/pilotage'
       path: '/pilotage'
@@ -1663,6 +1683,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotObjectifsRoute: typeof AuthenticatedPilotObjectifsRoute
   AuthenticatedPilotParametresRoute: typeof AuthenticatedPilotParametresRoute
   AuthenticatedPilotPilotageRoute: typeof AuthenticatedPilotPilotageRoute
+  AuthenticatedPilotPredevisRoute: typeof AuthenticatedPilotPredevisRoute
   AuthenticatedPilotPrestationsRoute: typeof AuthenticatedPilotPrestationsRoute
   AuthenticatedPilotQualiteRoute: typeof AuthenticatedPilotQualiteRoute
   AuthenticatedPilotRapportsRoute: typeof AuthenticatedPilotRapportsRoute
@@ -1702,6 +1723,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotObjectifsRoute: AuthenticatedPilotObjectifsRoute,
   AuthenticatedPilotParametresRoute: AuthenticatedPilotParametresRoute,
   AuthenticatedPilotPilotageRoute: AuthenticatedPilotPilotageRoute,
+  AuthenticatedPilotPredevisRoute: AuthenticatedPilotPredevisRoute,
   AuthenticatedPilotPrestationsRoute: AuthenticatedPilotPrestationsRoute,
   AuthenticatedPilotQualiteRoute: AuthenticatedPilotQualiteRoute,
   AuthenticatedPilotRapportsRoute: AuthenticatedPilotRapportsRoute,
