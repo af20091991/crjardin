@@ -17,6 +17,7 @@ import {
   supplierOptions,
   type CatalogueOffer,
   type CatalogueProduct,
+  type MatchResult,
   type SupplierOption,
 } from "./predevis-match";
 import {
@@ -213,12 +214,32 @@ export async function loadCatalogueProducts(): Promise<CatalogueProduct[]> {
   return data ?? [];
 }
 
+/** Choix faits à l'import : clé = quoteRowKey (poste + position), valeur = produit choisi, ou null = non rattaché. */
+export type MatchChoices = Record<string, string | null>;
+
+export function quoteRowKey(posteIndex: number, position: number): string {
+  return `${posteIndex}-${position}`;
+}
+
+/** Données de rattachement lues une fois, utilisées par l'écran d'import pour afficher le PAU détecté. */
+export async function loadMatchContext(): Promise<{
+  products: CatalogueProduct[];
+  offersByProduct: Map<string, OfferRow[]>;
+  unitById: Map<string, string | null>;
+}> {
+  const products = await loadCatalogueProducts();
+  const offersByProduct = await loadOffersByProduct();
+  const unitById = new Map(products.map((p) => [p.id, p.unit]));
+  return { products, offersByProduct, unitById };
+}
+
 export async function saveQuoteDraft(args: {
   parse: QuoteParse;
   fileName: string;
   userId: string;
+  choices?: MatchChoices;
 }): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
-  const { parse, fileName, userId } = args;
+  const { parse, fileName, userId, choices = {} } = args;
   const products = await loadCatalogueProducts();
 
   const { data: quote, error: qe } = await db()
@@ -237,7 +258,7 @@ export async function saveQuoteDraft(args: {
   const quoteId: string = quote.id;
 
   try {
-    return await writePostesAndLines(quoteId, parse, products);
+    return await writePostesAndLines(quoteId, parse, products, choices);
   } catch (e) {
     // Pas de transaction côté client : on retire le devis partiel pour ne pas laisser un brouillon incomplet.
     await db().from("predevis_quotes").delete().eq("id", quoteId);
@@ -249,13 +270,23 @@ async function writePostesAndLines(
   quoteId: string,
   parse: QuoteParse,
   products: CatalogueProduct[],
+  choices: MatchChoices,
 ): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
   const offersByProduct = await loadOffersByProduct();
   const unitById = new Map(products.map((p) => [p.id, p.unit]));
   let lineCount = 0;
   for (const poste of parse.postes) {
     const rows = poste.rows.map((r) => {
-      const m = matchQuoteRow({ ref: r.ref, designation: r.designation }, products);
+      const key = quoteRowKey(poste.index, r.position);
+      const m: MatchResult =
+        key in choices
+          ? {
+              status: choices[key] ? "manuel" : "aucun",
+              productId: choices[key] ?? null,
+              candidates: [],
+              reason: choices[key] ? "Choisi à l'import." : "Non rattaché à l'import.",
+            }
+          : matchQuoteRow({ ref: r.ref, designation: r.designation }, products);
       return { row: r, match: m };
     });
 

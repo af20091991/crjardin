@@ -6,14 +6,32 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { pdfFileToWords } from "@/lib/predevis-quote-pdf";
 import { parseQuote, type QuoteParse } from "@/lib/predevis-quote-parse";
-import { saveQuoteDraft } from "@/lib/predevis-data";
+import {
+  loadMatchContext,
+  quoteRowKey,
+  saveQuoteDraft,
+  type MatchChoices,
+} from "@/lib/predevis-data";
+import { matchQuoteRow, type MatchResult } from "@/lib/predevis-match";
+import { uniqueSupplierPurchase } from "@/lib/predevis-lines";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const eur = (n: number | null) =>
   n == null ? "données insuffisantes" : `${n.toFixed(2).replace(".", ",")} €`;
 
+type Ctx = Awaited<ReturnType<typeof loadMatchContext>>;
+
 export function QuoteImport() {
   const [quote, setQuote] = useState<QuoteParse | null>(null);
+  const [ctx, setCtx] = useState<Ctx | null>(null);
+  const [choices, setChoices] = useState<MatchChoices>({});
   const [fileName, setFileName] = useState<string>("");
   const [selected, setSelected] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -24,6 +42,8 @@ export function QuoteImport() {
     try {
       const words = await pdfFileToWords(file);
       const parsed = parseQuote(words);
+      setCtx(await loadMatchContext());
+      setChoices({});
       if (parsed.postes.length === 0) {
         toast.error("Aucun poste lu dans ce PDF. Vérifie que c'est un devis détaillé Henrri.");
       }
@@ -34,6 +54,93 @@ export function QuoteImport() {
     } finally {
       setBusy(false);
     }
+  }
+
+  /** Rattachement effectif : le choix de l'utilisateur prime sur la détection automatique. */
+  function effectiveMatch(
+    posteIndex: number,
+    position: number,
+    ref: string | null,
+    designation: string,
+  ): MatchResult | null {
+    if (!ctx) return null;
+    const key = quoteRowKey(posteIndex, position);
+    if (key in choices) {
+      const id = choices[key];
+      return {
+        status: id ? "manuel" : "aucun",
+        productId: id ?? null,
+        candidates: [],
+        reason: "",
+      };
+    }
+    return matchQuoteRow({ ref, designation }, ctx.products);
+  }
+
+  function renderMatch(
+    posteIndex: number,
+    position: number,
+    ref: string | null,
+    designation: string,
+    kind: string,
+  ) {
+    if (kind !== "fourniture" || !ctx) return <span className="text-muted-foreground">—</span>;
+    const m = effectiveMatch(posteIndex, position, ref, designation);
+    const key = quoteRowKey(posteIndex, position);
+    if (m?.productId) {
+      const prod = ctx.products.find((x) => x.id === m.productId);
+      return (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{prod?.code ?? "rattaché"}</Badge>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground underline"
+            onClick={() => setChoices((c) => ({ ...c, [key]: null }))}
+          >
+            retirer
+          </button>
+        </div>
+      );
+    }
+    const candidates = m?.candidates ?? [];
+    if (candidates.length > 0) {
+      return (
+        <Select value="" onValueChange={(v) => setChoices((c) => ({ ...c, [key]: v }))}>
+          <SelectTrigger className="h-8 w-64">
+            <SelectValue placeholder="Choisir l'article du catalogue" />
+          </SelectTrigger>
+          <SelectContent>
+            {candidates.map((c) => (
+              <SelectItem key={c.productId} value={c.productId}>
+                {c.code} — {c.designation}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+    return <span className="text-destructive">absent du catalogue</span>;
+  }
+
+  function renderPau(
+    posteIndex: number,
+    position: number,
+    ref: string | null,
+    designation: string,
+    kind: string,
+  ) {
+    if (kind !== "fourniture" || !ctx) return <span className="text-muted-foreground">—</span>;
+    const m = effectiveMatch(posteIndex, position, ref, designation);
+    if (!m?.productId) return <span className="text-muted-foreground">—</span>;
+    const purchase = uniqueSupplierPurchase(
+      ctx.offersByProduct.get(m.productId) ?? [],
+      ctx.unitById.get(m.productId) ?? null,
+    );
+    return purchase?.pau_ht_applied != null ? (
+      eur(purchase.pau_ht_applied)
+    ) : (
+      <span className="text-destructive">prix manquant</span>
+    );
   }
 
   return (
@@ -105,6 +212,8 @@ export function QuoteImport() {
                         <th className="text-right">PU HT</th>
                         <th className="text-right">HT</th>
                         <th className="text-right">TTC</th>
+                        <th className="pl-3">Rattachement catalogue</th>
+                        <th className="text-right">PAU HT détecté</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -128,6 +237,12 @@ export function QuoteImport() {
                           <td className="text-right">{eur(r.pu)}</td>
                           <td className="text-right">{eur(r.ht)}</td>
                           <td className="text-right">{eur(r.ttc)}</td>
+                          <td className="pl-3">
+                            {renderMatch(p.index, r.position, r.ref, r.designation, r.kind)}
+                          </td>
+                          <td className="text-right">
+                            {renderPau(p.index, r.position, r.ref, r.designation, r.kind)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -153,7 +268,7 @@ export function QuoteImport() {
                     const { data: auth } = await supabase.auth.getUser();
                     const userId = auth.user?.id;
                     if (!userId) throw new Error("Session expirée, reconnecte-toi.");
-                    const res = await saveQuoteDraft({ parse: quote, fileName, userId });
+                    const res = await saveQuoteDraft({ parse: quote, fileName, userId, choices });
                     await qc.invalidateQueries({ queryKey: ["predevis"] });
                     toast.success(
                       `Pré-devis enregistré : ${res.posteCount} postes, ${res.lineCount} lignes.`,
