@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { pdfFileToWords } from "@/lib/predevis-quote-pdf";
 import { parseQuote, type QuoteParse } from "@/lib/predevis-quote-parse";
@@ -32,12 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const eur = (n: number | null) =>
-  n == null ? "données insuffisantes" : `${n.toFixed(2).replace(".", ",")} €`;
-
-/** Montant prêt à coller (sans symbole). */
-const amount = (n: number | null) => (n == null ? null : n.toFixed(2).replace(".", ","));
+import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
+import { eur } from "@/components/predevis/predevis-format";
 
 const FIELD_LABEL: Record<keyof ManualFields, string> = {
   pau: "PAU HT (€)",
@@ -45,19 +39,10 @@ const FIELD_LABEL: Record<keyof ManualFields, string> = {
   cost: "Coût HT (€)",
 };
 
-async function copyText(text: string, label: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast.success(`${label} copié.`);
-  } catch {
-    toast.error("Copie impossible dans ce navigateur.");
-  }
-}
-
 type Ctx = Awaited<ReturnType<typeof loadMatchContext>>;
 type ParsedPoste = QuoteParse["postes"][number];
 
-export function QuoteImport() {
+export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void }) {
   const [quote, setQuote] = useState<QuoteParse | null>(null);
   const [ctx, setCtx] = useState<Ctx | null>(null);
   const [choices, setChoices] = useState<MatchChoices>({});
@@ -207,12 +192,35 @@ export function QuoteImport() {
     );
   }
 
+  async function save() {
+    if (!quote) return;
+    setBusy(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) throw new Error("Session expirée, reconnecte-toi.");
+      const res = await saveQuoteDraft({ parse: quote, fileName, userId, choices, manual });
+      await qc.invalidateQueries({ queryKey: ["predevis"] });
+      toast.success(`Devis enregistré : ${res.posteCount} postes, ${res.lineCount} lignes.`);
+      setQuote(null);
+      setSelected(null);
+      onSaved(res.quoteId);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enregistrement impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Devis détaillé Henrri</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 text-sm">
+    <div className="space-y-8">
+      <section className="space-y-4 rounded-xl border bg-card p-6">
+        <div>
+          <h2 className="font-display text-lg">Importer un devis Henrri détaillé</h2>
+          <p className="text-sm text-muted-foreground">
+            Les prix d'achat sont lus automatiquement depuis le catalogue importé.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <input
             id="predevis-quote-pdf"
@@ -231,267 +239,126 @@ export function QuoteImport() {
           >
             Analyser le devis
           </Button>
-          {busy && <span className="text-muted-foreground">Lecture…</span>}
+          {busy && <span className="text-sm text-muted-foreground">Lecture…</span>}
         </div>
+      </section>
 
-        {quote && (
-          <div className="space-y-4">
-            <p className="text-muted-foreground">
-              {fileName}
-              {quote.devisNumber ? ` · devis n° ${quote.devisNumber}` : ""}
-              {quote.totalHtDeclared != null
-                ? ` · total HT déclaré ${eur(quote.totalHtDeclared)}`
-                : ""}
-            </p>
+      {quote && (
+        <div className="space-y-8">
+          <p className="text-sm text-muted-foreground">
+            {fileName}
+            {quote.devisNumber ? ` · devis n° ${quote.devisNumber}` : ""}
+            {quote.totalHtDeclared != null
+              ? ` · total HT déclaré ${eur(quote.totalHtDeclared)}`
+              : ""}
+          </p>
 
-            {quote.warnings.length > 0 && (
-              <ul className="list-disc pl-5 text-destructive">
-                {quote.warnings.map((w) => (
-                  <li key={w}>{w}</li>
-                ))}
-              </ul>
-            )}
+          {quote.warnings.length > 0 && (
+            <ul className="list-disc space-y-1 pl-5 text-sm text-destructive">
+              {quote.warnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          )}
 
-            {quote.postes.map((p) => {
-              const rows = buildRecapRows(p);
-              const fin = posteRecap(rows, manual);
-              const missing = missingFields(rows, manual);
-              const clientText = posteClientText(rows);
-              const noQuantity = rows.filter((r) => r.quantity == null);
-              return (
-                <section key={p.index} className="space-y-3 rounded-md border p-3">
-                  <header className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-medium">
-                      Poste {p.index} — {p.title ?? "sans titre (à nommer)"}
-                    </h3>
+          {quote.postes.map((p) => {
+            const recapRows = buildRecapRows(p);
+            const fin = posteRecap(recapRows, manual);
+            const missing = missingFields(recapRows, manual);
+            const noQuantity = recapRows.filter((r) => r.quantity == null);
+            const rows: ViewRow[] = p.rows.map((r) => ({
+              key: String(r.position),
+              ref: r.ref,
+              designation: r.designation,
+              kind: r.kind,
+              continued: r.continued,
+              quantity: r.quantity,
+              pu: r.pu,
+              ht: r.ht,
+              ttc: r.ttc,
+              pau: renderPau(p.index, r.position, r.ref, r.designation, r.kind),
+              rattachement: renderMatch(p.index, r.position, r.ref, r.designation, r.kind),
+            }));
+            return (
+              <PosteSection
+                key={p.index}
+                index={p.index}
+                title={p.title ?? "sans titre (à nommer)"}
+                meta={
+                  <>
                     <Badge variant={p.status === "ok" ? "secondary" : "destructive"}>
                       {p.status === "ok" ? "contrôle OK" : "à vérifier"}
                     </Badge>
-                    <span className="text-muted-foreground">
-                      {p.rows.length} lignes · Sous Total {eur(p.subtotalHt)} · TTC {eur(p.sumTtc)}
+                    <span className="text-sm text-muted-foreground">
+                      {p.rows.length} lignes · Sous-total {eur(p.subtotalHt)} · TTC {eur(p.sumTtc)}
                     </span>
-                  </header>
-                  {p.reasons.length > 0 && (
-                    <p className="text-destructive">{p.reasons.join(" ")}</p>
-                  )}
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead className="text-muted-foreground">
-                        <tr>
-                          <th className="py-1">Réf.</th>
-                          <th>Désignation</th>
-                          <th className="text-right">Qté</th>
-                          <th className="text-right">PAU HT détecté</th>
-                          <th className="text-right">PU HT</th>
-                          <th className="text-right">HT</th>
-                          <th className="text-right">TTC</th>
-                          <th className="text-right">Rattachement catalogue</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {p.rows.map((r) => (
-                          <tr key={r.position} className="border-t">
-                            <td className="py-1 pr-2">{r.ref ?? "—"}</td>
-                            <td className="pr-2">
-                              {r.designation}
-                              {r.continued && (
-                                <Badge variant="outline" className="ml-2">
-                                  suite
-                                </Badge>
-                              )}
-                              {r.kind === "mo" && (
-                                <Badge variant="outline" className="ml-2">
-                                  MO
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="text-right">{r.quantity ?? "—"}</td>
-                            <td className="text-right">
-                              {renderPau(p.index, r.position, r.ref, r.designation, r.kind)}
-                            </td>
-                            <td className="text-right">{eur(r.pu)}</td>
-                            <td className="text-right">{eur(r.ht)}</td>
-                            <td className="text-right">{eur(r.ttc)}</td>
-                            <td className="text-right">
-                              <div className="flex justify-end">
-                                {renderMatch(p.index, r.position, r.ref, r.designation, r.kind)}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 bg-muted text-base font-semibold">
-                          <td className="py-2 pr-2" colSpan={3}>
-                            Total poste {p.index}
-                          </td>
-                          <td className="text-right">{eur(fin.achatFournituresHt)}</td>
-                          <td />
-                          <td className="text-right">{eur(fin.pvHt)}</td>
-                          <td className="text-right">{eur(fin.pvTtc)}</td>
-                          <td />
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-
-                  <div className="space-y-2 rounded-md border p-3">
-                    <RecapLine label="PV HT" value={eur(fin.pvHt)} />
-                    <RecapLine
-                      label="PV TTC"
-                      value={eur(fin.pvTtc)}
-                      copy={amount(fin.pvTtc)}
-                      copyLabel="PV TTC"
-                    />
-                    <RecapLine
-                      label="PAU HT (fournitures)"
-                      value={eur(fin.achatFournituresHt)}
-                      copy={amount(fin.achatFournituresHt)}
-                      copyLabel="PAU HT"
-                    />
-                    <RecapLine
-                      label="Prix de revient HT (fournitures + MO)"
-                      value={eur(fin.prixAchatHt)}
-                    />
-                    <RecapLine label="Marge nette HT" value={eur(fin.margeHt)} strong />
-                    <RecapLine
-                      label="Taux de marge"
-                      value={
-                        fin.tauxMarge == null
-                          ? "données insuffisantes"
-                          : `${fin.tauxMarge.toFixed(2).replace(".", ",")} %`
-                      }
-                      strong
-                    />
-                  </div>
-
-                  <div className="space-y-2 rounded-md bg-muted/40 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-medium">Texte client</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={!clientText}
-                        onClick={() => copyText(clientText, "Texte client")}
-                      >
-                        <Copy className="mr-1 h-3.5 w-3.5" />
-                        Copier le texte
-                      </Button>
-                    </div>
-                    <p className="whitespace-pre-line">{clientText || "—"}</p>
-                  </div>
-
-                  {(missing.length > 0 || fin.issues.length > 0 || noQuantity.length > 0) && (
-                    <div className="space-y-2 rounded-md border border-destructive/50 p-3">
-                      <p className="font-medium text-destructive">
-                        Informations manquantes : saisis-les ici, elles seront enregistrées avec le
-                        pré-devis.
-                      </p>
-                      {missing.map((m) => (
-                        <div
-                          key={`${m.key}-${m.field}`}
-                          className="flex flex-wrap items-center gap-2"
-                        >
-                          <span className="min-w-0 flex-1">{m.label}</span>
-                          <span className="text-muted-foreground">{FIELD_LABEL[m.field]}</span>
-                          <Input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.01"
-                            min="0"
-                            className="h-8 w-32"
-                            value={manual[m.key]?.[m.field] ?? ""}
-                            onChange={(e) => setManualField(m.key, m.field, e.target.value)}
-                          />
-                        </div>
-                      ))}
-                      {noQuantity.map((r) => (
-                        <p key={r.key} className="text-destructive">
-                          Quantité absente du devis : {r.designation}
-                        </p>
-                      ))}
-                      {fin.issues.map((i) => (
-                        <p key={i} className="text-destructive">
-                          {i}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-
-            {quote.orphanText.length > 0 && (
-              <section>
-                <h3 className="font-medium">Texte hors poste (non affecté)</h3>
-                <p className="text-muted-foreground">{quote.orphanText.join(" ")}</p>
-              </section>
-            )}
-
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                disabled={busy || quote.postes.length === 0}
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    const { data: auth } = await supabase.auth.getUser();
-                    const userId = auth.user?.id;
-                    if (!userId) throw new Error("Session expirée, reconnecte-toi.");
-                    const res = await saveQuoteDraft({
-                      parse: quote,
-                      fileName,
-                      userId,
-                      choices,
-                      manual,
-                    });
-                    await qc.invalidateQueries({ queryKey: ["predevis"] });
-                    toast.success(
-                      `Pré-devis enregistré : ${res.posteCount} postes, ${res.lineCount} lignes.`,
-                    );
-                  } catch (e) {
-                    toast.error(e instanceof Error ? e.message : "Enregistrement impossible.");
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
+                    {p.reasons.length > 0 && (
+                      <span className="w-full text-sm text-destructive">{p.reasons.join(" ")}</span>
+                    )}
+                  </>
+                }
+                rows={rows}
+                fin={fin}
+                clientText={posteClientText(recapRows)}
               >
-                Enregistrer le pré-devis (brouillon)
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setQuote(null)}>
-                Fermer
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+                {(missing.length > 0 || fin.issues.length > 0 || noQuantity.length > 0) && (
+                  <div className="space-y-3 rounded-lg border border-destructive/50 p-4">
+                    <p className="font-medium text-destructive">
+                      Informations manquantes : saisis-les ici, elles seront enregistrées avec le
+                      devis.
+                    </p>
+                    {missing.map((m) => (
+                      <div
+                        key={`${m.key}-${m.field}`}
+                        className="flex flex-wrap items-center gap-3"
+                      >
+                        <span className="min-w-0 flex-1 text-sm">{m.label}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {FIELD_LABEL[m.field]}
+                        </span>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.01"
+                          min="0"
+                          className="h-8 w-32"
+                          value={manual[m.key]?.[m.field] ?? ""}
+                          onChange={(e) => setManualField(m.key, m.field, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                    {noQuantity.map((r) => (
+                      <p key={r.key} className="text-sm text-destructive">
+                        Quantité absente du devis : {r.designation}
+                      </p>
+                    ))}
+                    {fin.issues.map((i) => (
+                      <p key={i} className="text-sm text-destructive">
+                        {i}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </PosteSection>
+            );
+          })}
 
-function RecapLine({
-  label,
-  value,
-  copy,
-  copyLabel,
-  strong,
-}: {
-  label: string;
-  value: string;
-  copy?: string | null;
-  copyLabel?: string;
-  strong?: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="w-80 text-muted-foreground">{label}</span>
-      <span className={strong ? "font-semibold" : "font-medium"}>{value}</span>
-      {copy != null && copyLabel && (
-        <Button size="sm" variant="outline" onClick={() => copyText(copy, copyLabel)}>
-          <Copy className="mr-1 h-3.5 w-3.5" />
-          Copier
-        </Button>
+          {quote.orphanText.length > 0 && (
+            <section className="rounded-xl border bg-card p-6">
+              <h3 className="font-display text-lg">Texte hors poste (non affecté)</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{quote.orphanText.join(" ")}</p>
+            </section>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <Button disabled={busy || quote.postes.length === 0} onClick={save}>
+              Enregistrer dans Devis importés
+            </Button>
+            <Button variant="outline" onClick={() => setQuote(null)}>
+              Fermer
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

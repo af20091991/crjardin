@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  storedPosteRecap,
   manualLineFields,
   missingFields,
   posteClientText,
@@ -134,5 +135,40 @@ describe("posteClientText", () => {
     ]);
     expect(text.split("\n")).toEqual(["- Vivace 4 L : 2 pièce", "- Terreau : 3 unité à préciser"]);
     expect(text.includes("€")).toBe(false);
+  });
+});
+
+describe("storedPosteRecap", () => {
+  test("ligne enregistrée : achat et main-d'œuvre à 0 € comptés sans alerte", () => {
+    const fin = storedPosteRecap([
+      {
+        kind: "fourniture",
+        quantity: 2,
+        ht: 20,
+        ttc: 24,
+        pau_ht_applied: 5,
+        cost_status: "connu",
+        unit_status: "ok",
+        unit_multiplier: 1,
+        manual_cost_ht: null,
+        zero_cost_reason: null,
+      },
+      {
+        kind: "mo",
+        quantity: 1,
+        ht: 80,
+        ttc: 96,
+        pau_ht_applied: null,
+        cost_status: "manquant",
+        unit_status: "non_verifiee",
+        unit_multiplier: null,
+        manual_cost_ht: null,
+        zero_cost_reason: null,
+      },
+    ]);
+    expect(fin.achatFournituresHt).toBe(10);
+    expect(fin.prixAchatHt).toBe(10);
+    expect(fin.margeHt).toBe(90);
+    expect(fin.issues).toEqual([]);
   });
 });
