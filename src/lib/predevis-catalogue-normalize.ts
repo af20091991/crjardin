@@ -26,7 +26,10 @@ export function normText(value: string): string {
 /** Code produit : majuscules, sans espaces, tirets ni points. Le libellé d'origine est gardé ailleurs. */
 export function normCode(code: string | null | undefined): string | null {
   if (code == null) return null;
+  // Même règle que le devis : suffixes de copie « (copie…) » et numérotation « (2) » retirés.
   const c = String(code)
+    .replace(/\s*\(copie[^)]*\)?.*$/i, "")
+    .replace(/\s*\(\d+\)$/, "")
     .toUpperCase()
     .replace(/[\s\-.]/g, "");
   return c.length > 0 ? c : null;

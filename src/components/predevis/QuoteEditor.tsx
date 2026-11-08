@@ -260,7 +260,7 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
                                     <SelectContent>
                                       {options.map((o) => (
                                         <SelectItem key={optKey(o)} value={optKey(o)}>
-                                          {(o.supplier_name ?? "Fournisseur non précisé") +
+                                          {(o.supplier_name ?? "Prix catalogue") +
                                             " — " +
                                             (o.pau_ht == null ? "prix manquant" : eur(o.pau_ht))}
                                         </SelectItem>
