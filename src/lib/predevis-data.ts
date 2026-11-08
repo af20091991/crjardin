@@ -387,9 +387,14 @@ export type StoredPoste = {
   client_block: string | null;
 };
 
-export type StoredQuoteLine = StoredLine & {
+export type StoredQuoteLine = Omit<StoredLine, "kind"> & {
   id: string;
   quote_id: string;
+  line_kind: "fourniture" | "mo";
+  continued: boolean;
+  pu_ht: number | null;
+  ht: number | null;
+  ttc: number | null;
   poste_id: string | null;
   position: number;
   source_ref: string | null;
@@ -502,11 +507,6 @@ export async function setPosteReview(
 ): Promise<void> {
   const { error } = await db().from("predevis_postes").update({ review_status }).eq("id", posteId);
   if (error) throw error;
-}
-
-/** Indicateurs d'un poste, calculés depuis ses lignes enregistrées. */
-export function computePosteFinance(lines: StoredQuoteLine[]): PosteFinance {
-  return posteFinance(lines.map(lineFinance));
 }
 
 // ---------------------------------------------------------------------------

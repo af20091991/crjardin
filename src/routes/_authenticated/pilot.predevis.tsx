@@ -1,62 +1,55 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CatalogueImport } from "@/components/predevis/CatalogueImport";
 import { QuoteImport } from "@/components/predevis/QuoteImport";
-import { QuotesPanel, QuoteEditor } from "@/components/predevis/QuoteEditor";
+import { SavedQuotes } from "@/components/predevis/SavedQuotes";
 
 export const Route = createFileRoute("/_authenticated/pilot/predevis")({
   head: () => ({
     meta: [
-      { title: "Pré-devis — Pilot Pro" },
+      { title: "Devis — Pilot Pro" },
       {
         name: "description",
         content:
-          "Transformer un devis Henrri détaillé en postes chiffrés avec le catalogue fournisseurs.",
+          "Importer un devis Henrri détaillé, le compléter avec le catalogue fournisseurs et consulter les devis importés.",
       },
-      { property: "og:title", content: "Pré-devis — Pilot Pro" },
+      { property: "og:title", content: "Devis — Pilot Pro" },
     ],
   }),
   component: PredevisPage,
 });
 
 function PredevisPage() {
+  const [tab, setTab] = useState("nouveau");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [tab, setTab] = useState("pre-devis");
-
-  if (openId) {
-    return (
-      <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => setOpenId(null)}>
-          <ArrowLeft className="mr-1 h-4 w-4" /> Retour aux pré-devis
-        </Button>
-        <QuoteEditor quoteId={openId} onClose={() => setOpenId(null)} />
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-4">
-      <header>
-        <h1 className="font-display text-2xl">Pré-devis</h1>
+    <div className="space-y-8">
+      <header className="space-y-1">
+        <h1 className="font-display text-2xl">Devis</h1>
         <p className="text-sm text-muted-foreground">
-          Transformer un devis Henrri détaillé en postes chiffrés, avec les prix du catalogue
+          Importer un devis Henrri détaillé, le compléter, puis le retrouver dans Devis importés.
         </p>
       </header>
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="pre-devis">Pré-devis</TabsTrigger>
           <TabsTrigger value="nouveau">Nouveau devis</TabsTrigger>
+          <TabsTrigger value="importes">Devis importés</TabsTrigger>
           <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
         </TabsList>
-        <TabsContent value="pre-devis">
-          <QuotesPanel onOpen={setOpenId} onCreate={() => setTab("nouveau")} />
+        {/* Monté en permanence : changer d'onglet ne fait pas perdre le devis en cours de complétion. */}
+        <TabsContent value="nouveau" forceMount className="data-[state=inactive]:hidden">
+          <QuoteImport
+            onSaved={(id) => {
+              setOpenId(id);
+              setTab("importes");
+            }}
+          />
         </TabsContent>
-        <TabsContent value="nouveau">
-          <QuoteImport />
+        <TabsContent value="importes">
+          <SavedQuotes openId={openId} onOpen={setOpenId} onBack={() => setOpenId(null)} />
         </TabsContent>
         <TabsContent value="catalogue">
           <CatalogueImport />

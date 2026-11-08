@@ -79,6 +79,16 @@ export function posteRecap(rows: RecapRow[], manual: ManualValues): PosteFinance
   );
 }
 
+/** Indicateurs d'un poste enregistré : mêmes règles que l'écran (main-d'œuvre sans coût = 0 €). */
+export function storedPosteRecap(lines: StoredLine[]): PosteFinance {
+  return posteFinance(
+    lines.map((l) =>
+      lineFinance(l.kind === "mo" && l.manual_cost_ht == null ? { ...l, manual_cost_ht: 0 } : l),
+    ),
+    { acceptZeroMo: true },
+  );
+}
+
 /** Informations manquantes, avec le champ à saisir. Une valeur absente n'est jamais remplacée par 0. */
 export function missingFields(rows: RecapRow[], manual: ManualValues): MissingField[] {
   const out: MissingField[] = [];
