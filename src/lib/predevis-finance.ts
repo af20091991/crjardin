@@ -32,7 +32,14 @@ export function lineCostHt(line: FinanceLine): number | null {
   return line.costHt;
 }
 
-export function posteFinance(lines: FinanceLine[]): PosteFinance {
+/**
+ * `acceptZeroMo` : sur l'écran d'import, une main-d'œuvre à 0 € est acceptée sans motif
+ * (coût saisi plus tard dans l'éditeur). L'éditeur garde la règle stricte par défaut.
+ */
+export function posteFinance(
+  lines: FinanceLine[],
+  opts: { acceptZeroMo?: boolean } = {},
+): PosteFinance {
   const issues: string[] = [];
 
   const pvHt = lines.every((l) => l.ht != null)
@@ -44,7 +51,7 @@ export function posteFinance(lines: FinanceLine[]): PosteFinance {
 
   let prixAchatHt: number | null = 0;
   for (const l of lines) {
-    if (l.kind === "mo" && l.costHt === 0 && l.zeroCostReason == null) {
+    if (l.kind === "mo" && l.costHt === 0 && l.zeroCostReason == null && !opts.acceptZeroMo) {
       issues.push("Main-d'œuvre à 0 € sans motif (remise ou SAV) : à signaler.");
       prixAchatHt = null;
       continue;
