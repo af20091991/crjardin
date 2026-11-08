@@ -43,6 +43,8 @@ describe("manualLineFields", () => {
     expect(manualLineFields("fourniture", { pau: 4.5 })).toEqual({
       pau_ht_applied: 4.5,
       cost_status: "connu",
+      unit_multiplier: 1,
+      unit_status: "ok",
     });
   });
 
@@ -101,9 +103,18 @@ describe("missingFields", () => {
     expect(missingFields([frn(), mo({ key: "1-2" })], { "1-2": { cost: 10 } })).toEqual([]);
   });
 
-  test("PAU et unité absents : deux saisies proposées", () => {
-    const missing = missingFields([frn({ purchase: null, unit: null })], {});
-    expect(missing.map((m) => m.field)).toEqual(["pau", "multiplier"]);
+  test("PAU absent : pas listé ici, il se saisit dans la ligne", () => {
+    expect(missingFields([frn({ purchase: null, unit: null })], {})).toEqual([]);
+  });
+
+  test("PAU absent saisi dans la ligne : le poste est compté, unité résolue", () => {
+    const rows = [frn({ purchase: null, unit: null })];
+    const manual = { "1-1": { pau: 5 } };
+    expect(missingFields(rows, manual)).toEqual([]);
+    const fin = posteRecap(rows, manual);
+    expect(fin.achatFournituresHt).toBe(10); // 2 × 1 × 5
+    expect(fin.margeHt).toBe(10); // PV HT 20 − 10
+    expect(fin.issues).toEqual([]);
   });
 
   test("unité non pièce ni kg : multiplicateur demandé", () => {

@@ -61,6 +61,9 @@ export function manualLineFields(
   if (m.pau != null) {
     out.pau_ht_applied = m.pau;
     out.cost_status = "connu";
+    // Un PAU saisi à la main vaut pour la quantité du devis : multiplicateur 1 (sauf unité saisie ensuite).
+    out.unit_multiplier = 1;
+    out.unit_status = "ok";
   }
   if (m.multiplier != null) {
     out.unit_multiplier = m.multiplier;
@@ -114,10 +117,8 @@ export function missingFields(rows: RecapRow[], manual: ManualValues): MissingFi
   for (const row of rows) {
     if (row.kind === "mo") continue;
     const line = previewStoredLine(row, manual[row.key]);
-    if (line.pau_ht_applied == null) {
-      out.push({ key: row.key, field: "pau", label: `Prix d'achat : ${row.designation}` });
-    }
-    if (line.unit_status !== "ok") {
+    // Prix d'achat absent : saisi directement dans la ligne (colonne PAU HT), pas ici.
+    if (line.pau_ht_applied != null && line.unit_status !== "ok") {
       out.push({
         key: row.key,
         field: "multiplier",
@@ -126,6 +127,14 @@ export function missingFields(rows: RecapRow[], manual: ManualValues): MissingFi
     }
   }
   return out;
+}
+
+/** Complément d'unité quand un PAU est saisi sur une ligne enregistrée : multiplicateur 1 si aucun. */
+export function pauCompletionFields(currentMultiplier: number | null | undefined): {
+  unit_multiplier: number;
+  unit_status: "ok";
+} {
+  return { unit_multiplier: currentMultiplier ?? 1, unit_status: "ok" };
 }
 
 /** Texte client d'un poste : une ligne par article, sans prix ni marge. */
