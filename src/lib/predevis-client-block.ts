@@ -1,6 +1,7 @@
 // Pré-devis — bloc texte client d'un poste (pur).
 // Liste les fournitures et leurs caractéristiques. Aucun prix d'achat, aucune marge.
 // Une donnée absente est signalée, jamais inventée.
+// Mise en forme : une fourniture par bloc (tiret, puis quantité indentée), blocs séparés par une ligne vide.
 
 export type ClientBlockLine = {
   kind: "fourniture" | "mo";
@@ -17,9 +18,9 @@ export function clientBlock(lines: ClientBlockLine[]): string {
     .filter((l) => l.kind === "fourniture")
     .map((l) => {
       const label = (l.clientDescription?.trim() || l.designation).trim();
-      const qty = l.quantity == null ? "quantité à préciser" : fmtQty(l.quantity);
       const unit = l.unit?.trim() || "unité à préciser";
-      return `- ${label} : ${qty} ${unit}`;
+      const qty = l.quantity == null ? "à préciser" : `${fmtQty(l.quantity)} ${unit}`;
+      return `- ${label}\n  Quantité : ${qty}`;
     })
-    .join("\n");
+    .join("\n\n");
 }

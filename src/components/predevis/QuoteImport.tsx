@@ -15,9 +15,11 @@ import {
 import { matchQuoteRow, type MatchResult } from "@/lib/predevis-match";
 import { uniqueSupplierPurchase } from "@/lib/predevis-lines";
 import {
+  cascadeAmounts,
   missingFields,
   posteClientText,
   posteRecap,
+  type AmountField,
   type ManualFields,
   type ManualHeader,
   type ManualValues,
@@ -32,10 +34,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
+import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { FilePicker } from "@/components/FilePicker";
 import { eur } from "@/components/predevis/predevis-format";
 
 const FIELD_LABEL: Record<keyof ManualFields, string> = {
+  quantity: "Quantité",
   pau: "PAU HT (€)",
   multiplier: "Multiplicateur d'unité",
   cost: "Coût HT (€)",
@@ -122,7 +126,7 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
         key: quoteRowKey(p.index, r.position),
         kind: r.kind,
         designation: r.designation,
-        quantity: r.quantity,
+        quantity: manual[quoteRowKey(p.index, r.position)]?.quantity ?? r.quantity,
         ht: r.ht,
         ttc: r.ttc,
         unit: pid && ctx ? (ctx.unitById.get(pid) ?? null) : null,
@@ -137,14 +141,14 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
     });
   }
 
-  function setManualField(key: string, field: keyof ManualFields, raw: string) {
-    const value = raw.trim() === "" ? NaN : Number(raw.replace(",", "."));
-    setManual((cur) => {
-      const next: ManualFields = { ...(cur[key] ?? {}) };
-      if (Number.isNaN(value) || value < 0) delete next[field];
-      else next[field] = value;
-      return { ...cur, [key]: next };
-    });
+  /** Saisie d'un montant ou de la quantité : les colonnes liées de la ligne se recalculent. */
+  function editAmount(
+    key: string,
+    base: { quantity: number | null; pu: number | null; ht: number | null; ttc: number | null },
+    field: AmountField,
+    value: number | undefined,
+  ) {
+    setManual((cur) => ({ ...cur, [key]: cascadeAmounts(base, cur[key] ?? {}, field, value) }));
   }
 
   function renderMatch(
@@ -215,15 +219,14 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
     if (manualPau == null && detected != null) return eur(detected);
     // Prix non détecté (ou saisi à la main) : saisie directe dans la ligne.
     return (
-      <Input
-        type="number"
-        inputMode="decimal"
-        step="0.01"
-        min="0"
+      <AmountStepper
+        label={`PAU HT, ${designation}`}
+        step={0.01}
+        width="w-40"
         placeholder="À saisir"
-        className={`h-8 w-28 text-right ${manualPau == null ? "border-destructive" : ""}`}
-        value={manualPau ?? ""}
-        onChange={(e) => setManualField(key, "pau", e.target.value)}
+        invalid={manualPau == null}
+        value={manualPau}
+        onChange={(v) => setManual((cur) => ({ ...cur, [key]: { ...(cur[key] ?? {}), pau: v } }))}
       />
     );
   }
@@ -323,14 +326,12 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
             </label>
             <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">Total HT déclaré (€)</span>
-              <Input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-                className="h-9 w-40 text-right"
-                value={totalDraft}
-                onChange={(e) => setTotalDraft(e.target.value)}
+              <AmountStepper
+                label="Total HT déclaré"
+                step={0.01}
+                width="w-44"
+                value={parseAmountDraft(totalDraft) ?? undefined}
+                onChange={(v) => setTotalDraft(v == null ? "" : String(v))}
               />
             </label>
             <p className="text-sm text-muted-foreground md:col-span-2">
@@ -354,15 +355,21 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
             const noQuantity = recapRows.filter((r) => r.quantity == null);
             const rows: ViewRow[] = p.rows.map((r) => {
               const key = quoteRowKey(p.index, r.position);
-              const amountField = (f: "pu" | "ht" | "ttc", fallback: number | null) => (
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min="0"
-                  className="h-8 w-28 text-right"
-                  value={manual[key]?.[f] ?? numText(fallback)}
-                  onChange={(e) => setManualField(key, f, e.target.value)}
+              const base = { quantity: r.quantity, pu: r.pu, ht: r.ht, ttc: r.ttc };
+              const cur = manual[key] ?? {};
+              const shown = {
+                quantity: cur.quantity ?? r.quantity,
+                pu: cur.pu ?? r.pu,
+                ht: cur.ht ?? r.ht,
+                ttc: cur.ttc ?? r.ttc,
+              };
+              const amountCell = (f: "quantity" | "pu" | "ht" | "ttc") => (
+                <AmountStepper
+                  label={`${FIELD_LABEL[f]}, ${r.designation}`}
+                  step={f === "quantity" ? 1 : 0.01}
+                  width={f === "quantity" ? "w-32" : "w-40"}
+                  value={shown[f]}
+                  onChange={(v) => editAmount(key, base, f, v)}
                 />
               );
               return {
@@ -371,17 +378,17 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                 designation: r.designation,
                 kind: r.kind,
                 continued: r.continued,
-                quantity: r.quantity,
-                pu: r.pu,
-                ht: r.ht,
-                ttc: r.ttc,
+                quantity: shown.quantity,
+                pu: shown.pu,
+                ht: shown.ht,
+                ttc: shown.ttc,
                 pau: renderPau(p.index, r.position, r.ref, r.designation, r.kind),
                 rattachement: renderMatch(p.index, r.position, r.ref, r.designation, r.kind),
                 editable: {
-                  quantity: r.quantity ?? "—",
-                  pu: amountField("pu", r.pu),
-                  ht: amountField("ht", r.ht),
-                  ttc: amountField("ttc", r.ttc),
+                  quantity: amountCell("quantity"),
+                  pu: amountCell("pu"),
+                  ht: amountCell("ht"),
+                  ttc: amountCell("ttc"),
                 },
               };
             });
@@ -397,14 +404,16 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                     </Badge>
                     <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                       {p.rows.length} lignes · Sous-total
-                      <Input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        className="h-8 w-32 text-right"
-                        value={subDrafts[p.index] ?? numText(p.subtotalHt)}
-                        onChange={(e) => setSubDrafts((d) => ({ ...d, [p.index]: e.target.value }))}
+                      <AmountStepper
+                        label={`Sous-total poste ${p.index}`}
+                        step={0.01}
+                        width="w-44"
+                        value={
+                          parseAmountDraft(subDrafts[p.index] ?? numText(p.subtotalHt)) ?? undefined
+                        }
+                        onChange={(v) =>
+                          setSubDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
+                        }
                       />
                       · TTC {eur(p.sumTtc)}
                     </span>
@@ -419,9 +428,10 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
               >
                 {(missing.length > 0 || fin.issues.length > 0 || noQuantity.length > 0) && (
                   <div className="space-y-3 rounded-lg border border-destructive/50 p-4">
-                    <p className="font-medium text-destructive">
-                      Informations manquantes : saisis-les ici, elles seront enregistrées avec le
-                      devis.
+                    <p className="font-medium">À compléter</p>
+                    <p className="text-sm text-muted-foreground">
+                      Ces informations n'empêchent pas le calcul : il porte déjà sur les lignes
+                      renseignées. Elles seront enregistrées avec le devis.
                     </p>
                     {missing.map((m) => (
                       <div
@@ -432,14 +442,16 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                         <span className="text-sm text-muted-foreground">
                           {FIELD_LABEL[m.field]}
                         </span>
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          step="0.01"
-                          min="0"
-                          className="h-8 w-32"
-                          value={manual[m.key]?.[m.field] ?? ""}
-                          onChange={(e) => setManualField(m.key, m.field, e.target.value)}
+                        <AmountStepper
+                          label={`${FIELD_LABEL[m.field]}, ${m.label}`}
+                          step={0.01}
+                          value={manual[m.key]?.[m.field]}
+                          onChange={(v) =>
+                            setManual((cur) => ({
+                              ...cur,
+                              [m.key]: { ...(cur[m.key] ?? {}), [m.field]: v },
+                            }))
+                          }
                         />
                       </div>
                     ))}

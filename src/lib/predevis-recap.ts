@@ -7,6 +7,7 @@ import { clientBlock } from "./predevis-client-block";
 
 /** Valeurs saisies à la main, par ligne (clé = quoteRowKey). Absentes = non saisies. */
 export type ManualFields = {
+  quantity?: number;
   pau?: number;
   multiplier?: number;
   cost?: number;
@@ -15,6 +16,66 @@ export type ManualFields = {
   ttc?: number;
 };
 export type ManualValues = Record<string, ManualFields>;
+
+/** Montants d'origine d'une ligne (lus dans le PDF ou enregistrés). */
+export type AmountBase = {
+  quantity: number | null;
+  pu: number | null;
+  ht: number | null;
+  ttc: number | null;
+};
+export type AmountField = "quantity" | "pu" | "ht" | "ttc";
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Saisie d'un montant : les colonnes liées se recalculent.
+ * - quantité ou PU modifiés : HT = quantité × PU ;
+ * - HT modifié : PU = HT ÷ quantité ;
+ * - TTC modifié : HT = TTC ÷ taux de TVA de la ligne ;
+ * - HT ou TTC recalculés : TTC = HT × taux de TVA de la ligne (taux du PDF, sinon celui des montants saisis).
+ * Une valeur non calculable n'est pas inventée : elle reste comme elle était.
+ */
+export function cascadeAmounts(
+  base: AmountBase,
+  cur: ManualFields,
+  field: AmountField,
+  value: number | undefined,
+): ManualFields {
+  const set: AmountBase = {
+    quantity: cur.quantity ?? base.quantity,
+    pu: cur.pu ?? base.pu,
+    ht: cur.ht ?? base.ht,
+    ttc: cur.ttc ?? base.ttc,
+  };
+  set[field] = value ?? null;
+
+  const ratio =
+    base.ht && base.ttc && base.ht > 0
+      ? base.ttc / base.ht
+      : set.ht && set.ttc && set.ht > 0
+        ? set.ttc / set.ht
+        : null;
+  const q = set.quantity;
+
+  if (field === "quantity" || field === "pu") {
+    if (q != null && set.pu != null) set.ht = round2(q * set.pu);
+  } else if (field === "ht") {
+    if (q && set.ht != null) set.pu = round2(set.ht / q);
+  } else if (field === "ttc") {
+    if (ratio && set.ttc != null) set.ht = round2(set.ttc / ratio);
+    if (q && set.ht != null) set.pu = round2(set.ht / q);
+  }
+  if (field !== "ttc" && ratio && set.ht != null) set.ttc = round2(set.ht * ratio);
+
+  const out: ManualFields = { ...cur };
+  for (const f of ["quantity", "pu", "ht", "ttc"] as const) {
+    const v = set[f];
+    if (v == null) delete out[f];
+    else out[f] = v;
+  }
+  return out;
+}
 
 /** En-tête et sous-totaux saisis à la main à l'import (absents = valeurs du PDF). */
 export type ManualHeader = {
@@ -51,6 +112,7 @@ export function manualLineFields(
 ): Record<string, number | string> {
   const out: Record<string, number | string> = {};
   if (!m) return out;
+  if (m.quantity != null) out.quantity = m.quantity;
   if (m.pu != null) out.pu_ht = m.pu;
   if (m.ht != null) out.ht = m.ht;
   if (m.ttc != null) out.ttc = m.ttc;
@@ -80,7 +142,7 @@ export function previewStoredLine(row: RecapRow, m: ManualFields | undefined): S
   };
   return {
     kind: row.kind,
-    quantity: row.quantity,
+    quantity: (f.quantity as number | undefined) ?? row.quantity,
     ht: (f.ht as number | undefined) ?? row.ht,
     ttc: (f.ttc as number | undefined) ?? row.ttc,
     pau_ht_applied: (f.pau_ht_applied as number | undefined) ?? null,

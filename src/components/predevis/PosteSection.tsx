@@ -126,13 +126,15 @@ export function PosteSection({
           <RecapLine label="Marge nette HT" value={eur(fin.margeHt)} strong />
           <RecapLine
             label="Taux de marge"
-            value={
-              fin.tauxMarge == null
-                ? "données insuffisantes"
-                : `${fin.tauxMarge.toFixed(2).replace(".", ",")} %`
-            }
+            value={fin.tauxMarge == null ? "—" : `${fin.tauxMarge.toFixed(2).replace(".", ",")} %`}
             strong
           />
+          {fin.issues.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Calcul sur les lignes renseignées : {fin.issues.length} information
+              {fin.issues.length > 1 ? "s" : ""} à compléter ci-dessous.
+            </p>
+          )}
         </div>
 
         <div className="space-y-3 rounded-lg bg-muted/40 p-4">
@@ -148,7 +150,9 @@ export function PosteSection({
               Copier le texte
             </Button>
           </div>
-          <p className="whitespace-pre-line text-sm">{clientText || "—"}</p>
+          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+            {clientText || "—"}
+          </pre>
         </div>
       </div>
 
