@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
+import { FilePicker } from "@/components/predevis/FilePicker";
 import { eur } from "@/components/predevis/predevis-format";
 
 const FIELD_LABEL: Record<keyof ManualFields, string> = {
@@ -161,13 +162,15 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
       return (
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{prod?.code ?? "rattaché"}</Badge>
-          <button
+          <Button
             type="button"
-            className="text-xs text-muted-foreground underline"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs"
             onClick={() => setChoices((c) => ({ ...c, [key]: null }))}
           >
-            retirer
-          </button>
+            Retirer
+          </Button>
         </div>
       );
     }
@@ -270,13 +273,14 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <input
+          <FilePicker
             id="predevis-quote-pdf"
-            type="file"
             accept=".pdf"
             disabled={busy}
-            onChange={(e) => {
-              setSelected(e.target.files?.[0] ?? null);
+            fileName={selected?.name}
+            label="Choisir le devis (PDF)"
+            onFile={(file) => {
+              setSelected(file);
               setQuote(null);
             }}
           />
