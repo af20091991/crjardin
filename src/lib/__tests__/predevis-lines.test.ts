@@ -81,3 +81,18 @@ describe("uniqueSupplierPurchase", () => {
     expect(r?.cost_status).toBe("manquant");
   });
 });
+
+describe("uniqueSupplierPurchase : Henrri fait référence", () => {
+  test("offre Henrri présente : son PAU prime sur l'Excel fournisseur", () => {
+    const r = uniqueSupplierPurchase(
+      [
+        { supplier_id: "s1", source: "excel", pau_ht: 3 },
+        { supplier_id: "s1", source: "henrri", pau_ht: 3.8 },
+        { supplier_id: "s2", source: "excel", pau_ht: 5 },
+      ],
+      "pièce",
+    );
+    expect(r?.pau_ht_applied).toBe(3.8);
+    expect(r?.supplier_id).toBe("s1");
+  });
+});
