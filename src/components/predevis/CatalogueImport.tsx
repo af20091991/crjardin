@@ -10,6 +10,7 @@ import { readCatalogueFile } from "@/lib/predevis-catalogue-file";
 import type { ImportPlan } from "@/lib/predevis-catalogue-import";
 import type { MatrixSource } from "@/lib/predevis-catalogue-matrix";
 import { analyseCatalogue, applyCatalogueImport } from "@/lib/predevis-data";
+import { AefCatalogue } from "@/components/predevis/AefCatalogue";
 
 type Pending = { source: MatrixSource; fileName: string; plan: ImportPlan };
 
@@ -60,6 +61,7 @@ export function CatalogueImport() {
 
   return (
     <div className="space-y-6">
+      <AefCatalogue />
       <Card>
         <CardHeader>
           <CardTitle>Catalogue fournisseurs</CardTitle>
