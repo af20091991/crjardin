@@ -42,7 +42,15 @@ export function textItemsToWords(all: TextItem[]): PdfWord[] {
       const end = start + m[0].length;
       const x = it.x0 + (it.width * start) / full.length;
       const x1 = it.x0 + (it.width * end) / full.length;
-      words.push({ page: it.page, x, x1, y: it.y, str: m[0], bold: bold.has(it.fontName) });
+      words.push({
+        page: it.page,
+        x,
+        x1,
+        y: it.y,
+        str: m[0],
+        bold: bold.has(it.fontName),
+        size: it.size,
+      });
     }
   }
   return words;
