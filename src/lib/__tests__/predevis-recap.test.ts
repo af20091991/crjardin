@@ -73,6 +73,13 @@ describe("posteRecap", () => {
     expect(fin.complete).toBe(true);
   });
 
+  test("main-d'œuvre sans coût : 0 € accepté sur l'écran, pas d'alerte", () => {
+    const fin = posteRecap([frn(), mo()], {});
+    expect(fin.prixAchatHt).toBe(10);
+    expect(fin.issues).toEqual([]);
+    expect(fin.margeHt).toBe(90);
+  });
+
   test("PAU absent : indicateurs à null, jamais 0", () => {
     const row = frn({ purchase: null });
     const fin = posteRecap([row], {});
@@ -113,8 +120,8 @@ describe("missingFields", () => {
     expect(missingFields([row], { "1-1": { multiplier: 2 } })).toEqual([]);
   });
 
-  test("main-d'œuvre sans coût : demandé, jamais 0 implicite", () => {
-    expect(missingFields([mo()], {}).map((m) => m.field)).toEqual(["cost"]);
+  test("main-d'œuvre sans coût saisi : pas une information manquante (0 €)", () => {
+    expect(missingFields([mo()], {})).toEqual([]);
   });
 });
 

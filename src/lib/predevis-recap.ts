@@ -65,27 +65,26 @@ export function previewStoredLine(row: RecapRow, m: ManualFields | undefined): S
     cost_status: (f.cost_status as StoredLine["cost_status"] | undefined) ?? "manquant",
     unit_status: (f.unit_status as StoredLine["unit_status"] | undefined) ?? "non_verifiee",
     unit_multiplier: (f.unit_multiplier as number | undefined) ?? null,
-    manual_cost_ht: (f.manual_cost_ht as number | undefined) ?? null,
+    // Main-d'œuvre sans coût saisi : 0 € sur cet écran (règle validée), jamais une donnée manquante.
+    manual_cost_ht: (f.manual_cost_ht as number | undefined) ?? (row.kind === "mo" ? 0 : null),
     zero_cost_reason: null,
   };
 }
 
 /** Indicateurs du poste, calculés comme à l'enregistrement. */
 export function posteRecap(rows: RecapRow[], manual: ManualValues): PosteFinance {
-  return posteFinance(rows.map((r) => lineFinance(previewStoredLine(r, manual[r.key]))));
+  return posteFinance(
+    rows.map((r) => lineFinance(previewStoredLine(r, manual[r.key]))),
+    { acceptZeroMo: true },
+  );
 }
 
 /** Informations manquantes, avec le champ à saisir. Une valeur absente n'est jamais remplacée par 0. */
 export function missingFields(rows: RecapRow[], manual: ManualValues): MissingField[] {
   const out: MissingField[] = [];
   for (const row of rows) {
+    if (row.kind === "mo") continue;
     const line = previewStoredLine(row, manual[row.key]);
-    if (row.kind === "mo") {
-      if (line.manual_cost_ht == null) {
-        out.push({ key: row.key, field: "cost", label: `Main-d'œuvre : ${row.designation}` });
-      }
-      continue;
-    }
     if (line.pau_ht_applied == null) {
       out.push({ key: row.key, field: "pau", label: `Prix d'achat : ${row.designation}` });
     }
