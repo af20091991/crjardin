@@ -337,7 +337,10 @@ export function QuoteEditor({ quoteId, onClose }: { quoteId: string; onClose: ()
                   PV HT : <strong>{eur(fin.pvHt)}</strong>
                 </div>
                 <div>
-                  Prix d'achat HT : <strong>{eur(fin.prixAchatHt)}</strong>
+                  Achat HT fournitures : <strong>{eur(fin.achatFournituresHt)}</strong>
+                </div>
+                <div>
+                  Prix de revient HT (fournitures + MO) : <strong>{eur(fin.prixAchatHt)}</strong>
                 </div>
                 <div>
                   Marge HT : <strong>{eur(fin.margeHt)}</strong>
