@@ -31,6 +31,7 @@ import { posteFinance, type PosteFinance } from "./predevis-finance";
 
 import type { QuoteParse } from "./predevis-quote-parse";
 import { clientBlock } from "./predevis-client-block";
+import { manualLineFields, type ManualValues } from "./predevis-recap";
 
 // Temporaire : types.ts ne contient pas encore les tables predevis_* (resynchronisation Lovable à faire).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -238,8 +239,9 @@ export async function saveQuoteDraft(args: {
   fileName: string;
   userId: string;
   choices?: MatchChoices;
+  manual?: ManualValues;
 }): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
-  const { parse, fileName, userId, choices = {} } = args;
+  const { parse, fileName, userId, choices = {}, manual = {} } = args;
   const products = await loadCatalogueProducts();
 
   const { data: quote, error: qe } = await db()
@@ -258,7 +260,7 @@ export async function saveQuoteDraft(args: {
   const quoteId: string = quote.id;
 
   try {
-    return await writePostesAndLines(quoteId, parse, products, choices);
+    return await writePostesAndLines(quoteId, parse, products, choices, manual);
   } catch (e) {
     // Pas de transaction côté client : on retire le devis partiel pour ne pas laisser un brouillon incomplet.
     await db().from("predevis_quotes").delete().eq("id", quoteId);
@@ -271,6 +273,7 @@ async function writePostesAndLines(
   parse: QuoteParse,
   products: CatalogueProduct[],
   choices: MatchChoices,
+  manual: ManualValues,
 ): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
   const offersByProduct = await loadOffersByProduct();
   const unitById = new Map(products.map((p) => [p.id, p.unit]));
@@ -287,7 +290,7 @@ async function writePostesAndLines(
               reason: choices[key] ? "Choisi à l'import." : "Non rattaché à l'import.",
             }
           : matchQuoteRow({ ref: r.ref, designation: r.designation }, products);
-      return { row: r, match: m };
+      return { key, row: r, match: m };
     });
 
     const { data: created, error: pe } = await db()
@@ -301,12 +304,12 @@ async function writePostesAndLines(
         review_status: "a_verifier",
         subtotal_ht: poste.subtotalHt,
         client_block: clientBlock(
-          poste.rows.map((r) => ({
-            kind: r.kind,
-            designation: r.designation,
+          rows.map(({ row, match }) => ({
+            kind: row.kind,
+            designation: row.designation,
             clientDescription: null,
-            quantity: r.quantity,
-            unit: null,
+            quantity: row.quantity,
+            unit: match.productId ? (unitById.get(match.productId) ?? null) : null,
           })),
         ),
       })
@@ -314,7 +317,7 @@ async function writePostesAndLines(
       .single();
     if (pe) throw pe;
 
-    const lineRows = rows.map(({ row, match }) => ({
+    const lineRows = rows.map(({ key, row, match }) => ({
       quote_id: quoteId,
       poste_id: created.id,
       position: row.position,
@@ -338,6 +341,8 @@ async function writePostesAndLines(
             unitById.get(match.productId) ?? null,
           ) ?? {})
         : {}),
+      // Saisie manuelle : prime sur l'achat détecté, ne remplace jamais une valeur par 0.
+      ...manualLineFields(row.kind, manual[key]),
     }));
     for (let i = 0; i < lineRows.length; i += CHUNK) {
       const { error } = await db()
