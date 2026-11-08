@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
-import { FilePicker } from "@/components/predevis/FilePicker";
+import { FilePicker } from "@/components/FilePicker";
 import { eur } from "@/components/predevis/predevis-format";
 
 const FIELD_LABEL: Record<keyof ManualFields, string> = {
