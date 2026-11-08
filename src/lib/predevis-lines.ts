@@ -36,8 +36,10 @@ export function suggestedMultiplier(catalogUnit: string | null): number | null {
 export type OfferRow = { supplier_id: string | null; source: string; pau_ht: number | null };
 
 /**
- * Achat appliqué automatiquement à l'enregistrement, seulement si le produit n'a qu'un fournisseur :
- * le PAU est celui de l'offre (jamais estimé). Plusieurs fournisseurs : rien, le choix reste à faire.
+ * Achat appliqué automatiquement à l'enregistrement :
+ * - offre Henrri présente : son PAU (Henrri fait référence) ;
+ * - sinon, un seul fournisseur : son PAU ;
+ * - plusieurs fournisseurs : rien, le choix reste à faire. Jamais de valeur estimée.
  */
 export function uniqueSupplierPurchase(
   offers: OfferRow[],
@@ -49,18 +51,25 @@ export function uniqueSupplierPurchase(
   unit_multiplier: number | null;
   unit_status: "ok" | "non_verifiee";
 } | null {
-  const groups = new Map<string, OfferRow[]>();
-  for (const o of offers) {
-    const key = o.supplier_id ?? "__non_precise__";
-    groups.set(key, [...(groups.get(key) ?? []), o]);
+  // Henrri fait référence : son PAU prime sur celui des fichiers fournisseurs.
+  const henrri = offers.filter((o) => o.source === "henrri" && o.pau_ht != null);
+  let group: OfferRow[];
+  if (henrri.length > 0) {
+    group = henrri;
+  } else {
+    const groups = new Map<string, OfferRow[]>();
+    for (const o of offers) {
+      const key = o.supplier_id ?? "__non_precise__";
+      groups.set(key, [...(groups.get(key) ?? []), o]);
+    }
+    if (groups.size !== 1) return null;
+    group = [...groups.values()][0]!;
   }
-  if (groups.size !== 1) return null;
-  const [group] = [...groups.values()];
   const priced = group.map((o) => o.pau_ht).filter((v): v is number => v != null);
   const value = priced.length > 0 ? Math.max(...priced) : null;
   const multiplier = suggestedMultiplier(productUnit);
   return {
-    supplier_id: group[0].supplier_id,
+    supplier_id: group[0]!.supplier_id,
     pau_ht_applied: value,
     cost_status: value == null ? "manquant" : "connu",
     unit_multiplier: multiplier,
