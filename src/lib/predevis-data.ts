@@ -247,7 +247,8 @@ export async function saveQuoteDraft(args: {
   const { data: quote, error: qe } = await db()
     .from("predevis_quotes")
     .insert({
-      title: `Pré-devis ${parse.devisNumber ?? fileName}`,
+      // Nom = titre de l'en-tête du PDF ; à défaut, le nom du fichier.
+      title: parse.title ?? fileName,
       devis_number: parse.devisNumber,
       source_file_name: fileName,
       total_ht_declared: parse.totalHtDeclared,
@@ -498,6 +499,46 @@ export async function updateLineFields(
 ): Promise<void> {
   const { error } = await db().from("predevis_lines").update(patch).eq("id", lineId);
   if (error) throw error;
+  await refreshClientBlocks(quoteId);
+}
+
+export type LineAmountPatch = {
+  quantity?: number | null;
+  pu_ht?: number | null;
+  ht?: number | null;
+  ttc?: number | null;
+  pau_ht_applied?: number | null;
+  manual_cost_ht?: number | null;
+};
+
+/**
+ * Montants corrigés à la main sur un devis enregistré. Rien n'est recalculé :
+ * ce qui est saisi est ce qui est enregistré (indicateurs recalculés à l'affichage).
+ */
+export async function saveQuoteAmounts(args: {
+  quoteId: string;
+  lines: Record<string, LineAmountPatch>;
+  postes: Record<string, number | null>;
+  totalHtDeclared?: number | null;
+}): Promise<void> {
+  const { quoteId, lines, postes, totalHtDeclared } = args;
+  const ops: PromiseLike<{ error: unknown }>[] = [];
+  for (const [id, patch] of Object.entries(lines)) {
+    // Un achat saisi rend la ligne « connue », comme à l'import.
+    const row = patch.pau_ht_applied != null ? { ...patch, cost_status: "connu" } : patch;
+    ops.push(db().from("predevis_lines").update(row).eq("id", id));
+  }
+  for (const [id, subtotal_ht] of Object.entries(postes)) {
+    ops.push(db().from("predevis_postes").update({ subtotal_ht }).eq("id", id));
+  }
+  if (totalHtDeclared !== undefined) {
+    ops.push(
+      db().from("predevis_quotes").update({ total_ht_declared: totalHtDeclared }).eq("id", quoteId),
+    );
+  }
+  const results = await Promise.all(ops);
+  const failed = results.find((r) => r.error);
+  if (failed) throw failed.error;
   await refreshClientBlocks(quoteId);
 }
 

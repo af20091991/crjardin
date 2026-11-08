@@ -1,14 +1,51 @@
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { listQuotes, loadQuoteDetail, type StoredQuoteLine } from "@/lib/predevis-data";
+import { Input } from "@/components/ui/input";
+import {
+  listQuotes,
+  loadQuoteDetail,
+  saveQuoteAmounts,
+  type LineAmountPatch,
+  type QuoteDetail,
+  type StoredQuoteLine,
+} from "@/lib/predevis-data";
 import type { StoredLine } from "@/lib/predevis-lines";
 import { storedPosteRecap } from "@/lib/predevis-recap";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
 import { eur } from "@/components/predevis/predevis-format";
 
 const num = (v: unknown) => (v == null ? null : Number(v));
+
+const LINE_FIELDS = ["quantity", "pu_ht", "ht", "ttc", "pau_ht_applied", "manual_cost_ht"] as const;
+type LineField = (typeof LINE_FIELDS)[number];
+
+/** Clés des champs modifiables : l:<ligne>:<champ>, p:<poste>, q (total HT déclaré du devis). */
+function initialDrafts(data: QuoteDetail): Record<string, string> {
+  const out: Record<string, string> = {};
+  const show = (n: number | null | undefined) => (n == null ? "" : String(Number(n)));
+  for (const l of data.lines) {
+    out[`l:${l.id}:quantity`] = show(num(l.quantity));
+    out[`l:${l.id}:pu_ht`] = show(num(l.pu_ht));
+    out[`l:${l.id}:ht`] = show(num(l.ht));
+    out[`l:${l.id}:ttc`] = show(num(l.ttc));
+    out[`l:${l.id}:pau_ht_applied`] = show(num(l.pau_ht_applied));
+    out[`l:${l.id}:manual_cost_ht`] = show(num(l.manual_cost_ht));
+  }
+  for (const p of data.postes) out[`p:${p.id}`] = show(num(p.subtotal_ht));
+  out.q = show(num(data.quote.total_ht_declared));
+  return out;
+}
+
+/** Vide = null (effacé) ; négatif ou non numérique = undefined (refusé). */
+function parseAmount(v: string): number | null | undefined {
+  if (v.trim() === "") return null;
+  const n = Number(v.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
 
 function toStoredLine(l: StoredQuoteLine): StoredLine {
   return {
@@ -95,6 +132,10 @@ function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
 }
 
 function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => void }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const { data, isLoading, error } = useQuery({
     queryKey: ["predevis", "quote", quoteId],
     queryFn: () => loadQuoteDetail(quoteId),
@@ -113,18 +154,89 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
   }
 
   const productCode = new Map(data.products.map((p) => [p.id, p.code]));
+  const setDraft = (key: string, value: string) => setDrafts((d) => ({ ...d, [key]: value }));
+
+  function startEdit() {
+    setDrafts(initialDrafts(data as QuoteDetail));
+    setEditing(true);
+  }
+
+  async function save() {
+    const current = data as QuoteDetail;
+    const init = initialDrafts(current);
+    const lines: Record<string, LineAmountPatch> = {};
+    const postes: Record<string, number | null> = {};
+    let totalHtDeclared: number | null | undefined;
+    for (const [key, raw] of Object.entries(drafts)) {
+      if (raw === (init[key] ?? "")) continue; // inchangé : rien à écrire
+      const value = parseAmount(raw);
+      if (value === undefined) {
+        toast.error("Montant invalide : saisis un nombre positif, ou laisse vide.");
+        return;
+      }
+      if (key === "q") {
+        totalHtDeclared = value;
+      } else if (key.startsWith("p:")) {
+        postes[key.slice(2)] = value;
+      } else {
+        const [, lineId, field] = key.split(":");
+        if (!lineId || !LINE_FIELDS.includes(field as LineField)) continue;
+        const f = field as LineField;
+        lines[lineId] = { ...(lines[lineId] ?? {}), [f]: value };
+      }
+    }
+    setSaving(true);
+    try {
+      await saveQuoteAmounts({ quoteId, lines, postes, totalHtDeclared });
+      await qc.invalidateQueries({ queryKey: ["predevis"] });
+      toast.success("Montants enregistrés.");
+      setEditing(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enregistrement impossible.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const field = (key: string, width = "w-28") => (
+    <Input
+      type="number"
+      inputMode="decimal"
+      step="0.01"
+      min="0"
+      className={`h-8 ${width} text-right`}
+      value={drafts[key] ?? ""}
+      onChange={(e) => setDraft(key, e.target.value)}
+    />
+  );
 
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="mr-1 h-4 w-4" /> Retour aux devis importés
-        </Button>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="mr-1 h-4 w-4" /> Retour aux devis importés
+          </Button>
+          {!editing ? (
+            <Button variant="outline" size="sm" onClick={startEdit}>
+              <Pencil className="mr-1 h-3.5 w-3.5" /> Modifier les montants
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
+                Annuler
+              </Button>
+              <Button size="sm" disabled={saving} onClick={save}>
+                Enregistrer les montants
+              </Button>
+            </div>
+          )}
+        </div>
         <div>
           <h2 className="font-display text-xl">{data.quote.title}</h2>
           <p className="text-sm text-muted-foreground">
             {data.quote.devis_number ? `Devis n° ${data.quote.devis_number} · ` : ""}
-            Total HT déclaré {eur(num(data.quote.total_ht_declared))}
+            Total HT déclaré {editing ? field("q", "w-32") : eur(num(data.quote.total_ht_declared))}
           </p>
         </div>
       </div>
@@ -136,6 +248,19 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
         const fin = storedPosteRecap(lines.map(toStoredLine));
         const rows: ViewRow[] = lines.map((l) => {
           const isFourniture = l.line_kind === "fourniture";
+          const pauCell = !isFourniture ? (
+            editing ? (
+              field(`l:${l.id}:manual_cost_ht`)
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )
+          ) : editing ? (
+            field(`l:${l.id}:pau_ht_applied`)
+          ) : l.pau_ht_applied != null ? (
+            eur(num(l.pau_ht_applied))
+          ) : (
+            <span className="text-destructive">prix manquant</span>
+          );
           return {
             key: l.id,
             ref: l.source_ref,
@@ -146,13 +271,7 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             pu: num(l.pu_ht),
             ht: num(l.ht),
             ttc: num(l.ttc),
-            pau: !isFourniture ? (
-              <span className="text-muted-foreground">—</span>
-            ) : l.pau_ht_applied != null ? (
-              eur(num(l.pau_ht_applied))
-            ) : (
-              <span className="text-destructive">prix manquant</span>
-            ),
+            pau: pauCell,
             rattachement: !isFourniture ? (
               <span className="text-muted-foreground">—</span>
             ) : l.catalogue_product_id ? (
@@ -162,6 +281,14 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             ) : (
               <span className="text-destructive">absent du catalogue</span>
             ),
+            editable: editing
+              ? {
+                  quantity: field(`l:${l.id}:quantity`, "w-20"),
+                  pu: field(`l:${l.id}:pu_ht`),
+                  ht: field(`l:${l.id}:ht`),
+                  ttc: field(`l:${l.id}:ttc`),
+                }
+              : undefined,
           };
         });
         return (
@@ -170,8 +297,9 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             index={poste.position}
             title={poste.title}
             meta={
-              <span className="text-sm text-muted-foreground">
-                {lines.length} lignes · Sous-total {eur(num(poste.subtotal_ht))}
+              <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                {lines.length} lignes · Sous-total{" "}
+                {editing ? field(`p:${poste.id}`, "w-32") : eur(num(poste.subtotal_ht))}
               </span>
             }
             rows={rows}

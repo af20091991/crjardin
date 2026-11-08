@@ -18,6 +18,8 @@ export type ViewRow = {
   ttc: number | null;
   pau: ReactNode;
   rattachement: ReactNode;
+  /** Champs de saisie à la place des montants, en mode modification. */
+  editable?: { quantity: ReactNode; pu: ReactNode; ht: ReactNode; ttc: ReactNode };
 };
 
 export function PosteSection({
@@ -77,11 +79,13 @@ export function PosteSection({
                     </Badge>
                   )}
                 </td>
-                <td className="py-3 pr-4 text-right">{r.quantity ?? "—"}</td>
+                <td className="py-3 pr-4 text-right">
+                  {r.editable?.quantity ?? r.quantity ?? "—"}
+                </td>
                 <td className="py-3 pr-4 text-right">{r.pau}</td>
-                <td className="py-3 pr-4 text-right">{eur(r.pu)}</td>
-                <td className="py-3 pr-4 text-right">{eur(r.ht)}</td>
-                <td className="py-3 pr-4 text-right">{eur(r.ttc)}</td>
+                <td className="py-3 pr-4 text-right">{r.editable?.pu ?? eur(r.pu)}</td>
+                <td className="py-3 pr-4 text-right">{r.editable?.ht ?? eur(r.ht)}</td>
+                <td className="py-3 pr-4 text-right">{r.editable?.ttc ?? eur(r.ttc)}</td>
                 <td className="py-3 text-right">
                   <div className="flex justify-end">{r.rattachement}</div>
                 </td>

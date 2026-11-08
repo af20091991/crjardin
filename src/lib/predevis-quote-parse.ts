@@ -18,6 +18,8 @@ export type PdfWord = {
   y: number; // haut (croissant vers le bas)
   str: string;
   bold: boolean;
+  /** Taille de police : sert à repérer le titre du devis (texte le plus grand de la page 1). */
+  size?: number;
 };
 
 export type QuoteRow = {
@@ -48,6 +50,8 @@ export type QuotePoste = {
 };
 
 export type QuoteParse = {
+  /** Titre du devis tel qu'il figure en tête du PDF (texte le plus grand de la page 1). */
+  title: string | null;
   devisNumber: string | null;
   postes: QuotePoste[];
   orphanText: string[];
@@ -147,12 +151,30 @@ function roundCents(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** Titre : lignes de la page 1 écrites dans la police la plus grande (ex. « DEVIS D'AMÉNAGEMENT … »). */
+export function quoteTitle(words: PdfWord[]): string | null {
+  const sized = words.filter((w) => w.page === 1 && w.size != null);
+  if (sized.length === 0) return null;
+  const max = Math.max(...sized.map((w) => w.size as number));
+  const titleWords = sized.filter((w) => (w.size as number) >= max - 0.5);
+  // groupLines trie du bas vers le haut (y croissant) : le titre se lit du haut vers le bas.
+  const text = groupLines(titleWords)
+    .sort((a, b) => b.y - a.y)
+    .map((l) => l.words.map((w) => w.str).join(" "))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || null;
+}
+
 export function parseQuote(words: PdfWord[]): QuoteParse {
   const firstLines = groupLines(words);
   const cols = findColumns(firstLines);
   const warnings: string[] = [];
+  const title = quoteTitle(words);
   if (!cols) {
     return {
+      title,
       devisNumber: null,
       postes: [],
       orphanText: [],
@@ -328,5 +350,5 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
     }
   }
 
-  return { devisNumber, postes, orphanText, totalHtDeclared, warnings };
+  return { title, devisNumber, postes, orphanText, totalHtDeclared, warnings };
 }
