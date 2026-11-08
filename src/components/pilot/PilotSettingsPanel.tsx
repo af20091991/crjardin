@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportsCard } from "@/components/pilot/ReportsCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilePicker } from "@/components/FilePicker";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
@@ -373,7 +374,6 @@ function parseSheet(rows: Record<string, unknown>[], defaultYear: number): Impor
 
 function ExcelImportCard() {
   const qc = useQueryClient();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<ImportRow[] | null>(null);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -435,7 +435,6 @@ function ExcelImportCard() {
       }
       toast.success(`${preview.length} ligne(s) importées`);
       setPreview(null);
-      if (inputRef.current) inputRef.current.value = "";
       qc.invalidateQueries();
     } catch (e) {
       toast.error((e as Error).message);
@@ -472,16 +471,13 @@ function ExcelImportCard() {
               className="w-28"
             />
           </div>
-          <Input
-            ref={inputRef}
-            type="file"
+          <FilePicker
             accept=".xlsx,.xls,.csv"
-            className="max-w-sm"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
+            disabled={busy}
+            label="Choisir le fichier Excel"
+            onFile={(f) => {
               if (f) handleFile(f);
             }}
-            disabled={busy}
           />
         </div>
         {preview && (

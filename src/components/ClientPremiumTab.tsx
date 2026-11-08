@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { FilePicker } from "@/components/FilePicker";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -314,11 +315,12 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="activation-pdf">Calendrier travaux (PDF)</Label>
-            <Input
+            <FilePicker
               id="activation-pdf"
-              type="file"
               accept="application/pdf,.pdf"
-              onChange={(e) => setActivationFile(e.target.files?.[0] ?? null)}
+              fileName={activationFile?.name}
+              label="Choisir le PDF"
+              onFile={setActivationFile}
             />
           </div>
           <DialogFooter className="gap-2 sm:justify-between">
