@@ -106,3 +106,10 @@ describe("findDuplicateCodes", () => {
     expect(findDuplicateCodes(["MO", "MO", "TR3", "AEF1L"])).toEqual(["MO"]);
   });
 });
+
+describe("normCode : suffixes de copie", () => {
+  test("retire « (copie…) » et « (n) » comme le devis", () => {
+    expect(normCode("AEF1,4AC (copie) (copie1)")).toBe(normCode("AEF1,4AC"));
+    expect(normCode("MO1 (2)")).toBe("MO1");
+  });
+});
