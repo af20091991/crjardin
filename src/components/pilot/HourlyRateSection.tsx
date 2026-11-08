@@ -38,8 +38,8 @@ import { currentYear } from "@/lib/date-utils";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatHourlyRate, formatRatio } from "@/lib/format-utils";
+import { useRole } from "@/hooks/use-role";
 
-const YEAR = currentYear();
 
 type ColKey = "terrain" | "gestion" | "total" | "jours" | "ca" | "brut" | "net" | "caJour" | "part";
 type GraphKey = "brut" | "net" | "cible" | "heures";
@@ -48,7 +48,7 @@ const COLUMNS: { key: ColKey; label: string; always?: boolean }[] = [
   { key: "terrain", label: "Temps terrain (h)", always: true },
   { key: "gestion", label: "Temps gestion (h)", always: true },
   { key: "total", label: "Temps total (h)" },
-  { key: "jours", label: "Jours travaillés" },
+  { key: "jours", label: "Jours travaillés", always: true },
   { key: "ca", label: "CA HT" },
   { key: "brut", label: "Taux horaire brut" },
   { key: "net", label: "Taux horaire net" },
@@ -80,7 +80,9 @@ const DEFAULT_GRAPHS: GraphKey[] = ["brut", "net", "cible"];
 export function HourlyRateSection() {
   const qc = useQueryClient();
   // Toutes les valeurs affichées proviennent du moteur analytique central.
-  const { snapshot, isLoading } = useAnalytics();
+  const { snapshot, isLoading, scope } = useAnalytics();
+  const year = scope.year;
+  const { canEdit } = useRole();
 
   const [cols, setCols] = useState<ColKey[]>(() => {
     if (typeof window === "undefined") return DEFAULT_COLS;
@@ -137,7 +139,7 @@ export function HourlyRateSection() {
       month: number;
       field: "temps_terrain" | "temps_gestion" | "jours_travailles";
       value: number | null;
-    }) => upsertHours(YEAR, p.month, { [p.field]: p.value }),
+    }) => upsertHours(year, p.month, { [p.field]: p.value }),
     onSuccess: () => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] }),
     onError: (e: Error) => toast.error(e.message),
   });
@@ -253,7 +255,7 @@ export function HourlyRateSection() {
             {chartData.length === 0 ? (
               <EmptyState
                 icon={LineChartIcon}
-                title={`Aucune heure terrain connue pour ${YEAR}.`}
+                title={`Aucune heure terrain connue pour ${year}.`}
                 compact
               />
             ) : !showGraph("brut") && !showGraph("net") && !showGraph("cible") ? (
@@ -330,7 +332,7 @@ export function HourlyRateSection() {
       {/* Tableau mensuel */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Suivi mensuel {YEAR}</CardTitle>
+          <CardTitle className="text-base">Suivi mensuel {year}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full min-w-[640px] text-sm">
@@ -389,13 +391,23 @@ export function HourlyRateSection() {
                     )}
                     {show("jours") && (
                       <td className="px-3 py-1.5">
-                        <NumCell
-                          key={`j-${m.month}-${m.jours_travailles}`}
-                          value={m.jours_travailles}
-                          onCommit={(v) =>
-                            hoursMut.mutate({ month: m.month, field: "jours_travailles", value: v })
-                          }
-                        />
+                        {canEdit ? (
+                          <NumCell
+                            key={`j-${year}-${m.month}-${m.jours_travailles}`}
+                            value={m.jours_travailles}
+                            onCommit={(v) =>
+                              hoursMut.mutate({
+                                month: m.month,
+                                field: "jours_travailles",
+                                value: v,
+                              })
+                            }
+                          />
+                        ) : (
+                          <span className="tabular-nums">
+                            {m.jours_travailles == null ? "—" : m.jours_travailles}
+                          </span>
+                        )}
                       </td>
                     )}
                     {show("ca") && (
