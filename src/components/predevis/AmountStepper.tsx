@@ -49,7 +49,7 @@ export function AmountStepper({
   }
 
   return (
-    <div className={`inline-flex items-center justify-end gap-1 ${width}`}>
+    <div className={`inline-flex items-center justify-center gap-1 ${width}`}>
       <Button
         type="button"
         variant="outline"
@@ -65,7 +65,7 @@ export function AmountStepper({
         inputMode="decimal"
         aria-label={label}
         placeholder={placeholder}
-        className={`h-8 min-w-0 flex-1 px-2 text-right ${invalid ? "border-destructive" : ""}`}
+        className={`h-8 min-w-0 flex-1 px-2 text-center ${invalid ? "border-destructive" : ""}`}
         value={text}
         onChange={(e) => {
           setText(e.target.value);

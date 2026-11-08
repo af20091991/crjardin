@@ -54,11 +54,11 @@ export function PosteSection({
             <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
               <th className="py-2 pr-4 text-left font-medium">Réf.</th>
               <th className="py-2 pr-4 text-left font-medium">Désignation</th>
-              <th className="py-2 pr-4 text-right font-medium">Qté</th>
-              <th className="py-2 pr-4 text-right font-medium">PAU HT détecté</th>
-              <th className="py-2 pr-4 text-right font-medium">PU HT</th>
-              <th className="py-2 pr-4 text-right font-medium">HT</th>
-              <th className="py-2 pr-4 text-right font-medium">TTC</th>
+              <th className="py-2 pr-4 text-center font-medium">Qté</th>
+              <th className="py-2 pr-4 text-center font-medium">PAU HT détecté</th>
+              <th className="py-2 pr-4 text-center font-medium">PU HT</th>
+              <th className="py-2 pr-4 text-center font-medium">HT</th>
+              <th className="py-2 pr-4 text-center font-medium">TTC</th>
               <th className="py-2 text-right font-medium">Rattachement catalogue</th>
             </tr>
           </thead>
@@ -79,13 +79,13 @@ export function PosteSection({
                     </Badge>
                   )}
                 </td>
-                <td className="py-3 pr-4 text-right">
+                <td className="py-3 pr-4 text-center">
                   {r.editable?.quantity ?? r.quantity ?? "—"}
                 </td>
-                <td className="py-3 pr-4 text-right">{r.pau}</td>
-                <td className="py-3 pr-4 text-right">{r.editable?.pu ?? eur(r.pu)}</td>
-                <td className="py-3 pr-4 text-right">{r.editable?.ht ?? eur(r.ht)}</td>
-                <td className="py-3 pr-4 text-right">{r.editable?.ttc ?? eur(r.ttc)}</td>
+                <td className="py-3 pr-4 text-center">{r.pau}</td>
+                <td className="py-3 pr-4 text-center">{r.editable?.pu ?? eur(r.pu)}</td>
+                <td className="py-3 pr-4 text-center">{r.editable?.ht ?? eur(r.ht)}</td>
+                <td className="py-3 pr-4 text-center">{r.editable?.ttc ?? eur(r.ttc)}</td>
                 <td className="py-3 text-right">
                   <div className="flex justify-end">{r.rattachement}</div>
                 </td>
@@ -97,10 +97,10 @@ export function PosteSection({
               <td className="py-3 pr-4" colSpan={3}>
                 Total poste {index}
               </td>
-              <td className="py-3 pr-4 text-right">{eur(fin.achatFournituresHt)}</td>
+              <td className="py-3 pr-4 text-center">{eur(fin.achatFournituresHt)}</td>
               <td className="py-3 pr-4" />
-              <td className="py-3 pr-4 text-right">{eur(fin.pvHt)}</td>
-              <td className="py-3 pr-4 text-right">{eur(fin.pvTtc)}</td>
+              <td className="py-3 pr-4 text-center">{eur(fin.pvHt)}</td>
+              <td className="py-3 pr-4 text-center">{eur(fin.pvTtc)}</td>
               <td className="py-3" />
             </tr>
           </tfoot>
