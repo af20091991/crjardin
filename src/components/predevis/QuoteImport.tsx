@@ -282,11 +282,11 @@ export function QuoteImport() {
                           <th className="py-1">Réf.</th>
                           <th>Désignation</th>
                           <th className="text-right">Qté</th>
+                          <th className="text-right">PAU HT détecté</th>
                           <th className="text-right">PU HT</th>
                           <th className="text-right">HT</th>
                           <th className="text-right">TTC</th>
-                          <th className="pl-3">Rattachement catalogue</th>
-                          <th className="text-right">PAU HT détecté</th>
+                          <th className="text-right">Rattachement catalogue</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -307,46 +307,33 @@ export function QuoteImport() {
                               )}
                             </td>
                             <td className="text-right">{r.quantity ?? "—"}</td>
+                            <td className="text-right">
+                              {renderPau(p.index, r.position, r.ref, r.designation, r.kind)}
+                            </td>
                             <td className="text-right">{eur(r.pu)}</td>
                             <td className="text-right">{eur(r.ht)}</td>
                             <td className="text-right">{eur(r.ttc)}</td>
-                            <td className="pl-3">
-                              {renderMatch(p.index, r.position, r.ref, r.designation, r.kind)}
-                            </td>
                             <td className="text-right">
-                              {renderPau(p.index, r.position, r.ref, r.designation, r.kind)}
+                              <div className="flex justify-end">
+                                {renderMatch(p.index, r.position, r.ref, r.designation, r.kind)}
+                              </div>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 font-medium">
-                          <td className="py-1 pr-2" colSpan={4}>
+                        <tr className="border-t-2 bg-muted text-base font-semibold">
+                          <td className="py-2 pr-2" colSpan={3}>
                             Total poste {p.index}
                           </td>
+                          <td className="text-right">{eur(fin.achatFournituresHt)}</td>
+                          <td />
                           <td className="text-right">{eur(fin.pvHt)}</td>
                           <td className="text-right">{eur(fin.pvTtc)}</td>
                           <td />
-                          <td className="text-right">{eur(fin.achatFournituresHt)}</td>
                         </tr>
                       </tfoot>
                     </table>
-                  </div>
-
-                  <div className="space-y-2 rounded-md bg-muted/40 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-medium">Texte client</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={!clientText}
-                        onClick={() => copyText(clientText, "Texte client")}
-                      >
-                        <Copy className="mr-1 h-3.5 w-3.5" />
-                        Copier le texte
-                      </Button>
-                    </div>
-                    <p className="whitespace-pre-line">{clientText || "—"}</p>
                   </div>
 
                   <div className="space-y-2 rounded-md border p-3">
@@ -377,6 +364,22 @@ export function QuoteImport() {
                       }
                       strong
                     />
+                  </div>
+
+                  <div className="space-y-2 rounded-md bg-muted/40 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium">Texte client</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!clientText}
+                        onClick={() => copyText(clientText, "Texte client")}
+                      >
+                        <Copy className="mr-1 h-3.5 w-3.5" />
+                        Copier le texte
+                      </Button>
+                    </div>
+                    <p className="whitespace-pre-line">{clientText || "—"}</p>
                   </div>
 
                   {(missing.length > 0 || fin.issues.length > 0 || noQuantity.length > 0) && (
