@@ -312,11 +312,11 @@ async function writePostesAndLines(
             ? header.subtotals[poste.index]
             : poste.subtotalHt,
         client_block: clientBlock(
-          rows.map(({ row, match }) => ({
+          rows.map(({ key, row, match }) => ({
             kind: row.kind,
             designation: row.designation,
             clientDescription: null,
-            quantity: row.quantity,
+            quantity: manual[key]?.quantity ?? row.quantity,
             unit: match.productId ? (unitById.get(match.productId) ?? null) : null,
           })),
         ),

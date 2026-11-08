@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 
-export const eur = (n: number | null) =>
-  n == null ? "données insuffisantes" : `${n.toFixed(2).replace(".", ",")} €`;
+/** Montant en euros ; « — » quand aucune donnée n'est encore connue. */
+export const eur = (n: number | null) => (n == null ? "—" : `${n.toFixed(2).replace(".", ",")} €`);
 
 /** Montant prêt à coller (sans symbole). */
 export const amount = (n: number | null) => (n == null ? null : n.toFixed(2).replace(".", ","));

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  cascadeAmounts,
   storedPosteRecap,
   manualLineFields,
   missingFields,
@@ -144,8 +145,64 @@ describe("posteClientText", () => {
       frn({ key: "1-3", designation: "Terreau", quantity: 3, unit: null }),
       mo({ quantity: 2, unit: null }),
     ]);
-    expect(text.split("\n")).toEqual(["- Vivace 4 L : 2 pièce", "- Terreau : 3 unité à préciser"]);
+    expect(text.split("\n\n")).toEqual([
+      "- Vivace 4 L\n  Quantité : 2 pièce",
+      "- Terreau\n  Quantité : 3 unité à préciser",
+    ]);
     expect(text.includes("€")).toBe(false);
+  });
+});
+
+describe("cascadeAmounts : les colonnes communiquent", () => {
+  const base = { quantity: 2, pu: 10, ht: 20, ttc: 24 };
+
+  test("quantité modifiée : HT puis TTC recalculés", () => {
+    const next = cascadeAmounts(base, {}, "quantity", 3);
+    expect(next.quantity).toBe(3);
+    expect(next.ht).toBe(30);
+    expect(next.ttc).toBe(36);
+  });
+
+  test("PU modifié au centime : HT et TTC suivent", () => {
+    const next = cascadeAmounts(base, {}, "pu", 10.05);
+    expect(next.ht).toBe(20.1);
+    expect(next.ttc).toBe(24.12);
+  });
+
+  test("HT modifié : PU recalculé", () => {
+    const next = cascadeAmounts(base, {}, "ht", 30);
+    expect(next.pu).toBe(15);
+    expect(next.ttc).toBe(36);
+  });
+
+  test("TTC modifié : HT et PU recalculés", () => {
+    const next = cascadeAmounts(base, {}, "ttc", 36);
+    expect(next.ht).toBe(30);
+    expect(next.pu).toBe(15);
+  });
+
+  test("sans taux connu : TTC non inventé", () => {
+    const next = cascadeAmounts({ quantity: 2, pu: 10, ht: null, ttc: null }, {}, "quantity", 3);
+    expect(next.ht).toBe(30);
+    expect(next.ttc).toBe(undefined);
+  });
+
+  test("quantité saisie : entre dans le total du poste", () => {
+    const rows = [frn({ quantity: 2 })];
+    const manual = { "1-1": cascadeAmounts(base, {}, "quantity", 4) };
+    const fin = posteRecap(rows, manual);
+    expect(fin.pvHt).toBe(40);
+    expect(fin.achatFournituresHt).toBe(20);
+  });
+});
+
+describe("ligne sans prix d'achat : le poste se calcule quand même", () => {
+  test("total porte sur les lignes renseignées, l'écart est signalé", () => {
+    const fin = posteRecap([frn(), frn({ key: "1-3", purchase: null, ht: 30 })], {});
+    expect(fin.achatFournituresHt).toBe(10);
+    expect(fin.pvHt).toBe(50);
+    expect(fin.margeHt).toBe(40);
+    expect(fin.issues).toContain("Prix d'achat manquant.");
   });
 });
 

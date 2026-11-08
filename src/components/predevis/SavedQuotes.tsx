@@ -14,11 +14,18 @@ import {
   type StoredQuoteLine,
 } from "@/lib/predevis-data";
 import type { StoredLine } from "@/lib/predevis-lines";
-import { pauCompletionFields, storedPosteRecap } from "@/lib/predevis-recap";
+import {
+  cascadeAmounts,
+  pauCompletionFields,
+  storedPosteRecap,
+  type AmountField,
+} from "@/lib/predevis-recap";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
+import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { eur } from "@/components/predevis/predevis-format";
 
 const num = (v: unknown) => (v == null ? null : Number(v));
+const showNum = (n: number | null | undefined) => (n == null ? "" : String(Number(n)));
 
 const LINE_FIELDS = ["quantity", "pu_ht", "ht", "ttc", "pau_ht_applied", "manual_cost_ht"] as const;
 type LineField = (typeof LINE_FIELDS)[number];
@@ -157,6 +164,37 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
   const productCode = new Map(data.products.map((p) => [p.id, p.code]));
   const setDraft = (key: string, value: string) => setDrafts((d) => ({ ...d, [key]: value }));
 
+  /** Quantité ou montant d'une ligne : les colonnes liées se recalculent (HT, TTC, PU). */
+  function editLineAmount(line: StoredQuoteLine, f: AmountField, value: number | undefined) {
+    const base = {
+      quantity: num(line.quantity),
+      pu: num(line.pu_ht),
+      ht: num(line.ht),
+      ttc: num(line.ttc),
+    };
+    setDrafts((d) => {
+      const read = (name: string) => parseAmount(d[`l:${line.id}:${name}`] ?? "") ?? undefined;
+      const next = cascadeAmounts(
+        base,
+        {
+          quantity: read("quantity"),
+          pu: read("pu_ht"),
+          ht: read("ht"),
+          ttc: read("ttc"),
+        },
+        f,
+        value,
+      );
+      return {
+        ...d,
+        [`l:${line.id}:quantity`]: showNum(next.quantity),
+        [`l:${line.id}:pu_ht`]: showNum(next.pu),
+        [`l:${line.id}:ht`]: showNum(next.ht),
+        [`l:${line.id}:ttc`]: showNum(next.ttc),
+      };
+    });
+  }
+
   function startEdit() {
     setDrafts(initialDrafts(data as QuoteDetail));
     setEditing(true);
@@ -214,15 +252,20 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     }
   }
 
-  const field = (key: string, width = "w-28") => (
-    <Input
-      type="number"
-      inputMode="decimal"
-      step="0.01"
-      min="0"
-      className={`h-8 ${width} text-right`}
-      value={drafts[key] ?? ""}
-      onChange={(e) => setDraft(key, e.target.value)}
+  /** Montant saisi dans le brouillon : curseurs − / + et saisie au centime. */
+  const stepper = (
+    key: string,
+    step: number,
+    label: string,
+    width = "w-40",
+    onValue?: (v: number | undefined) => void,
+  ) => (
+    <AmountStepper
+      label={label}
+      step={step}
+      width={width}
+      value={parseAmount(drafts[key] ?? "") ?? undefined}
+      onChange={onValue ?? ((v) => setDraft(key, showNum(v)))}
     />
   );
 
@@ -261,7 +304,10 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
           )}
           <p className="text-sm text-muted-foreground">
             {data.quote.devis_number ? `Devis n° ${data.quote.devis_number} · ` : ""}
-            Total HT déclaré {editing ? field("q", "w-32") : eur(num(data.quote.total_ht_declared))}
+            Total HT déclaré{" "}
+            {editing
+              ? stepper("q", 0.01, "Total HT déclaré")
+              : eur(num(data.quote.total_ht_declared))}
           </p>
         </div>
       </div>
@@ -270,17 +316,35 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
         const lines = data.lines
           .filter((l) => l.poste_id === poste.id)
           .sort((a, b) => a.position - b.position);
-        const fin = storedPosteRecap(lines.map(toStoredLine));
+        // En modification, les indicateurs suivent les montants saisis (pas encore enregistrés).
+        const liveLine = (l: StoredQuoteLine): StoredLine => {
+          const s = toStoredLine(l);
+          if (!editing) return s;
+          const read = (name: string) => parseAmount(drafts[`l:${l.id}:${name}`] ?? "") ?? null;
+          const pau = read("pau_ht_applied");
+          return {
+            ...s,
+            quantity: read("quantity"),
+            ht: read("ht"),
+            ttc: read("ttc"),
+            manual_cost_ht: read("manual_cost_ht"),
+            pau_ht_applied: pau,
+            cost_status: pau != null ? "connu" : s.cost_status,
+            unit_status: pau != null ? "ok" : s.unit_status,
+            unit_multiplier: pau != null ? (s.unit_multiplier ?? 1) : s.unit_multiplier,
+          };
+        };
+        const fin = storedPosteRecap(lines.map(liveLine));
         const rows: ViewRow[] = lines.map((l) => {
           const isFourniture = l.line_kind === "fourniture";
           const pauCell = !isFourniture ? (
             editing ? (
-              field(`l:${l.id}:manual_cost_ht`)
+              stepper(`l:${l.id}:manual_cost_ht`, 0.01, `Coût HT, ${l.designation}`)
             ) : (
               <span className="text-muted-foreground">—</span>
             )
           ) : editing ? (
-            field(`l:${l.id}:pau_ht_applied`)
+            stepper(`l:${l.id}:pau_ht_applied`, 0.01, `PAU HT, ${l.designation}`)
           ) : l.pau_ht_applied != null ? (
             eur(num(l.pau_ht_applied))
           ) : (
@@ -308,10 +372,22 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             ),
             editable: editing
               ? {
-                  quantity: field(`l:${l.id}:quantity`, "w-20"),
-                  pu: field(`l:${l.id}:pu_ht`),
-                  ht: field(`l:${l.id}:ht`),
-                  ttc: field(`l:${l.id}:ttc`),
+                  quantity: stepper(
+                    `l:${l.id}:quantity`,
+                    1,
+                    `Quantité, ${l.designation}`,
+                    "w-32",
+                    (v) => editLineAmount(l, "quantity", v),
+                  ),
+                  pu: stepper(`l:${l.id}:pu_ht`, 0.01, `PU HT, ${l.designation}`, "w-40", (v) =>
+                    editLineAmount(l, "pu", v),
+                  ),
+                  ht: stepper(`l:${l.id}:ht`, 0.01, `HT, ${l.designation}`, "w-40", (v) =>
+                    editLineAmount(l, "ht", v),
+                  ),
+                  ttc: stepper(`l:${l.id}:ttc`, 0.01, `TTC, ${l.designation}`, "w-40", (v) =>
+                    editLineAmount(l, "ttc", v),
+                  ),
                 }
               : undefined,
           };
@@ -324,7 +400,9 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             meta={
               <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 {lines.length} lignes · Sous-total{" "}
-                {editing ? field(`p:${poste.id}`, "w-32") : eur(num(poste.subtotal_ht))}
+                {editing
+                  ? stepper(`p:${poste.id}`, 0.01, `Sous-total poste ${poste.position}`)
+                  : eur(num(poste.subtotal_ht))}
               </span>
             }
             rows={rows}
