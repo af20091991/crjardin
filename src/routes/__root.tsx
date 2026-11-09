@@ -169,7 +169,7 @@ function SplashOverlay() {
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}function s(){window.__ppSplashStart=performance.now();h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
+            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}function s(){window.__ppSplashStart=performance.now();window.dispatchEvent(new Event('pp-splash-start'));h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
         }}
       />
     </>
@@ -180,14 +180,25 @@ function SplashOverlay() {
 function hideSplash() {
   const el = document.getElementById("pp-splash");
   if (!el) return;
-  const start =
-    (window as unknown as { __ppSplashStart?: number }).__ppSplashStart ?? performance.now();
-  // Animation (4,1 s) + 0,4 s de maintien sur le logo complet.
-  const wait = Math.max(0, start + 4500 - performance.now());
-  window.setTimeout(() => {
-    el.classList.add("pp-out");
-    window.setTimeout(() => el.remove(), 300);
-  }, wait);
+  const w = window as unknown as { __ppSplashStart?: number };
+  // L'écran ne se retire qu'à partir du début réel de l'animation (image SVG chargée),
+  // jamais avant qu'elle soit terminée : 4,5 s après son départ, logo complet maintenu.
+  const schedule = (start: number) => {
+    const wait = Math.max(0, start + 4500 - performance.now());
+    window.setTimeout(() => {
+      el.classList.add("pp-out");
+      window.setTimeout(() => el.remove(), 300);
+    }, wait);
+  };
+  if (w.__ppSplashStart !== undefined) {
+    schedule(w.__ppSplashStart);
+  } else {
+    window.addEventListener(
+      "pp-splash-start",
+      () => schedule(w.__ppSplashStart ?? performance.now()),
+      { once: true },
+    );
+  }
 }
 
 function RootShell({ children }: { children: ReactNode }) {

@@ -22,7 +22,7 @@ const config: CapacitorConfig = {
       launchShowDuration: 6000,
       launchAutoHide: true,
       launchFadeOutDuration: 250,
-      backgroundColor: "#F9F7F2",
+      backgroundColor: "#FFFFFF",
       showSpinner: false,
     },
     StatusBar: { style: "DARK", backgroundColor: "#F9F7F2", overlaysWebView: false },
