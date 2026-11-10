@@ -181,6 +181,17 @@ const EVENT_VIEW: Record<ApEventType, { label: string; dot: string; chip: string
   },
 };
 
+/** Repère chronologique d'un chantier : passé (vert) ou à venir (bleu) par rapport à aujourd'hui. */
+type ChronoTone = "past" | "future";
+const CHRONO_BORDER: Record<ChronoTone, string> = {
+  past: "border-l-primary",
+  future: "border-l-[var(--pp-sales)]",
+};
+function chronoTone(iso: string | null, todayIso: string): ChronoTone | null {
+  if (!iso) return null;
+  return iso < todayIso ? "past" : "future";
+}
+
 function frDate(iso: string | null, fallback?: string | null): string {
   if (!iso) return fallback || "Date à vérifier";
   return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" }).format(
@@ -329,6 +340,11 @@ function AssistantApPage() {
       onChanged={invalidate}
     />
   ) : null;
+
+  const chronoOf =
+    filter === "all"
+      ? (worksite: ApWorksite) => chronoTone(worksite.scheduled_date, todayIso)
+      : undefined;
 
   const goToWorksite = (id: string) => {
     setFilter("all");
@@ -494,6 +510,7 @@ function AssistantApPage() {
                     <Fragment key={worksite.id}>
                       <WorksiteCard
                         worksite={worksite}
+                        chrono={chronoOf?.(worksite) ?? null}
                         open={openId === worksite.id}
                         onToggle={() =>
                           setOpenId((current) => (current === worksite.id ? null : worksite.id))
@@ -511,6 +528,7 @@ function AssistantApPage() {
                   openId={openId}
                   onOpen={setOpenId}
                   detail={openedDetail}
+                  chronoOf={chronoOf}
                 />
               )}
             </>
@@ -551,10 +569,12 @@ function WorksiteCard({
   worksite,
   open,
   onToggle,
+  chrono,
 }: {
   worksite: ApWorksite;
   open: boolean;
   onToggle: () => void;
+  chrono?: ChronoTone | null;
 }) {
   const state = worksiteGlobalState(worksite.supplies);
   const counts = worksiteCounts(worksite.supplies);
@@ -565,6 +585,8 @@ function WorksiteCard({
     <Card
       className={cn(
         "min-w-0 overflow-hidden shadow-none",
+        chrono && "border-l-4",
+        chrono && CHRONO_BORDER[chrono],
         open && "border-primary/50 bg-primary/5",
       )}
     >
@@ -607,11 +629,13 @@ function WorksiteTable({
   openId,
   onOpen,
   detail,
+  chronoOf,
 }: {
   worksites: ApWorksite[];
   openId: string | null;
   onOpen: (id: string | null) => void;
   detail: React.ReactNode;
+  chronoOf?: (worksite: ApWorksite) => ChronoTone | null;
 }) {
   return (
     <Card className="overflow-hidden shadow-none">
@@ -633,6 +657,8 @@ function WorksiteTable({
                 variant="ghost"
                 className={cn(
                   "grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-3 py-2 text-left md:grid-cols-[minmax(0,1.5fr)_8rem_11rem_8rem_6rem] md:gap-3",
+                  chronoOf?.(worksite) && "border-l-4",
+                  chronoOf?.(worksite) && CHRONO_BORDER[chronoOf(worksite)!],
                   openId === worksite.id && "bg-primary/5",
                 )}
                 onClick={() => onOpen(openId === worksite.id ? null : worksite.id)}
