@@ -3,8 +3,9 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { FONT_STACKS, FONT_OPTIONS } from "@/lib/appearance";
+import { readRouteSource } from "./route-source";
 
-const rootSrc = readFileSync("src/routes/__root.tsx", "utf8");
+const rootSrc = readRouteSource("src/routes/__root.tsx");
 const appearanceSrc = readFileSync("src/lib/appearance.tsx", "utf8");
 const css = readFileSync("src/styles.css", "utf8");
 
