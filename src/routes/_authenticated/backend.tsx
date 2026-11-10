@@ -19,5 +19,8 @@ import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 
 export const Route = createFileRoute("/_authenticated/backend")({
   head: () => ({ meta: [{ title: "Backend — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/backend"), "BackendPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/backend"),
+    "BackendPage",
+  ),
 });

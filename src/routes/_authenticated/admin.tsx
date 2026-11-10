@@ -76,5 +76,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: search.tab === "vues" ? ("vues" as const) : undefined,
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/admin"), "AdminPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/admin"),
+    "AdminPage",
+  ),
 });

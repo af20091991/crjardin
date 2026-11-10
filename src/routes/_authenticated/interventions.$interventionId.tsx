@@ -144,5 +144,8 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/interventions/$interventionId")({
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/interventions.$interventionId"), "InterventionDetail"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/interventions.$interventionId"),
+    "InterventionDetail",
+  ),
 });

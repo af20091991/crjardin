@@ -23,5 +23,8 @@ export const Route = createFileRoute("/_authenticated/fiches/$ficheId")({
   head: () => ({
     meta: [{ title: "Fiche SST — De la graine au jardin" }],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/fiches.$ficheId"), "EditFiche"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/fiches.$ficheId"),
+    "EditFiche",
+  ),
 });

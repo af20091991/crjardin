@@ -19,5 +19,8 @@ export const Route = createFileRoute("/_authenticated/settings")({
   validateSearch: (search: Record<string, unknown>): { tab?: "profil" | "pilotage" } => ({
     tab: search.tab === "pilotage" ? "pilotage" : undefined,
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/settings"), "SettingsPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/settings"),
+    "SettingsPage",
+  ),
 });

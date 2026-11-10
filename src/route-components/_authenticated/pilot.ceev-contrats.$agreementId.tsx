@@ -11,10 +11,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { ArrowLeft, CalendarPlus, RefreshCw, Save, Archive, ListChecks } from "lucide-react";
 import {
@@ -61,7 +70,10 @@ function CeevDetailPage() {
     queryKey: ["ceev-agreement-events", agreementId],
     queryFn: () => listCeevEvents(agreementId),
   });
-  const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
+  const interventions = useQuery({
+    queryKey: ["interventions-all"],
+    queryFn: listAllInterventions,
+  });
 
   const [form, setForm] = useState({
     name: "",
@@ -122,7 +134,11 @@ function CeevDetailPage() {
         season_start_month: form.season_start_month ? Number(form.season_start_month) : null,
         season_end_month: form.season_end_month ? Number(form.season_end_month) : null,
       }),
-    onSuccess: () => { refresh(); setEditing(false); toast.success("Contrat mis à jour"); },
+    onSuccess: () => {
+      refresh();
+      setEditing(false);
+      toast.success("Contrat mis à jour");
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
@@ -141,7 +157,10 @@ function CeevDetailPage() {
 
   const archive = useMutation({
     mutationFn: () => archiveCeevAgreement(agreementId),
-    onSuccess: () => { refresh(); toast.success("Contrat archivé (données conservées)"); },
+    onSuccess: () => {
+      refresh();
+      toast.success("Contrat archivé (données conservées)");
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
@@ -183,7 +202,9 @@ function CeevDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline" className={meta.badge}>{meta.label}</Badge>
+          <Badge variant="outline" className={meta.badge}>
+            {meta.label}
+          </Badge>
           <Button size="sm" variant="outline" onClick={() => setGenOpen(true)}>
             <ListChecks className="mr-1.5 h-4 w-4" /> Générer les passages
           </Button>
@@ -195,10 +216,20 @@ function CeevDetailPage() {
               <CalendarPlus className="mr-1.5 h-4 w-4" /> Créer intervention
             </Link>
           </Button>
-          <Button size="sm" variant="outline" disabled={renew.isPending} onClick={() => renew.mutate()}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={renew.isPending}
+            onClick={() => renew.mutate()}
+          >
             <RefreshCw className="mr-1.5 h-4 w-4" /> Renouveler le CEEV
           </Button>
-          <Button size="sm" variant="ghost" disabled={archive.isPending} onClick={() => archive.mutate()}>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={archive.isPending}
+            onClick={() => archive.mutate()}
+          >
             <Archive className="mr-1.5 h-4 w-4" /> Archiver
           </Button>
         </div>
@@ -223,7 +254,9 @@ function CeevDetailPage() {
                 <Save className="mr-1.5 h-4 w-4" /> Enregistrer
               </Button>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Modifier</Button>
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                Modifier
+              </Button>
             )}
           </div>
 
@@ -235,11 +268,16 @@ function CeevDetailPage() {
               <Row label="Fréquence" value={CEEV_FREQUENCY_META[a.frequency].label} />
               <Row label="Début" value={fmt(a.start_date)} />
               <Row label="Fin" value={fmt(a.end_date)} />
-              <Row label="Passages prévus" value={a.visits_planned != null ? `${a.visits_planned} passages` : "Non défini"} />
+              <Row
+                label="Passages prévus"
+                value={a.visits_planned != null ? `${a.visits_planned} passages` : "Non défini"}
+              />
               <Row label="Période annuelle" value={seasonLabel(a)} />
               <Row
                 label="Durée estimée d'un passage"
-                value={a.visit_duration_hours != null ? `${a.visit_duration_hours} h` : "Non définie"}
+                value={
+                  a.visit_duration_hours != null ? `${a.visit_duration_hours} h` : "Non définie"
+                }
               />
               <Row label="Prochaine intervention" value={fmt(a.next_intervention_date)} />
               <Row label="Statut" value={meta.label} />
@@ -252,7 +290,11 @@ function CeevDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="f-name">Nom du contrat</Label>
-                <Input id="f-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <Input
+                  id="f-name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="f-address">Adresse chantier</Label>
@@ -265,14 +307,18 @@ function CeevDetailPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="f-start">Date de début</Label>
                 <Input
-                  id="f-start" type="date" value={form.start_date}
+                  id="f-start"
+                  type="date"
+                  value={form.start_date}
                   onChange={(e) => setForm({ ...form, start_date: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="f-end">Date de fin</Label>
                 <Input
-                  id="f-end" type="date" value={form.end_date}
+                  id="f-end"
+                  type="date"
+                  value={form.end_date}
                   onChange={(e) => setForm({ ...form, end_date: e.target.value })}
                 />
               </div>
@@ -282,21 +328,32 @@ function CeevDetailPage() {
                   value={form.frequency}
                   onValueChange={(v) => setForm({ ...form, frequency: v as CeevFrequency })}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {(Object.keys(CEEV_FREQUENCY_META) as CeevFrequency[]).map((f) => (
-                      <SelectItem key={f} value={f}>{CEEV_FREQUENCY_META[f].label}</SelectItem>
+                      <SelectItem key={f} value={f}>
+                        {CEEV_FREQUENCY_META[f].label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Statut</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as CeevStatus })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={form.status}
+                  onValueChange={(v) => setForm({ ...form, status: v as CeevStatus })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {(Object.keys(CEEV_STATUS_META) as CeevStatus[]).map((s) => (
-                      <SelectItem key={s} value={s}>{CEEV_STATUS_META[s].label}</SelectItem>
+                      <SelectItem key={s} value={s}>
+                        {CEEV_STATUS_META[s].label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -304,21 +361,32 @@ function CeevDetailPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="f-next">Prochaine intervention</Label>
                 <Input
-                  id="f-next" type="date" value={form.next_intervention_date}
+                  id="f-next"
+                  type="date"
+                  value={form.next_intervention_date}
                   onChange={(e) => setForm({ ...form, next_intervention_date: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="f-visits">Passages prévus sur la période</Label>
                 <Input
-                  id="f-visits" type="number" min={0} max={365} value={form.visits_planned}
+                  id="f-visits"
+                  type="number"
+                  min={0}
+                  max={365}
+                  value={form.visits_planned}
                   onChange={(e) => setForm({ ...form, visits_planned: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="f-duration">Durée estimée d'un passage (h)</Label>
                 <Input
-                  id="f-duration" type="number" min={0} max={24} step="0.5" value={form.visit_duration_hours}
+                  id="f-duration"
+                  type="number"
+                  min={0}
+                  max={24}
+                  step="0.5"
+                  value={form.visit_duration_hours}
                   onChange={(e) => setForm({ ...form, visit_duration_hours: e.target.value })}
                 />
               </div>
@@ -326,13 +394,19 @@ function CeevDetailPage() {
                 <Label>Début de la période annuelle</Label>
                 <Select
                   value={form.season_start_month || "none"}
-                  onValueChange={(v) => setForm({ ...form, season_start_month: v === "none" ? "" : v })}
+                  onValueChange={(v) =>
+                    setForm({ ...form, season_start_month: v === "none" ? "" : v })
+                  }
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Toute l'année</SelectItem>
                     {MONTH_LABELS.map((m, i) => (
-                      <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                      <SelectItem key={m} value={String(i + 1)}>
+                        {m}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -341,13 +415,19 @@ function CeevDetailPage() {
                 <Label>Fin de la période annuelle</Label>
                 <Select
                   value={form.season_end_month || "none"}
-                  onValueChange={(v) => setForm({ ...form, season_end_month: v === "none" ? "" : v })}
+                  onValueChange={(v) =>
+                    setForm({ ...form, season_end_month: v === "none" ? "" : v })
+                  }
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Toute l'année</SelectItem>
                     {MONTH_LABELS.map((m, i) => (
-                      <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                      <SelectItem key={m} value={String(i + 1)}>
+                        {m}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -355,7 +435,9 @@ function CeevDetailPage() {
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="f-notes">Notes</Label>
                 <Textarea
-                  id="f-notes" rows={3} value={form.notes}
+                  id="f-notes"
+                  rows={3}
+                  value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 />
               </div>
@@ -364,9 +446,7 @@ function CeevDetailPage() {
         </CardContent>
       </Card>
 
-      {a.renewed_from_id && (
-        <></>
-      )}
+      {a.renewed_from_id && <></>}
 
       {/* Suivi des passages : source unique = interventions rattachées au contrat */}
       <Card>
@@ -381,8 +461,8 @@ function CeevDetailPage() {
           </div>
           {a.visits_planned == null ? (
             <p className="text-sm text-muted-foreground">
-              Nombre de passages prévus non défini : renseignez-le dans « Informations contrat » pour
-              activer le suivi réalisé / restant.
+              Nombre de passages prévus non défini : renseignez-le dans « Informations contrat »
+              pour activer le suivi réalisé / restant.
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -489,7 +569,11 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 function GenerateVisitsDialog({
-  open, onOpenChange, agreement, existing, onDone,
+  open,
+  onOpenChange,
+  agreement,
+  existing,
+  onDone,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -519,9 +603,9 @@ function GenerateVisitsDialog({
         <DialogHeader>
           <DialogTitle>Générer les passages d'entretien</DialogTitle>
           <DialogDescription>
-            Dates proposées à partir des passages prévus et de la période annuelle
-            ({seasonLabel(agreement)}). Elles restent modifiables ; les dates déjà rattachées
-            au contrat ne sont pas dupliquées.
+            Dates proposées à partir des passages prévus et de la période annuelle (
+            {seasonLabel(agreement)}). Elles restent modifiables ; les dates déjà rattachées au
+            contrat ne sont pas dupliquées.
           </DialogDescription>
         </DialogHeader>
         {dates.length === 0 ? (
@@ -545,7 +629,9 @@ function GenerateVisitsDialog({
           </div>
         )}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
           <Button
             onClick={() => generate.mutate()}
             disabled={dates.length === 0 || generate.isPending}

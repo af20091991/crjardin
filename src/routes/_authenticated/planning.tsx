@@ -28,5 +28,8 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/planning")({
   head: () => ({ meta: [{ title: "Planning — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/planning"), "PlanningPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/planning"),
+    "PlanningPage",
+  ),
 });

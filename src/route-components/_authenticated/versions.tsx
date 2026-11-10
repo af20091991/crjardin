@@ -21,7 +21,11 @@ const THEME_STYLES: Record<ChangeTheme, string> = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function EntryCard({ entry }: { entry: ChangeEntry }) {
@@ -29,8 +33,12 @@ function EntryCard({ entry }: { entry: ChangeEntry }) {
     <Card className="border-border/60 shadow-sm transition-shadow hover:shadow-md">
       <CardContent className="p-4 md:p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="font-mono text-xs">v{entry.version}</Badge>
-          <Badge variant="outline" className={THEME_STYLES[entry.theme]}>{entry.theme}</Badge>
+          <Badge variant="outline" className="font-mono text-xs">
+            v{entry.version}
+          </Badge>
+          <Badge variant="outline" className={THEME_STYLES[entry.theme]}>
+            {entry.theme}
+          </Badge>
           <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
             <CalendarDays className="h-3.5 w-3.5" /> {formatDate(entry.date)}
           </span>

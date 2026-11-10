@@ -122,5 +122,8 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/_authenticated/pilot/ca")({
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.ca"), "CaPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.ca"),
+    "CaPage",
+  ),
 });

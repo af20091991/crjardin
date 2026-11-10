@@ -23,5 +23,8 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/modeles")({
   head: () => ({ meta: [{ title: "Modèles de compte-rendu — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/modeles"), "TemplatesPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/modeles"),
+    "TemplatesPage",
+  ),
 });

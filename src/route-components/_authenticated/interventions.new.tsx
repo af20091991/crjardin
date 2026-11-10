@@ -4,11 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { listClients } from "@/lib/clients";
-import {
-  createIntervention,
-  INTERVENTION_TYPES,
-  COMMON_TASKS,
-} from "@/lib/interventions";
+import { createIntervention, INTERVENTION_TYPES, COMMON_TASKS } from "@/lib/interventions";
 import { listFavoriteTasks, addFavoriteTask, removeFavoriteTask } from "@/lib/favorites";
 import { listTemplates, addTemplate } from "@/lib/templates";
 import { Button } from "@/components/ui/button";
@@ -16,7 +12,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Plus, X, ArrowLeft, Check, Star, LayoutTemplate, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -32,7 +32,10 @@ function NewIntervention() {
   const { client: presetClient, date: presetDate, motif: presetMotif } = Route.useSearch();
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const qc = useQueryClient();
-  const { data: favorites } = useQuery({ queryKey: ["favorite-tasks"], queryFn: listFavoriteTasks });
+  const { data: favorites } = useQuery({
+    queryKey: ["favorite-tasks"],
+    queryFn: listFavoriteTasks,
+  });
   const { data: templates } = useQuery({ queryKey: ["report-templates"], queryFn: listTemplates });
 
   const [clientId, setClientId] = useState(presetClient ?? "");
@@ -61,7 +64,10 @@ function NewIntervention() {
   const favLabels = (favorites ?? []).map((f) => f.label);
   const saveFav = useMutation({
     mutationFn: (label: string) => addFavoriteTask(label),
-    onSuccess: () => { invFav(); toast.success("Ajouté aux favoris"); },
+    onSuccess: () => {
+      invFav();
+      toast.success("Ajouté aux favoris");
+    },
   });
   const delFav = useMutation({
     mutationFn: (id: string) => removeFavoriteTask(id),
@@ -70,7 +76,12 @@ function NewIntervention() {
 
   const create = useMutation({
     mutationFn: () =>
-      createIntervention({ client_id: clientId, intervention_date: date, intervention_type: type, tasks }),
+      createIntervention({
+        client_id: clientId,
+        intervention_date: date,
+        intervention_type: type,
+        tasks,
+      }),
     onSuccess: (iv) => {
       toast.success("Compte-rendu créé");
       navigate({ to: "/interventions/$interventionId", params: { interventionId: iv.id } });
@@ -78,7 +89,9 @@ function NewIntervention() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
-  const customTasks = tasks.filter((t) => !COMMON_TASKS.includes(t as (typeof COMMON_TASKS)[number]));
+  const customTasks = tasks.filter(
+    (t) => !COMMON_TASKS.includes(t as (typeof COMMON_TASKS)[number]),
+  );
 
   function applyTemplate(id: string) {
     const tpl = (templates ?? []).find((t) => t.id === id);
@@ -90,7 +103,10 @@ function NewIntervention() {
 
   const saveTpl = useMutation({
     mutationFn: (name: string) => addTemplate({ name, intervention_type: type, tasks }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["report-templates"] }); toast.success("Modèle enregistré"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["report-templates"] });
+      toast.success("Modèle enregistré");
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
@@ -98,21 +114,34 @@ function NewIntervention() {
     <AppShell title="Nouveau compte-rendu">
       <div className="mx-auto max-w-2xl space-y-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
-          <Link to="/modeles" className="text-sm text-primary hover:underline">Gérer les modèles</Link>
+          <Link to="/modeles" className="text-sm text-primary hover:underline">
+            Gérer les modèles
+          </Link>
         </div>
 
         <Card>
           <CardContent className="space-y-5 pt-6">
             {(templates?.length ?? 0) > 0 && (
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><LayoutTemplate className="h-4 w-4" /> Partir d'un modèle</Label>
+                <Label className="flex items-center gap-1.5">
+                  <LayoutTemplate className="h-4 w-4" /> Partir d'un modèle
+                </Label>
                 <Select onValueChange={applyTemplate}>
-                  <SelectTrigger><SelectValue placeholder="Choisir un modèle…" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir un modèle…" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {templates!.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                    {templates!.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -120,16 +149,24 @@ function NewIntervention() {
             <div className="space-y-1.5">
               <Label>Client</Label>
               <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger><SelectValue placeholder="Choisir un client…" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un client…" />
+                </SelectTrigger>
                 <SelectContent>
                   {sortedClients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {sortedClients.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Aucun client. <Link to="/clients" className="text-primary hover:underline">En créer un</Link>.
+                  Aucun client.{" "}
+                  <Link to="/clients" className="text-primary hover:underline">
+                    En créer un
+                  </Link>
+                  .
                 </p>
               )}
             </div>
@@ -137,15 +174,24 @@ function NewIntervention() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="date">Date d'intervention</Label>
-                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Type d'intervention</Label>
                 <Select value={type} onValueChange={setType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {INTERVENTION_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -163,14 +209,27 @@ function NewIntervention() {
                     {favorites!.map((f) => {
                       const active = tasks.includes(f.label);
                       return (
-                        <span key={f.id} className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                          active ? "border-primary bg-primary/10 text-primary" : "border-amber-300 bg-amber-50 text-amber-800"
-                        }`}>
-                          <button type="button" onClick={() => toggleTask(f.label)} className="flex items-center gap-1">
+                        <span
+                          key={f.id}
+                          className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                            active
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-amber-300 bg-amber-50 text-amber-800"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleTask(f.label)}
+                            className="flex items-center gap-1"
+                          >
                             {active && <Check className="h-3 w-3" />}
                             {f.label}
                           </button>
-                          <button type="button" onClick={() => delFav.mutate(f.id)} className="opacity-50 hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => delFav.mutate(f.id)}
+                            className="opacity-50 hover:opacity-100"
+                          >
                             <X className="h-3 w-3" />
                           </button>
                         </span>
@@ -192,12 +251,21 @@ function NewIntervention() {
                           : "border-border text-muted-foreground hover:border-primary/40"
                       }`}
                     >
-                      <button type="button" onClick={() => toggleTask(t)} className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleTask(t)}
+                        className="flex items-center gap-1"
+                      >
                         {active && <Check className="h-3 w-3" />}
                         {t}
                       </button>
                       {!isFav && (
-                        <button type="button" onClick={() => saveFav.mutate(t)} title="Ajouter aux favoris" className="opacity-40 hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => saveFav.mutate(t)}
+                          title="Ajouter aux favoris"
+                          className="opacity-40 hover:opacity-100"
+                        >
                           <Star className="h-3 w-3" />
                         </button>
                       )}
@@ -209,14 +277,24 @@ function NewIntervention() {
               {customTasks.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {customTasks.map((t) => (
-                    <span key={t} className="flex items-center gap-1 rounded-full bg-accent/30 px-3 py-1.5 text-xs font-medium">
+                    <span
+                      key={t}
+                      className="flex items-center gap-1 rounded-full bg-accent/30 px-3 py-1.5 text-xs font-medium"
+                    >
                       {t}
                       {!favLabels.includes(t) && (
-                        <button type="button" onClick={() => saveFav.mutate(t)} title="Ajouter aux favoris" className="opacity-50 hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => saveFav.mutate(t)}
+                          title="Ajouter aux favoris"
+                          className="opacity-50 hover:opacity-100"
+                        >
                           <Star className="h-3 w-3" />
                         </button>
                       )}
-                      <button type="button" onClick={() => toggleTask(t)}><X className="h-3 w-3" /></button>
+                      <button type="button" onClick={() => toggleTask(t)}>
+                        <X className="h-3 w-3" />
+                      </button>
                     </span>
                   ))}
                 </div>
@@ -226,10 +304,17 @@ function NewIntervention() {
                 <Input
                   value={custom}
                   onChange={(e) => setCustom(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCustom();
+                    }
+                  }}
                   placeholder="Ajouter une tâche personnalisée…"
                 />
-                <Button type="button" variant="outline" onClick={addCustom}><Plus className="h-4 w-4" /></Button>
+                <Button type="button" variant="outline" onClick={addCustom}>
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 

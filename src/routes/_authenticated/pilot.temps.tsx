@@ -77,7 +77,10 @@ export const Route = createFileRoute("/_authenticated/pilot/temps")({
       },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.temps"), "TimeAndProfitPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.temps"),
+    "TimeAndProfitPage",
+  ),
 });
 const PRESTATION_COLORS = [
   "var(--primary)",

@@ -17,5 +17,8 @@ export const Route = createFileRoute("/_authenticated/clients/premium")({
   head: () => ({
     meta: [{ title: "Comptes Premium — De la graine au jardin" }],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/clients/premium"), "PremiumClientsPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/clients/premium"),
+    "PremiumClientsPage",
+  ),
 });

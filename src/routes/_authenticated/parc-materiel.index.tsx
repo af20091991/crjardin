@@ -37,5 +37,8 @@ export const Route = createFileRoute("/_authenticated/parc-materiel/")({
       },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/parc-materiel.index"), "ParcMaterielPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/parc-materiel.index"),
+    "ParcMaterielPage",
+  ),
 });

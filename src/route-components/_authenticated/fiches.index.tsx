@@ -130,11 +130,13 @@ export function FichesIndex() {
               className="pl-9"
             />
           </div>
-          {canEdit && <Link to="/fiches/new" className="shrink-0">
-            <Button size="sm">
-              <Plus className="mr-1.5 h-4 w-4" /> Nouvelle fiche
-            </Button>
-          </Link>}
+          {canEdit && (
+            <Link to="/fiches/new" className="shrink-0">
+              <Button size="sm">
+                <Plus className="mr-1.5 h-4 w-4" /> Nouvelle fiche
+              </Button>
+            </Link>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select

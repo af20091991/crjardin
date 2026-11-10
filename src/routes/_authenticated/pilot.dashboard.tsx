@@ -104,5 +104,8 @@ export const Route = createFileRoute("/_authenticated/pilot/dashboard")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.dashboard"), "DashboardPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.dashboard"),
+    "DashboardPage",
+  ),
 });

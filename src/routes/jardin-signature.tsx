@@ -23,5 +23,8 @@ export const Route = createFileRoute("/jardin-signature")({
   validateSearch: (search: Record<string, unknown>) => ({
     t: typeof search.t === "string" ? search.t : undefined,
   }),
-  component: lazyRouteComponent(() => import("@/route-components/jardin-signature"), "JardinSignatureEntry"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/jardin-signature"),
+    "JardinSignatureEntry",
+  ),
 });

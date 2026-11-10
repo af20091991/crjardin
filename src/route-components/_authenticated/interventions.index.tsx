@@ -90,7 +90,8 @@ function InterventionsIndex() {
       );
     }
     list.sort((a, b) => {
-      if (sort === "client") return clientName(a.client_id).localeCompare(clientName(b.client_id), "fr");
+      if (sort === "client")
+        return clientName(a.client_id).localeCompare(clientName(b.client_id), "fr");
       const da = new Date(a.intervention_date).getTime();
       const db = new Date(b.intervention_date).getTime();
       return sort === "date_asc" ? da - db : db - da;
@@ -177,11 +178,15 @@ function InterventionsIndex() {
                 setLimit(PAGE);
               }}
             >
-              <SelectTrigger className="h-8 w-48"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-48">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectItem value="all">Tous les clients</SelectItem>
                 {clientOptions.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -193,7 +198,9 @@ function InterventionsIndex() {
                 setLimit(PAGE);
               }}
             >
-              <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-40">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes périodes</SelectItem>
                 <SelectItem value="30d">30 derniers jours</SelectItem>
@@ -204,7 +211,9 @@ function InterventionsIndex() {
             </Select>
 
             <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-              <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-44">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="date_desc">Plus récents d'abord</SelectItem>
                 <SelectItem value="date_asc">Plus anciens d'abord</SelectItem>
@@ -221,7 +230,8 @@ function InterventionsIndex() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {filtered.length} compte{filtered.length > 1 ? "s" : ""}-rendu{filtered.length > 1 ? "s" : ""}
+          {filtered.length} compte{filtered.length > 1 ? "s" : ""}-rendu
+          {filtered.length > 1 ? "s" : ""}
           {visible.length < filtered.length ? ` · ${visible.length} affiché(s)` : ""}
         </p>
 

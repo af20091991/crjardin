@@ -24,5 +24,8 @@ export const Route = createFileRoute("/_authenticated/pilot/pilotage")({
     vue: VUES.includes(search.vue as Vue) ? (search.vue as Vue) : undefined,
     filter: search.filter === "retard" ? "retard" : undefined,
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.pilotage"), "PilotagePage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.pilotage"),
+    "PilotagePage",
+  ),
 });

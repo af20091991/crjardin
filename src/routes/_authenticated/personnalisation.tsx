@@ -62,5 +62,8 @@ import {
 
 export const Route = createFileRoute("/_authenticated/personnalisation")({
   head: () => ({ meta: [{ title: "Personnalisation — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/personnalisation"), "PersonnalisationPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/personnalisation"),
+    "PersonnalisationPage",
+  ),
 });

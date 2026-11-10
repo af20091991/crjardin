@@ -12,5 +12,8 @@ export const Route = createFileRoute("/_authenticated/pilot/site-web")({
       },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.site-web"), "SiteWebPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.site-web"),
+    "SiteWebPage",
+  ),
 });

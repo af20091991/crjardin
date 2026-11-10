@@ -54,5 +54,8 @@ export const Route = createFileRoute("/_authenticated/pilot/charges")({
       },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.charges"), "ChargesPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.charges"),
+    "ChargesPage",
+  ),
 });

@@ -36,5 +36,8 @@ export const Route = createFileRoute("/_authenticated/emails")({
   head: () => ({
     meta: [{ title: "Gestion et suivi des e-mails clients — De la graine au jardin" }],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/emails"), "EmailsPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/emails"),
+    "EmailsPage",
+  ),
 });

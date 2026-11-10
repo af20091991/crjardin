@@ -17,5 +17,8 @@ export const Route = createFileRoute("/_authenticated/pilot/predevis")({
       { property: "og:title", content: "Devis — Pilot Pro" },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.predevis"), "PredevisPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.predevis"),
+    "PredevisPage",
+  ),
 });

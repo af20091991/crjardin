@@ -11,5 +11,8 @@ import { GitCommitVertical, CalendarDays, Tags, ListOrdered, Loader2 } from "luc
 
 export const Route = createFileRoute("/_authenticated/versions")({
   head: () => ({ meta: [{ title: "Versions — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/versions"), "VersionsPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/versions"),
+    "VersionsPage",
+  ),
 });

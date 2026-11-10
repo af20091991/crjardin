@@ -35,5 +35,8 @@ export const Route = createFileRoute("/_authenticated/pilot/ceev-live")({
       },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.ceev-live"), "CeevLivePage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.ceev-live"),
+    "CeevLivePage",
+  ),
 });

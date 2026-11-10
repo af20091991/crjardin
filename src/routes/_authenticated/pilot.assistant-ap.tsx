@@ -122,5 +122,8 @@ export const Route = createFileRoute("/_authenticated/pilot/assistant-ap")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.assistant-ap"), "AssistantApPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.assistant-ap"),
+    "AssistantApPage",
+  ),
 });

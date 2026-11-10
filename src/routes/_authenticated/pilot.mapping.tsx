@@ -38,5 +38,8 @@ import {
 } from "@/lib/mapping";
 
 export const Route = createFileRoute("/_authenticated/pilot/mapping")({
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.mapping"), "MappingPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.mapping"),
+    "MappingPage",
+  ),
 });

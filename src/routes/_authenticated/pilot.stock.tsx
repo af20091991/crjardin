@@ -63,5 +63,8 @@ export const Route = createFileRoute("/_authenticated/pilot/stock")({
       },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.stock"), "StockPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.stock"),
+    "StockPage",
+  ),
 });

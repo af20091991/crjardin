@@ -18,5 +18,8 @@ export const Route = createFileRoute("/reset-password")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/reset-password"), "ResetPasswordPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/reset-password"),
+    "ResetPasswordPage",
+  ),
 });

@@ -19,5 +19,8 @@ export const Route = createFileRoute("/_authenticated/backup-pp-ca")({
       },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/backup-pp-ca"), "BackupPpCaPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/backup-pp-ca"),
+    "BackupPpCaPage",
+  ),
 });

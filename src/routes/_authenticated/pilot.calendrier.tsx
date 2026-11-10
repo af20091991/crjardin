@@ -133,5 +133,8 @@ export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.calendrier"), "CalendrierSstPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.calendrier"),
+    "CalendrierSstPage",
+  ),
 });

@@ -20,5 +20,8 @@ import { useRole } from "@/hooks/use-role";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 export const Route = createFileRoute("/_authenticated/fiches/")({
   head: () => ({ meta: [{ title: "Fiches SST — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/fiches.index"), "FichesIndexRoute"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/fiches.index"),
+    "FichesIndexRoute",
+  ),
 });

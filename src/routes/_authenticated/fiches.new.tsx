@@ -11,5 +11,8 @@ import { useRole } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/fiches/new")({
   head: () => ({ meta: [{ title: "Nouvelle fiche SST — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/fiches.new"), "NewFiche"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/fiches.new"),
+    "NewFiche",
+  ),
 });

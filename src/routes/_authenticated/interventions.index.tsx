@@ -23,10 +23,11 @@ export type SearchParams = { status?: "terminee" | "brouillon" };
 export const Route = createFileRoute("/_authenticated/interventions/")({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     status:
-      search.status === "terminee" || search.status === "brouillon"
-        ? search.status
-        : undefined,
+      search.status === "terminee" || search.status === "brouillon" ? search.status : undefined,
   }),
   head: () => ({ meta: [{ title: "CR chantier — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/interventions.index"), "InterventionsIndex"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/interventions.index"),
+    "InterventionsIndex",
+  ),
 });

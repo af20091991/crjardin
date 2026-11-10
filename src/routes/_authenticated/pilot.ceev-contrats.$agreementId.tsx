@@ -11,10 +11,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { ArrowLeft, CalendarPlus, RefreshCw, Save, Archive, ListChecks } from "lucide-react";
 import {
@@ -49,14 +58,19 @@ export const Route = createFileRoute("/_authenticated/pilot/ceev-contrats/$agree
       { title: "Fiche contrat CEEV — Pilot Pro" },
       {
         name: "description",
-        content: "Détail d'un contrat d'entretien : période, fréquence, statut, historique et renouvellement.",
+        content:
+          "Détail d'un contrat d'entretien : période, fréquence, statut, historique et renouvellement.",
       },
       { property: "og:title", content: "Fiche contrat CEEV — Pilot Pro" },
       {
         property: "og:description",
-        content: "Période, fréquence, prochaine intervention et historique complet du contrat d'entretien.",
+        content:
+          "Période, fréquence, prochaine intervention et historique complet du contrat d'entretien.",
       },
     ],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.ceev-contrats.$agreementId"), "CeevDetailPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.ceev-contrats.$agreementId"),
+    "CeevDetailPage",
+  ),
 });

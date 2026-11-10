@@ -13,7 +13,9 @@ function NewFiche() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { canEdit, isLoading: roleLoading } = useRole();
-  useEffect(() => { if (!roleLoading && !canEdit) navigate({ to: "/", replace: true }); }, [canEdit, roleLoading, navigate]);
+  useEffect(() => {
+    if (!roleLoading && !canEdit) navigate({ to: "/", replace: true });
+  }, [canEdit, roleLoading, navigate]);
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
 
   const create = useMutation({
@@ -29,7 +31,10 @@ function NewFiche() {
   return (
     <AppShell title="Nouvelle fiche SST">
       <div className="mx-auto max-w-2xl space-y-4">
-        <Link to="/fiches" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/fiches"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Retour
         </Link>
         <WorksiteSheetForm

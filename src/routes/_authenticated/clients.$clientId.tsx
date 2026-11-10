@@ -88,5 +88,8 @@ export const Route = createFileRoute("/_authenticated/clients/$clientId")({
     edit: search.edit === true || search.edit === "true" || search.edit === "1" ? true : undefined,
     tab: CLIENT_TABS.includes(search.tab as ClientTab) ? (search.tab as ClientTab) : undefined,
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/clients.$clientId"), "ClientDetail"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/clients.$clientId"),
+    "ClientDetail",
+  ),
 });

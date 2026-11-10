@@ -34,5 +34,8 @@ export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({
     meta: [{ title: "Clients — De la graine au jardin" }],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/clients.index"), "ClientsPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/clients.index"),
+    "ClientsPage",
+  ),
 });

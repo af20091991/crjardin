@@ -46,5 +46,8 @@ import { formatEuro } from "@/lib/pilot";
 import { formatHours } from "@/lib/format-utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/sites")({
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.sites"), "SitesMigrationPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.sites"),
+    "SitesMigrationPage",
+  ),
 });

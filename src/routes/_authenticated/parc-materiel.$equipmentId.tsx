@@ -1,4 +1,10 @@
-import { createFileRoute, Link, useNavigate, useParams, lazyRouteComponent } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useParams,
+  lazyRouteComponent,
+} from "@tanstack/react-router";
 import { LoadingState } from "@/components/pilot/LoadingState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
@@ -39,5 +45,8 @@ export const Route = createFileRoute("/_authenticated/parc-materiel/$equipmentId
   head: () => ({
     meta: [{ title: "Équipement — Parc matériel — Pilot Pro" }],
   }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/parc-materiel.$equipmentId"), "EquipmentDetailPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/parc-materiel.$equipmentId"),
+    "EquipmentDetailPage",
+  ),
 });

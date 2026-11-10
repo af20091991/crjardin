@@ -38,5 +38,8 @@ import {
 
 export const Route = createFileRoute("/_authenticated/clients/premium-dashboard/$clientId")({
   head: () => ({ meta: [{ title: "Dashboard Premium — De la graine au jardin" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/clients/premium-dashboard.$clientId"), "PremiumClientDashboard"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/clients/premium-dashboard.$clientId"),
+    "PremiumClientDashboard",
+  ),
 });

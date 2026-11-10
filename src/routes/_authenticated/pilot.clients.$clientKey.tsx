@@ -31,5 +31,8 @@ import { formatHours, formatPercent } from "@/lib/format-utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/clients/$clientKey")({
   head: () => ({ meta: [{ title: "Fiche client — Pilot Pro" }] }),
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.clients.$clientKey"), "PilotClientDetail"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.clients.$clientKey"),
+    "PilotClientDetail",
+  ),
 });

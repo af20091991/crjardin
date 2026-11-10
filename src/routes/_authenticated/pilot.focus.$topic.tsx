@@ -32,7 +32,10 @@ export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
   beforeLoad: ({ params }) => {
     if (!isFocusTopic(params.topic)) throw notFound();
   },
-  component: lazyRouteComponent(() => import("@/route-components/_authenticated/pilot.focus.$topic"), "FocusPage"),
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.focus.$topic"),
+    "FocusPage",
+  ),
   notFoundComponent: () => (
     <Card>
       <CardContent className="py-10 text-center text-sm text-muted-foreground">
