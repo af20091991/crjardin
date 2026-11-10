@@ -154,6 +154,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 const SPLASH_CSS = `
 html.js-client #pp-splash{display:none!important}
+html.pp-seen #pp-splash{display:none!important}
 #pp-splash{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:#ffffff;transition:opacity .3s ease,visibility .3s}
 #pp-splash.pp-out{opacity:0;visibility:hidden;pointer-events:none}
 #pp-splash img{width:min(86vmin,886px);height:auto}
@@ -170,7 +171,7 @@ function SplashOverlay() {
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}var seen=false;try{seen=sessionStorage.getItem('pp-splash-seen')==='1';}catch(e){}if(seen){var z=document.getElementById('pp-splash');if(z)z.remove();h();return;}function s(){window.__ppSplashStart=performance.now();try{sessionStorage.setItem('pp-splash-seen','1');}catch(e){}window.dispatchEvent(new Event('pp-splash-start'));h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
+            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}var seen=false;try{seen=sessionStorage.getItem('pp-splash-seen')==='1';}catch(e){}if(seen){document.documentElement.classList.add('pp-seen');h();return;}function s(){window.__ppSplashStart=performance.now();try{sessionStorage.setItem('pp-splash-seen','1');}catch(e){}window.dispatchEvent(new Event('pp-splash-start'));h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
         }}
       />
     </>
@@ -238,6 +239,11 @@ function AccountPrefsGate({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [readyFor, setReadyFor] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!userId) {
@@ -260,7 +266,8 @@ function AccountPrefsGate({ children }: { children: ReactNode }) {
   }, [userId]);
 
   // Pendant le chargement des préférences, afficher un indicateur plutôt qu'un écran blanc.
-  if (userId && readyFor !== userId) return <RoutePending />;
+  // Premier rendu identique au serveur (évite l'erreur d'hydratation) ; indicateur ensuite.
+  if (mounted && userId && readyFor !== userId) return <RoutePending />;
   return <>{children}</>;
 }
 
