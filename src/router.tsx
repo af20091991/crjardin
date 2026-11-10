@@ -22,6 +22,7 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: ({ error, reset }) => <RouteErrorBoundary error={error} reset={reset} />,
   });
