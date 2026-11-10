@@ -48,6 +48,7 @@ bun test           # tests unitaires (src/lib/__tests__)
 - Les rôles sont dans `user_roles` + fonction `has_role` (jamais sur `profiles`/`clients`).
   Côté front : `useRole()` / `useIsAdmin()`.
 - Après migration, régénérer/valider les types utilisés depuis `src/integrations/supabase/types.ts`.
+- Shared reads of competitor checks, development totals/logs, and chantier photos must use `is_approved(auth.uid())`, not unconditional authentication or role existence; this preserves approved-team sharing while excluding unapproved signups and keeps assigned SST photo access independent.
 
 ## 4. Règles métier PP — invariants à ne jamais casser
 
