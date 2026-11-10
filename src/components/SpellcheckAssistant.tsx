@@ -135,7 +135,11 @@ export function SpellcheckAssistant() {
     };
     const onFocusOut = (event: FocusEvent) => {
       if (event.target !== fieldRef.current) return;
-      if (event.relatedTarget instanceof Element && event.relatedTarget.closest("[data-spell-menu]")) return;
+      if (
+        event.relatedTarget instanceof Element &&
+        event.relatedTarget.closest("[data-spell-menu]")
+      )
+        return;
       clearField();
     };
     // React-controlled resets do not emit input; detached fields can miss blur.
