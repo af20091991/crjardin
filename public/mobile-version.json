@@ -1,6 +1,6 @@
 {
-  "latestBuild": 16,
-  "versionName": "2.8.5",
+  "latestBuild": 17,
+  "versionName": "2.8.6",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Écran de lancement allégé, plus fluide et plus long (4,1 s), sans écran blanc."
+  "notes": "Démarrage : le Dashboard s'affiche dès la première ouverture après le lancement, sans écran vide. Animation de lancement jouée une seule fois par session."
 }
