@@ -26,6 +26,7 @@ import { registerPwa } from "@/lib/pwa";
 import { APP_VERSION } from "@/lib/app-meta";
 import { hydrateAccountPrefs, setPrefsUser } from "@/lib/account-prefs";
 import { useAuth } from "@/hooks/use-auth";
+import { RoutePending } from "@/components/RoutePending";
 
 function NotFoundComponent() {
   return (
@@ -250,7 +251,8 @@ function AccountPrefsGate({ children }: { children: ReactNode }) {
     };
   }, [userId]);
 
-  if (userId && readyFor !== userId) return null;
+  // Pendant le chargement des préférences, afficher un indicateur plutôt qu'un écran blanc.
+  if (userId && readyFor !== userId) return <RoutePending />;
   return <>{children}</>;
 }
 
