@@ -142,13 +142,21 @@ const STATE_VIEW: Record<ApGlobalState, { label: string; tone: string; dot: stri
     tone: "bg-accent/20 text-accent-foreground",
     dot: "bg-accent",
   },
-  a_faire: { label: "À préparer", tone: "bg-muted text-foreground", dot: "bg-muted-foreground" },
+  a_faire: {
+    label: "À préparer",
+    tone: "bg-destructive/15 text-destructive transition-colors hover:bg-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))] hover:text-background",
+    dot: "bg-current",
+  },
   en_cours: {
     label: "Approvisionnement en cours",
-    tone: "bg-[color-mix(in_oklab,var(--pp-sales)_18%,transparent)] text-foreground",
-    dot: "bg-[var(--pp-sales)]",
+    tone: "bg-accent/20 text-accent-foreground transition-colors hover:bg-[color-mix(in_oklab,var(--accent)_70%,var(--foreground))] hover:text-background",
+    dot: "bg-current",
   },
-  ok: { label: "Approvisionnement OK", tone: "bg-primary/15 text-primary", dot: "bg-primary" },
+  ok: {
+    label: "Approvisionnement OK",
+    tone: "bg-primary text-primary-foreground transition-colors hover:bg-[color-mix(in_oklab,var(--primary)_80%,var(--background))]",
+    dot: "bg-current",
+  },
 };
 
 const STATUS_VIEW: Record<ApStatus, { label: string; tone: string; dot: string }> = {
@@ -189,9 +197,6 @@ const CHRONO_BG: Record<ChronoTone, string> = {
   future:
     "bg-[color-mix(in_oklab,var(--pp-sales)_18%,transparent)] border-[color-mix(in_oklab,var(--pp-sales)_45%,transparent)]",
 };
-/** Statut lisible sur fond coloré : encadré à bordure foncée, fond neutre. */
-const CHRONO_STATUS_BOX =
-  "rounded-md border border-foreground bg-background px-1.5 py-0.5 text-foreground";
 function chronoTone(iso: string | null, todayIso: string): ChronoTone | null {
   if (!iso) return null;
   return iso < todayIso ? "past" : "future";
@@ -609,8 +614,9 @@ function WorksiteCard({
           </span>
           <Badge
             className={cn(
-              "mt-3 w-fit text-[11px]",
-              chrono ? CHRONO_STATUS_BOX : cn("border-0", stateView.tone),
+              "mt-3 w-fit border-0 text-[11px]",
+              stateView.tone,
+              chrono && "border border-foreground",
             )}
           >
             <span className={cn("mr-1 h-1.5 w-1.5 rounded-full", stateView.dot)} />
@@ -678,10 +684,9 @@ function WorksiteTable({
                 </span>
                 <span
                   className={cn(
-                    "flex w-fit items-center gap-1 text-xs font-normal",
-                    chronoOf?.(worksite)
-                      ? CHRONO_STATUS_BOX
-                      : stateView.tone.replace(/bg-[^ ]+ ?/g, ""),
+                    "flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-normal",
+                    stateView.tone,
+                    chronoOf?.(worksite) && "border border-foreground",
                   )}
                 >
                   <span className={cn("h-1.5 w-1.5 rounded-full", stateView.dot)} />
