@@ -183,10 +183,13 @@ const EVENT_VIEW: Record<ApEventType, { label: string; dot: string; chip: string
 
 /** Repère chronologique d'un chantier : passé (vert) ou à venir (bleu) par rapport à aujourd'hui. */
 type ChronoTone = "past" | "future";
-const CHRONO_BORDER: Record<ChronoTone, string> = {
-  past: "border-l-primary",
-  future: "border-l-[var(--pp-sales)]",
+/** Fond de carte : mêmes teintes que « Approvisionnement OK » (vert) et « en cours » (bleu). */
+const CHRONO_BG: Record<ChronoTone, string> = {
+  past: "bg-primary/15 border-primary/40",
+  future: "bg-[color-mix(in_oklab,var(--pp-sales)_18%,transparent)] border-[color-mix(in_oklab,var(--pp-sales)_45%,transparent)]",
 };
+/** Statut lisible sur fond coloré : encadré à bordure foncée, fond neutre. */
+const CHRONO_STATUS_BOX = "rounded-md border border-foreground bg-background px-1.5 py-0.5 text-foreground";
 function chronoTone(iso: string | null, todayIso: string): ChronoTone | null {
   if (!iso) return null;
   return iso < todayIso ? "past" : "future";
@@ -585,8 +588,7 @@ function WorksiteCard({
     <Card
       className={cn(
         "min-w-0 overflow-hidden shadow-none",
-        chrono && "border-l-4",
-        chrono && CHRONO_BORDER[chrono],
+        chrono && CHRONO_BG[chrono],
         open && "border-primary/50 bg-primary/5",
       )}
     >
@@ -603,7 +605,12 @@ function WorksiteCard({
           <span className="mt-1 text-xs font-normal text-muted-foreground">
             {frDate(worksite.scheduled_date, worksite.date_label)}
           </span>
-          <Badge className={cn("mt-3 w-fit border-0 text-[11px]", stateView.tone)}>
+          <Badge
+            className={cn(
+              "mt-3 w-fit text-[11px]",
+              chrono ? CHRONO_STATUS_BOX : cn("border-0", stateView.tone),
+            )}
+          >
             <span className={cn("mr-1 h-1.5 w-1.5 rounded-full", stateView.dot)} />
             {stateView.label}
           </Badge>
@@ -657,8 +664,7 @@ function WorksiteTable({
                 variant="ghost"
                 className={cn(
                   "grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-3 py-2 text-left md:grid-cols-[minmax(0,1.5fr)_8rem_11rem_8rem_6rem] md:gap-3",
-                  chronoOf?.(worksite) && "border-l-4",
-                  chronoOf?.(worksite) && CHRONO_BORDER[chronoOf(worksite)!],
+                  chronoOf?.(worksite) && CHRONO_BG[chronoOf(worksite)!],
                   openId === worksite.id && "bg-primary/5",
                 )}
                 onClick={() => onOpen(openId === worksite.id ? null : worksite.id)}
@@ -670,8 +676,10 @@ function WorksiteTable({
                 </span>
                 <span
                   className={cn(
-                    "flex items-center gap-1 text-xs font-normal",
-                    stateView.tone.replace(/bg-[^ ]+ ?/g, ""),
+                    "flex w-fit items-center gap-1 text-xs font-normal",
+                    chronoOf?.(worksite)
+                      ? CHRONO_STATUS_BOX
+                      : stateView.tone.replace(/bg-[^ ]+ ?/g, ""),
                   )}
                 >
                   <span className={cn("h-1.5 w-1.5 rounded-full", stateView.dot)} />
