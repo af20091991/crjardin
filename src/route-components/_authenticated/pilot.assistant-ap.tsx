@@ -186,10 +186,12 @@ type ChronoTone = "past" | "future";
 /** Fond de carte : mêmes teintes que « Approvisionnement OK » (vert) et « en cours » (bleu). */
 const CHRONO_BG: Record<ChronoTone, string> = {
   past: "bg-primary/15 border-primary/40",
-  future: "bg-[color-mix(in_oklab,var(--pp-sales)_18%,transparent)] border-[color-mix(in_oklab,var(--pp-sales)_45%,transparent)]",
+  future:
+    "bg-[color-mix(in_oklab,var(--pp-sales)_18%,transparent)] border-[color-mix(in_oklab,var(--pp-sales)_45%,transparent)]",
 };
 /** Statut lisible sur fond coloré : encadré à bordure foncée, fond neutre. */
-const CHRONO_STATUS_BOX = "rounded-md border border-foreground bg-background px-1.5 py-0.5 text-foreground";
+const CHRONO_STATUS_BOX =
+  "rounded-md border border-foreground bg-background px-1.5 py-0.5 text-foreground";
 function chronoTone(iso: string | null, todayIso: string): ChronoTone | null {
   if (!iso) return null;
   return iso < todayIso ? "past" : "future";
