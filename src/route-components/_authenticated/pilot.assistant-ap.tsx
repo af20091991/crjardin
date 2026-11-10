@@ -149,7 +149,7 @@ const STATE_VIEW: Record<ApGlobalState, { label: string; tone: string; dot: stri
   },
   en_cours: {
     label: "Approvisionnement en cours",
-    tone: "bg-accent/20 text-accent-foreground transition-colors hover:bg-[color-mix(in_oklab,var(--accent)_70%,var(--foreground))] hover:text-background",
+    tone: "bg-[#EE8627]/25 text-foreground transition-colors hover:bg-[#C75F12] hover:text-background",
     dot: "bg-current",
   },
   ok: {
