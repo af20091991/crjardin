@@ -319,19 +319,6 @@ export function WorksiteSheetForm({
       toast.error("Le nom du client est requis");
       return;
     }
-    if (sstDirectoryLoading) {
-      toast.error("Vérification des adresses e-mail SST en cours…");
-      return;
-    }
-    const missingEmail = intervenants.filter(
-      (name) => !sstDirectory.find((entry) => entry.name === name)?.email,
-    );
-    if (missingEmail.length > 0) {
-      toast.error(
-        `Impossible d'enregistrer la fiche : adresse e-mail manquante pour ${missingEmail.join(", ")}.`,
-      );
-      return;
-    }
     onSubmit({
       ...form,
       intervenant: serializeWorksiteIntervenants(intervenants),

@@ -124,6 +124,33 @@ export function SpellcheckAssistant() {
       timer.current = window.setTimeout(() => void analyse(target), DEBOUNCE_MS);
       refresh();
     };
+    const clearField = () => {
+      ++run.current;
+      if (timer.current) window.clearTimeout(timer.current);
+      fieldRef.current = null;
+      issuesRef.current = [];
+      setField(null);
+      setIssues([]);
+      setMenu(null);
+    };
+    const onFocusOut = (event: FocusEvent) => {
+      if (event.target !== fieldRef.current) return;
+      if (event.relatedTarget instanceof Element && event.relatedTarget.closest("[data-spell-menu]")) return;
+      clearField();
+    };
+    // React-controlled resets do not emit input; detached fields can miss blur.
+    let observedValue = "";
+    const monitor = window.setInterval(() => {
+      const target = fieldRef.current;
+      if (!target) return;
+      if (!target.isConnected) {
+        clearField();
+      } else if (target.value !== observedValue) {
+        observedValue = target.value;
+        refresh();
+        void analyse(target);
+      }
+    }, 100);
     const onContextMenu = (event: MouseEvent) => {
       const target = fieldRef.current;
       if (!target || event.target !== target || !mirrorRef.current) return;
@@ -158,6 +185,7 @@ export function SpellcheckAssistant() {
     const onViewportChange = () => refresh();
 
     document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
     document.addEventListener("input", onInput, true);
     document.addEventListener("contextmenu", onContextMenu, true);
     document.addEventListener("pointerdown", onPointerDown, true);
@@ -166,7 +194,9 @@ export function SpellcheckAssistant() {
     window.addEventListener("resize", onViewportChange);
     return () => {
       window.clearTimeout(idle);
+      window.clearInterval(monitor);
       document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
       document.removeEventListener("input", onInput, true);
       document.removeEventListener("contextmenu", onContextMenu, true);
       document.removeEventListener("pointerdown", onPointerDown, true);
