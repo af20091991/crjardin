@@ -131,9 +131,8 @@ export function NativeAppLayer() {
     };
   }, []);
 
-  // Tirer pour actualiser (appli installée uniquement : le navigateur gère déjà ce geste)
+  // Tirer pour actualiser : tout périphérique tactile (le geste n'existe pas à la souris)
   useEffect(() => {
-    if (!appLike) return;
     // Intention explicite uniquement : un simple retour en haut (défilement, élan, liste interne)
     // ne déclenche jamais l'actualisation.
     let startY: number | null = null;
@@ -179,7 +178,7 @@ export function NativeAppLayer() {
       document.removeEventListener("touchstart", onStart);
       document.removeEventListener("touchend", onEnd);
     };
-  }, [appLike, queryClient]);
+  }, [queryClient]);
 
   // Verrouillage biométrique (option activée dans Personnalisation)
   const unlock = async () => {
