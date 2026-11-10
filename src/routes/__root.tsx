@@ -206,6 +206,14 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
       <head>
+        {/* Retire un ancien service worker et son cache AVANT le chargement des modules :
+            sinon une version obsolète peut bloquer l'app sans jamais atteindre registerPwa. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(!('serviceWorker' in navigator))return;navigator.serviceWorker.getRegistrations().then(function(rs){var had=rs.length>0;return Promise.all(rs.map(function(r){return r.unregister();})).then(function(){return ('caches' in window)?caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}):null;}).then(function(){if(had&&!sessionStorage.getItem('pp-sw-purged')){sessionStorage.setItem('pp-sw-purged','1');location.reload();}});});}catch(e){}})();",
+          }}
+        />
         <HeadContent />
         {/* Espace client (appli Jardin Signature) : pas d'écran de démarrage PilotPro. */}
         <script
