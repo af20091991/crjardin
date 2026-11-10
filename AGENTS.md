@@ -8,6 +8,7 @@ modifier et créer du code dans ce dépôt en respectant les règles ci-dessous.
 
 - TanStack Start v1 (React 19) + Vite 7, TypeScript strict.
 - Router de fichiers : `src/routes/**` → `src/routeTree.gen.ts` (**généré, ne jamais éditer**).
+- Keep automatic route code splitting in the TanStack Start Vite configuration; page components load separately while route matching and loaders remain eager.
 - Tailwind CSS v4 via `src/styles.css` (`@theme`, tokens sémantiques OKLCH). Pas de `tailwind.config.js`.
 - UI : shadcn/ui (`src/components/ui/*`) + Radix + lucide-react + recharts + sonner.
 - Backend : Supabase (Lovable Cloud). Client : `import { supabase } from "@/integrations/supabase/client"`.
