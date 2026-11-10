@@ -169,7 +169,7 @@ function SplashOverlay() {
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}function s(){window.__ppSplashStart=performance.now();window.dispatchEvent(new Event('pp-splash-start'));h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
+            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}var seen=false;try{seen=sessionStorage.getItem('pp-splash-seen')==='1';}catch(e){}if(seen){var z=document.getElementById('pp-splash');if(z)z.remove();h();return;}function s(){window.__ppSplashStart=performance.now();try{sessionStorage.setItem('pp-splash-seen','1');}catch(e){}window.dispatchEvent(new Event('pp-splash-start'));h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
         }}
       />
     </>
