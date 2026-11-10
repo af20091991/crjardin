@@ -592,16 +592,6 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       });
     }
 
-    const { data: latestGardenReport } = await supabaseAdmin
-      .from("interventions")
-      .select("garden_state, intervention_date")
-      .eq("client_id", client.id)
-      .not("sent_to_client_at", "is", null)
-      .not("garden_state", "is", null)
-      .order("intervention_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
     // Préconisations rédigées dans les comptes-rendus de chantier, regroupées par intervention.
     const { data: recoRows } = await supabaseAdmin
       .from("recommendations")
@@ -658,7 +648,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
     return {
       recommendation_groups: recommendationGroups,
       enabled: raw.enabled,
-      garden_state: latestGardenReport?.garden_state ?? raw.garden_state,
+      garden_state: raw.garden_state,
       garden_objectives: raw.garden_objectives,
       garden_specificities: raw.garden_specificities,
       google_review_url: raw.google_review_url,
