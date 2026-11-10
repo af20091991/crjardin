@@ -2,9 +2,10 @@
 // du statut d'envoi sur les fiches client.
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { readRouteSource } from "./route-source";
 
 describe("notifyClient — invalidation des fiches client", () => {
-  const src = readFileSync("src/routes/_authenticated/interventions.$interventionId.tsx", "utf8");
+  const src = readRouteSource("src/routes/_authenticated/interventions.$interventionId.tsx");
 
   test("invalide la liste des interventions du client classique", () => {
     expect(src).toContain('qc.invalidateQueries({ queryKey: ["interventions", client.id] })');
@@ -20,7 +21,7 @@ describe("notifyClient — invalidation des fiches client", () => {
 });
 
 describe("fiche client classique — badge d'envoi par intervention", () => {
-  const src = readFileSync("src/routes/_authenticated/clients.$clientId.tsx", "utf8");
+  const src = readRouteSource("src/routes/_authenticated/clients.$clientId.tsx");
 
   test("affiche « Envoyé au client » quand sent_to_client_at est renseigné", () => {
     expect(src).toContain("Envoyé au client");

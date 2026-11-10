@@ -9,6 +9,7 @@ import {
   resumeReportLogging,
   type ReportSendContext,
 } from "@/lib/report-send";
+import { readRouteSource } from "./route-source";
 
 const base: ReportSendContext = {
   done: true,
@@ -219,7 +220,7 @@ describe("reprise : rejouer le journal sans jamais renvoyer d'e-mail", () => {
 
 describe("notifyClient : un seul chemin de reprise", () => {
   test("la route utilise resumeReportLogging et n'envoie pas en reprise", () => {
-    const src = readFileSync("src/routes/_authenticated/interventions.$interventionId.tsx", "utf8");
+    const src = readRouteSource("src/routes/_authenticated/interventions.$interventionId.tsx");
     expect(src).toContain("resumeReportLogging");
     // Le chemin de reprise court-circuite l'envoi.
     const resumeIdx = src.search(/resumeReportLogging\(\s*\{\s*logSent,\s*markSent/);

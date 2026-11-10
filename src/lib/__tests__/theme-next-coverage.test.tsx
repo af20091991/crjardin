@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appearance";
+import { readRouteSource } from "./route-source";
 
 const ROUTES_DIR = "src/routes/_authenticated";
 const routeFiles = readdirSync(ROUTES_DIR).filter((f) => f.endsWith(".tsx"));
@@ -96,7 +97,7 @@ describe("Thème next — couverture par les tokens partagés", () => {
 
   it("aucune page n'ajoute de logique d'apparence ni de couleur brute", () => {
     for (const file of routeFiles) {
-      const src = readFileSync(`${ROUTES_DIR}/${file}`, "utf8");
+      const src = readRouteSource(`${ROUTES_DIR}/${file}`);
       expect(src).not.toContain('data-theme="next"');
       expect(src.match(/#[0-9a-fA-F]{6}\b/g)).toBeNull();
       expect(src.match(/rgba?\(\s*\d/g)).toBeNull();
