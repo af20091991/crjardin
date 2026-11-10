@@ -199,7 +199,7 @@ function AssistantApPage() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState("chantiers");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("todo");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [quickScope, setQuickScope] = useState<QuickScope>(null);
