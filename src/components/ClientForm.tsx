@@ -95,6 +95,8 @@ export function ClientForm({
   });
   const [addrSuggestions, setAddrSuggestions] = useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // Adresse validée = choisie dans les suggestions de la base officielle (BAN)
+  const [addressVerified, setAddressVerified] = useState(false);
   const [planningBusy, setPlanningBusy] = useState(false);
   const addrAbort = useRef<AbortController | null>(null);
   const addrTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -250,6 +252,7 @@ export function ClientForm({
               value={form.address ?? ""}
               onChange={(e) => {
                 set("address", e.target.value);
+                setAddressVerified(false);
                 fetchAddresses(e.target.value);
               }}
               onFocus={() => {
@@ -259,6 +262,11 @@ export function ClientForm({
               placeholder="Commencez à saisir l'adresse…"
               autoComplete="off"
             />
+            {form.address?.trim() && !addressVerified && (
+              <p className="text-xs text-muted-foreground">
+                Adresse non vérifiée : sélectionnez une suggestion pour la valider.
+              </p>
+            )}
             {showSuggestions && addrSuggestions.length > 0 && (
               <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-popover shadow-md">
                 {addrSuggestions.map((s, i) => (
@@ -269,6 +277,7 @@ export function ClientForm({
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         set("address", s.label);
+                        setAddressVerified(true);
                         setShowSuggestions(false);
                       }}
                     >
