@@ -20,6 +20,7 @@ import {
   type BorderWidth,
   type TextScale,
   type TableDensity,
+  type ListDensity,
   type ContentWidth,
   type NavIndicator,
   type AccentSaturation,
@@ -445,6 +446,17 @@ function PersonnalisationPage() {
               hint="Indépendante de la densité générale."
               value={appearance.tableDensity}
               onChange={(v) => setAppearance({ tableDensity: v })}
+              options={[
+                { value: "auto", label: "Suivre la densité générale" },
+                { value: "comfortable", label: "Confortable" },
+                { value: "compact", label: "Compact" },
+              ]}
+            />
+            <SegRow<ListDensity>
+              label="Densité des listes"
+              hint="Cartes des listes (clients, etc.), indépendante des tableaux. Revenir à « Suivre » annule le changement."
+              value={appearance.listDensity}
+              onChange={(v) => setAppearance({ listDensity: v })}
               options={[
                 { value: "auto", label: "Suivre la densité générale" },
                 { value: "comfortable", label: "Confortable" },

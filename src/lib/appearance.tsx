@@ -195,6 +195,8 @@ export const FONT_OPTIONS: { value: FontChoice; label: string }[] = FONT_GROUPS.
 export type BorderWidth = "thin" | "normal" | "strong";
 export type TextScale = "small" | "normal" | "large";
 export type TableDensity = "auto" | "comfortable" | "compact";
+/** Densité des listes en cartes (clients, etc.), indépendante des tableaux. */
+export type ListDensity = "auto" | "comfortable" | "compact";
 export type ContentWidth = "comfortable" | "full";
 export type NavIndicator = "auto" | "dot" | "bar";
 export type AccentSaturation = "normal" | "soft" | "vivid";
@@ -282,6 +284,8 @@ export type Appearance = {
   reducedMotion: boolean;
   // 7 — Densité des tableaux, indépendante de la densité générale
   tableDensity: TableDensity;
+  // 7 bis — Densité des listes en cartes
+  listDensity: ListDensity;
   // 8 — Largeur maximale du contenu
   contentWidth: ContentWidth;
   // 9 — Icônes décoratives
@@ -351,6 +355,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   textScale: "normal",
   reducedMotion: false,
   tableDensity: "auto",
+  listDensity: "auto",
   contentWidth: "comfortable",
   decorativeIcons: true,
   navIndicator: "auto",
@@ -441,9 +446,7 @@ function ensureGoogleFonts(a: Appearance) {
   }
   const href =
     "https://fonts.googleapis.com/css2?" +
-    [...families]
-      .map((family) => `family=${encodeURIComponent(family)}`)
-      .join("&") +
+    [...families].map((family) => `family=${encodeURIComponent(family)}`).join("&") +
     "&display=swap";
   let link = head.querySelector<HTMLLinkElement>(`#${FONT_CSS_LINK_ID}`);
   if (!link) {
@@ -551,6 +554,8 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-motion", a.reducedMotion ? "reduced" : null);
   // 7 — Densité des tableaux
   setFlag(root, "data-table-density", a.tableDensity === "auto" ? null : a.tableDensity);
+  // 7 bis — Densité des listes en cartes
+  setFlag(root, "data-list-density", a.listDensity === "auto" ? null : a.listDensity);
   // 8 — Largeur du contenu
   setFlag(root, "data-content-width", a.contentWidth === "comfortable" ? null : a.contentWidth);
   // 9 — Icônes décoratives
