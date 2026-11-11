@@ -929,6 +929,15 @@ html[data-table-density="compact"] table th {
   padding-top: 0.3rem;
   padding-bottom: 0.3rem;
 }
+/* Densité des listes en cartes (balise data-list-row sur chaque ligne/carte) */
+html[data-list-density="compact"] [data-list-row] {
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+html[data-list-density="comfortable"] [data-list-row] {
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
 html[data-table-density="comfortable"] table td,
 html[data-table-density="comfortable"] table th {
   padding-top: 0.7rem;

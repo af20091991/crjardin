@@ -83,7 +83,10 @@ function DirectoryRow({
   onToggleFavorite: (id: string) => void;
 }) {
   return (
-    <div className="group grid grid-cols-[minmax(260px,2fr)_minmax(160px,1fr)_minmax(150px,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/20">
+    <div
+      data-list-row
+      className="group grid grid-cols-[minmax(260px,2fr)_minmax(160px,1fr)_minmax(150px,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/20"
+    >
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
@@ -140,7 +143,7 @@ function MobileDirectoryRow({
   onToggleFavorite: (id: string) => void;
 }) {
   return (
-    <Card className="p-3">
+    <Card data-list-row className="p-3">
       <div className="flex items-start gap-3">
         <button
           type="button"
