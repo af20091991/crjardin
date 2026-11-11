@@ -72,7 +72,9 @@ import {
   ArrowRight,
   Sprout,
   Crown,
+  FileDown,
 } from "lucide-react";
+import { exportClientFichePdf } from "@/lib/client-fiche-pdf";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useRole } from "@/hooks/use-role";
@@ -272,6 +274,18 @@ function ClientDetail() {
         </Card>
 
         <ShareLinkCard token={client.share_token} copied={copied} setCopied={setCopied} />
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => {
+            exportClientFichePdf(client).catch(() => toast.error("Échec de l'export PDF"));
+          }}
+        >
+          <FileDown className="mr-1.5 h-4 w-4" />
+          Exporter la fiche (PDF)
+        </Button>
 
         <div className="flex gap-2">
           <Button
