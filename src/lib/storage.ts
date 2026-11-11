@@ -9,11 +9,15 @@ export interface UploadedPhoto {
 }
 
 export async function uploadPhoto(file: File): Promise<UploadedPhoto> {
-  const ext = file.name.split(".").pop() || "jpg";
+  // Compression côté client avant envoi (allège le réseau sur mobile)
+  const blob = await compressImage(file);
+  const compressed = blob !== file;
+  const ext = compressed ? "jpg" : file.name.split(".").pop() || "jpg";
   const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+  const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
     cacheControl: "3600",
     upsert: false,
+    contentType: compressed ? "image/jpeg" : file.type || undefined,
   });
   if (error) throw error;
   // URL signée longue durée (1 an) pour intégration dans l'email
