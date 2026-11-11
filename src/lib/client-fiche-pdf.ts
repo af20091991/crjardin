@@ -1,12 +1,12 @@
 import { jsPDF } from "jspdf";
 import logo from "@/assets/logo.png";
 import { CLIENT_TYPE_META, REPORT_POLICY_META, clientEmails, type Client } from "@/lib/clients";
+import { PDF_BRAND } from "@/lib/pdf-brand";
 
-// Palette du carnet Premium, identique à pdf-export.ts.
-const GREEN: [number, number, number] = [79, 142, 51];
-const DARK: [number, number, number] = [48, 55, 45];
-const MUTED: [number, number, number] = [112, 116, 106];
-const LINE: [number, number, number] = [221, 226, 215];
+const GREEN = PDF_BRAND.green;
+const DARK = PDF_BRAND.dark;
+const MUTED = PDF_BRAND.muted;
+const LINE = PDF_BRAND.line;
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
