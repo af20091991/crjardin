@@ -62,7 +62,7 @@ import {
 } from "@/lib/pilot-time-value";
 
 const TempsSearch = z.object({
-  tab: z.enum(["realises", "rentabilite", "prestations"]).catch("realises"),
+  tab: z.enum(["realises", "rentabilite", "prestations", "chantier"]).catch("realises"),
 });
 
 export const Route = createFileRoute("/_authenticated/pilot/temps")({
