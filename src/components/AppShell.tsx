@@ -1,4 +1,11 @@
-import { type KeyboardEvent, type ReactNode, useEffect, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -111,6 +118,39 @@ export function filterNavItems<T extends { label: string; short: string; to: str
   const q = norm(query.trim());
   if (!q) return items;
   return items.filter((i) => norm(`${i.label} ${i.short} ${i.to}`).includes(q));
+}
+
+/**
+ * Titre de page sur une seule ligne : la police se réduit (32 px → 14 px minimum)
+ * tant que le texte déborde, l'espacement avec les éléments voisins reste inchangé.
+ */
+function FitTitle({ text, max = 32, min = 14 }: { text: string; max?: number; min?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      let size = max;
+      el.style.fontSize = `${size}px`;
+      while (size > min && el.scrollWidth > el.clientWidth) {
+        size -= 1;
+        el.style.fontSize = `${size}px`;
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [text, max, min]);
+  return (
+    <span
+      ref={ref}
+      style={{ fontSize: max }}
+      className="min-w-0 flex-1 truncate px-2 text-center font-serif font-normal leading-tight text-muted-foreground"
+    >
+      {text}
+    </span>
+  );
 }
 
 /**
@@ -788,31 +828,31 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               </div>
             </SheetContent>
           </Sheet>
-          <div className="flex h-[76px] shrink-0 flex-col items-center justify-between">
-            <img
-              src={logo}
-              alt="De la graine au jardin"
-              className="h-10 w-10 shrink-0 object-contain"
-            />
-            <span className="font-serif text-[10px] font-semibold leading-none text-primary">
-              PilotPro
-            </span>
-            <span
-              data-shell="app-version"
-              className="text-[11px] leading-none text-muted-foreground"
-            >
-              {appVersion ? `v${appVersion}` : ""}
-            </span>
-          </div>
-          <span className="min-w-0 flex-1 truncate px-2 text-center font-serif text-[32px] font-normal leading-tight text-muted-foreground">
-            {headerTitle}
-          </span>
-          <div className="flex shrink-0 items-center gap-3">
-            <GlobalSearch collapsed />
-            <NotificationBell />
-            <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
-              <LogOut className="h-5 w-5" />
-            </button>
+          <FitTitle text={headerTitle} />
+          <div className="flex h-[76px] shrink-0 flex-col items-end justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-serif text-[10px] font-semibold leading-none text-primary">
+                PilotPro
+              </span>
+              <span
+                data-shell="app-version"
+                className="text-[11px] leading-none text-muted-foreground"
+              >
+                {appVersion ? `v${appVersion}` : ""}
+              </span>
+              <img
+                src={logo}
+                alt="De la graine au jardin"
+                className="h-10 w-10 shrink-0 object-contain"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <GlobalSearch collapsed />
+              <NotificationBell />
+              <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
+                <LogOut className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </header>
 
