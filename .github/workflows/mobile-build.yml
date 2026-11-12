@@ -13,7 +13,7 @@ jobs:
       PP_APP_URL: ${{ vars.PP_APP_URL || 'https://crjardin.lovable.app' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm, cache-dependency-path: mobile/package-lock.json }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
@@ -65,7 +65,7 @@ jobs:
       PP_APP_URL: ${{ vars.PP_APP_URL || 'https://crjardin.lovable.app' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm, cache-dependency-path: mobile/package-lock.json }
       - run: npm ci --no-audit --no-fund
         working-directory: mobile
