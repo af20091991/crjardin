@@ -1,6 +1,6 @@
 {
-  "latestBuild": 17,
-  "versionName": "2.8.6",
+  "latestBuild": 18,
+  "versionName": "2.8.7",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Démarrage : le Dashboard s'affiche dès la première ouverture après le lancement, sans écran vide. Animation de lancement jouée une seule fois par session."
+  "notes": "Mise à jour proposée dans l'appli : un bouton Mettre à jour, sans désinstaller ni retélécharger l'APK."
 }
