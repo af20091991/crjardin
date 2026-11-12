@@ -734,17 +734,17 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       >
         <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur md:hidden">
           <Sheet>
-            <div className="-ml-1 flex shrink-0 flex-col items-center">
+            <div className="-ml-1 flex h-[76px] shrink-0 flex-col items-center justify-between">
               <SheetTrigger asChild>
                 <button
-                  className="grid h-14 w-14 place-items-center rounded-lg text-foreground active:bg-accent/40"
+                  className="grid h-16 w-16 place-items-center rounded-lg text-foreground active:bg-accent/40"
                   aria-label="Ouvrir le menu des modules"
                   title="Menu des modules"
                 >
-                  <Menu className="h-10 w-10" />
+                  <Menu className="h-14 w-14" />
                 </button>
               </SheetTrigger>
-              <p className="-mt-1 text-[11px] leading-none text-muted-foreground">
+              <p className="text-[11px] leading-none text-muted-foreground">
                 <DevTimeCounter />
               </p>
             </div>
@@ -788,7 +788,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               </div>
             </SheetContent>
           </Sheet>
-          <div className="flex shrink-0 flex-col items-center gap-0.5">
+          <div className="flex h-[76px] shrink-0 flex-col items-center justify-between">
             <img
               src={logo}
               alt="De la graine au jardin"
