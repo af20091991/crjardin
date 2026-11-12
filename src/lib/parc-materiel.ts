@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { mergeMaintenanceDeadlines, type MaintenanceDeadline } from "@/lib/maintenance-deadlines";
 
 export type EquipmentCategory = "vehicule" | "engin" | "batterie" | "smartphone" | "autre";
 export type EquipmentStatus =
@@ -162,9 +163,7 @@ type ScheduleRow = Omit<MaintenanceSchedule, "maintenance_type_name" | "reminder
 };
 
 /** Toutes les échéances d'entretien à venir/en retard, tous équipements confondus (pour la vue d'ensemble). */
-export async function listUpcomingMaintenance(): Promise<
-  (MaintenanceSchedule & { equipment_name: string })[]
-> {
+export async function listUpcomingMaintenance(): Promise<MaintenanceDeadline[]> {
   const { data, error } = await supabase
     .from("equipment_maintenance_schedules")
     .select(
@@ -172,12 +171,18 @@ export async function listUpcomingMaintenance(): Promise<
     )
     .order("next_due_date", { ascending: true });
   if (error) throw error;
-  return ((data ?? []) as unknown as ScheduleRow[]).map((row) => ({
+  const schedules = ((data ?? []) as unknown as ScheduleRow[]).map((row) => ({
     ...row,
     equipment_name: row.equipment?.name ?? "—",
     maintenance_type_name: row.maintenance_type?.name ?? "Entretien",
     reminder_days: row.maintenance_type?.reminder_days ?? 14,
   }));
+  const { data: manual, error: manualError } = await supabase
+    .from("equipment_maintenance")
+    .select("id, equipment_id, next_due_date, description, equipment:equipment_id(name)")
+    .not("next_due_date", "is", null);
+  if (manualError) throw manualError;
+  return mergeMaintenanceDeadlines(schedules, manual ?? []);
 }
 
 export interface MaintenanceInput {

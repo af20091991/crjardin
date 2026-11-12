@@ -8,6 +8,7 @@ modifier et créer du code dans ce dépôt en respectant les règles ci-dessous.
 
 - TanStack Start v1 (React 19) + Vite 7, TypeScript strict.
 - Router de fichiers : `src/routes/**` → `src/routeTree.gen.ts` (**généré, ne jamais éditer**).
+- Keep automatic route code splitting in the TanStack Start Vite configuration; page components load separately while route matching and loaders remain eager.
 - Tailwind CSS v4 via `src/styles.css` (`@theme`, tokens sémantiques OKLCH). Pas de `tailwind.config.js`.
 - UI : shadcn/ui (`src/components/ui/*`) + Radix + lucide-react + recharts + sonner.
 - Backend : Supabase (Lovable Cloud). Client : `import { supabase } from "@/integrations/supabase/client"`.
@@ -47,6 +48,7 @@ bun test           # tests unitaires (src/lib/__tests__)
 - Les rôles sont dans `user_roles` + fonction `has_role` (jamais sur `profiles`/`clients`).
   Côté front : `useRole()` / `useIsAdmin()`.
 - Après migration, régénérer/valider les types utilisés depuis `src/integrations/supabase/types.ts`.
+- Shared reads of competitor checks, development totals/logs, and chantier photos must use `is_approved(auth.uid())`, not unconditional authentication or role existence; this preserves approved-team sharing while excluding unapproved signups and keeps assigned SST photo access independent.
 
 ## 4. Règles métier PP — invariants à ne jamais casser
 
