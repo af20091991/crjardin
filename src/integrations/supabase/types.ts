@@ -2279,6 +2279,78 @@ export type Database = {
           },
         ]
       }
+      intervention_reminders: {
+        Row: {
+          client_id: string
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          intervention_id: string
+          message_id: string | null
+          scheduled_date: string
+          sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          intervention_id: string
+          message_id?: string | null
+          scheduled_date: string
+          sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          intervention_id?: string
+          message_id?: string | null
+          scheduled_date?: string
+          sent_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intervention_reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intervention_reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "intervention_reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "intervention_reminders_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intervention_reminders_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
+        ]
+      }
       intervention_report_history: {
         Row: {
           created_at: string
