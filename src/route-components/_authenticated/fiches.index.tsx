@@ -50,7 +50,9 @@ export function FichesIndexRoute() {
 
 export function FichesIndex() {
   const navigate = useNavigate();
-  const { canEdit, canView, isLoading: roleLoading } = useRole();
+  const { canEdit, canView, role, isLoading: roleLoading } = useRole();
+  // La création de fiche est réservée au gérant : le prestataire n'y a pas accès.
+  const canCreate = canEdit && role !== "prestataire";
   useEffect(() => {
     if (!roleLoading && !canView) navigate({ to: "/", replace: true });
   }, [canView, roleLoading, navigate]);
@@ -130,7 +132,7 @@ export function FichesIndex() {
               className="pl-9"
             />
           </div>
-          {canEdit && (
+          {canCreate && (
             <Link to="/fiches/new" className="shrink-0">
               <Button size="sm">
                 <Plus className="mr-1.5 h-4 w-4" /> Nouvelle fiche
@@ -217,11 +219,13 @@ export function FichesIndex() {
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <ClipboardList className="h-8 w-8 text-muted-foreground/60" />
             <p className="text-sm text-muted-foreground">Aucune fiche ne correspond.</p>
-            <Link to="/fiches/new">
-              <Button>
-                <Plus className="mr-1.5 h-4 w-4" /> Créer une fiche
-              </Button>
-            </Link>
+            {canCreate && (
+              <Link to="/fiches/new">
+                <Button>
+                  <Plus className="mr-1.5 h-4 w-4" /> Créer une fiche
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (
