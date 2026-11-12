@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Wrench } from "lucide-react";
+import { ChevronDown, MessageSquare, Wrench } from "lucide-react";
 import { CATEGORY_LABELS, listCaEntries } from "@/lib/pilot-ca";
 import { listClients } from "@/lib/clients";
 import { currentYear } from "@/lib/date-utils";
@@ -211,11 +211,14 @@ export function ChantierProfitabilityView() {
             const ca = list.reduce((s, r) => s + r.ca_ht, 0);
             const marge = list.reduce((s, r) => s + r.marge_ht, 0);
             return (
-              <details key={month} open className="rounded-lg border">
-                <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm font-medium">
-                  <span>
-                    {MONTHS[month - 1]}{" "}
-                    <span className="text-muted-foreground">({list.length})</span>
+              <details key={month} open className="group rounded-lg border">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-3 py-2 [&::-webkit-details-marker]:hidden">
+                  <span className="flex items-center gap-1.5 text-base font-bold">
+                    {MONTHS[month - 1]}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      ({list.length})
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
                   </span>
                   <span className="text-xs text-muted-foreground">
                     CA {formatEuro(ca)} · Marge {formatEuro(marge)}
