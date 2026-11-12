@@ -1,4 +1,5 @@
 /// <reference types="google.maps" />
+import { useRole } from "@/hooks/use-role";
 import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -488,6 +489,7 @@ function SelectedCard({
   client: LocatedClient;
   route: { data?: RouteInfo; isLoading: boolean };
 }) {
+  const { role } = useRole();
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -536,11 +538,13 @@ function SelectedCard({
           )}
         </div>
 
-        <Button asChild className="w-full">
-          <Link to="/clients/$clientId" params={{ clientId: client.id }}>
-            <ExternalLink className="mr-2 h-4 w-4" /> Ouvrir la fiche client
-          </Link>
-        </Button>
+        {role !== "prestataire" && (
+          <Button asChild className="w-full">
+            <Link to="/clients/$clientId" params={{ clientId: client.id }}>
+              <ExternalLink className="mr-2 h-4 w-4" /> Ouvrir la fiche client
+            </Link>
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
