@@ -152,3 +152,69 @@ export const STATUT_LIBELLE: Record<RapprochementStatut, string> = {
   temps_vente_manquant: "Temps de vente absent : à rapprocher",
   charge_sans_vente: "Charge sans vente : à rapprocher",
 };
+
+export interface MoisPoint {
+  month: number;
+  ca_ht: number;
+  marge_ht: number;
+}
+
+/** CA et marge par mois (mois sans chantier : valeurs à 0). */
+export function serieMensuelle(rows: ChantierRow[]): MoisPoint[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const list = rows.filter((r) => r.month === i + 1);
+    return {
+      month: i + 1,
+      ca_ht: round2(list.reduce((s, r) => s + r.ca_ht, 0)),
+      marge_ht: round2(list.reduce((s, r) => s + r.marge_ht, 0)),
+    };
+  });
+}
+
+export interface ClientTauxPoint {
+  client_id: string;
+  marge_ht: number;
+  heures: number;
+  taux_horaire: number;
+}
+
+export interface SyntheseTaux {
+  points: ClientTauxPoint[];
+  taux_moyen: number | null;
+  exclus: number;
+}
+
+/**
+ * Taux horaire par client, pondéré par les heures. Seuls les chantiers avec un
+ * temps de vente sont pris en compte ; les autres sont comptés à part (exclus).
+ */
+export function tauxParClient(rows: ChantierRow[]): SyntheseTaux {
+  const map = new Map<string, { marge: number; heures: number }>();
+  let exclus = 0;
+  for (const r of rows) {
+    if (r.temps_vente == null || r.temps_vente <= 0) {
+      exclus += 1;
+      continue;
+    }
+    const acc = map.get(r.client_id) ?? { marge: 0, heures: 0 };
+    acc.marge += r.marge_ht;
+    acc.heures += r.temps_vente;
+    map.set(r.client_id, acc);
+  }
+  const points = [...map.entries()]
+    .filter(([, a]) => a.heures > 0)
+    .map(([client_id, a]) => ({
+      client_id,
+      marge_ht: round2(a.marge),
+      heures: round2(a.heures),
+      taux_horaire: round2(a.marge / a.heures),
+    }))
+    .sort((a, b) => b.taux_horaire - a.taux_horaire);
+  const totalMarge = points.reduce((s, p) => s + p.marge_ht, 0);
+  const totalH = points.reduce((s, p) => s + p.heures, 0);
+  return {
+    points,
+    taux_moyen: totalH > 0 ? round2(totalMarge / totalH) : null,
+    exclus,
+  };
+}
