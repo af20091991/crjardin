@@ -23,6 +23,22 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-12",
+    version: "2.8.7",
+    theme: "Général",
+    title: "Version 2.8 : améliorations mobiles et PDF",
+    details: [
+      "Mobile : en-tête repensé (logo PilotPro, version, recherche, notifications), titre de page adaptatif.",
+      "Mobile : tirer vers le bas pour actualiser les données.",
+      "Mobile : proposition de mise à jour de l'appli à chaque nouvelle version.",
+      "Photos : compression automatique avant envoi au compte-rendu.",
+      "Clients : indicateur d'adresse non vérifiée à la saisie.",
+      "Clients : export de la fiche client en PDF.",
+      "PDF : charte graphique centralisée (couleurs du logo).",
+      "Personnalisation : densité des listes en cartes, réglable et réversible.",
+    ],
+  },
+  {
     date: "2026-11-04",
     version: "2.7.0",
     theme: "Marque",
