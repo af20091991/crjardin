@@ -25,7 +25,7 @@ import { Route } from "@/routes/_authenticated/interventions.new";
 
 function NewIntervention() {
   const navigate = useNavigate();
-  const { canEdit, isLoading: roleLoading } = useRole();
+  const { canEdit, role, isLoading: roleLoading } = useRole();
   useEffect(() => {
     if (!roleLoading && !canEdit) navigate({ to: "/", replace: true });
   }, [canEdit, roleLoading, navigate]);
@@ -115,14 +115,16 @@ function NewIntervention() {
       <div className="mx-auto max-w-2xl space-y-4">
         <div className="flex items-center justify-between">
           <Link
-            to="/"
+            to={role === "prestataire" ? "/interventions" : "/"}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
-          <Link to="/modeles" className="text-sm text-primary hover:underline">
-            Gérer les modèles
-          </Link>
+          {role !== "prestataire" && (
+            <Link to="/modeles" className="text-sm text-primary hover:underline">
+              Gérer les modèles
+            </Link>
+          )}
         </div>
 
         <Card>
@@ -163,9 +165,11 @@ function NewIntervention() {
               {sortedClients.length === 0 && (
                 <p className="text-xs text-muted-foreground">
                   Aucun client.{" "}
-                  <Link to="/clients" className="text-primary hover:underline">
-                    En créer un
-                  </Link>
+                  {role !== "prestataire" && (
+                    <Link to="/clients" className="text-primary hover:underline">
+                      En créer un
+                    </Link>
+                  )}
                   .
                 </p>
               )}

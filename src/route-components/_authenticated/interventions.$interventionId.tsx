@@ -143,6 +143,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Route } from "@/routes/_authenticated/interventions.$interventionId";
+import { useRole } from "@/hooks/use-role";
 
 function getGeolocation(): Promise<{ lat: number; lng: number } | null> {
   return new Promise((resolve) => {
@@ -159,6 +160,7 @@ const STATUSES: TaskStatus[] = ["realise", "partiel", "reporte", "impossible"];
 
 function InterventionDetail() {
   const { interventionId } = Route.useParams();
+  const { role } = useRole();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -593,7 +595,15 @@ function InterventionDetail() {
   return (
     <AppShell title="Compte-rendu">
       <div className="mx-auto max-w-3xl space-y-4">
-        {client && (
+        {client && role === "prestataire" && (
+          <Link
+            to="/interventions"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Mes interventions
+          </Link>
+        )}
+        {client && role !== "prestataire" && (
           <Link
             to="/clients/$clientId"
             params={{ clientId: client.id }}
