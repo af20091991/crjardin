@@ -47,6 +47,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
+import { nativePlugin } from "@/lib/native-app";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { DevTimeCounter } from "@/components/DevTimeCounter";
 import { useAppearance } from "@/lib/appearance";
@@ -111,7 +112,44 @@ export function filterNavItems<T extends { label: string; short: string; to: str
   return items.filter((i) => norm(`${i.label} ${i.short} ${i.to}`).includes(q));
 }
 
+/**
+ * Numéro de version affiché sous le logo : celui de l'APK installée (plugin App),
+ * sinon celui publié dans mobile-version.json (PWA / navigateur).
+ */
+function useAppVersion(): string {
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const info = await nativePlugin<{ getInfo?: () => Promise<{ version?: string }> }>(
+          "App",
+        )?.getInfo?.();
+        if (info?.version) {
+          if (!cancelled) setVersion(info.version);
+          return;
+        }
+      } catch {
+        /* pas de plugin natif : on passe au fichier publié */
+      }
+      try {
+        const res = await fetch("/mobile-version.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { versionName?: string };
+        if (!cancelled && data.versionName) setVersion(data.versionName);
+      } catch {
+        /* version indisponible : rien d'affiché */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return version;
+}
+
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
+  const appVersion = useAppVersion();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
@@ -708,8 +746,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             <span className="font-serif text-[10px] font-semibold leading-none text-primary">
               PilotPro
             </span>
+            <span
+              data-shell="app-version"
+              className="text-[9px] leading-none text-muted-foreground"
+            >
+              {appVersion ? `v${appVersion}` : ""}
+            </span>
           </div>
-          <span className="min-w-0 flex-1 truncate px-1 text-sm font-medium text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate px-2 text-center font-serif text-[21px] font-medium leading-tight text-muted-foreground">
             {headerTitle}
           </span>
           <div className="flex shrink-0 items-center gap-3">
