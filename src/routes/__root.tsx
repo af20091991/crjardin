@@ -185,12 +185,36 @@ function hideSplash() {
   const w = window as unknown as { __ppSplashStart?: number };
   // L'écran ne se retire qu'à partir du début réel de l'animation (image SVG chargée),
   // jamais avant qu'elle soit terminée : 4,5 s après son départ, logo complet maintenu.
+  // Puis il attend que l'application soit prête (contenu rendu) et laisse une demi-seconde
+  // avant le tableau de bord, pour éviter un écran blanc entre le splash et l'appli.
+  const fade = () => {
+    el.classList.add("pp-out");
+    window.setTimeout(() => el.remove(), 300);
+  };
+  const afterAnimation = () => {
+    const w2 = window as unknown as { __ppAppReady?: boolean };
+    if (w2.__ppAppReady) {
+      window.setTimeout(fade, 500);
+      return;
+    }
+    // Secours : si l'application tarde, on retire le splash au bout de 8 s.
+    let done = false;
+    const onReady = () => {
+      if (done) return;
+      done = true;
+      window.setTimeout(fade, 500);
+    };
+    window.addEventListener("pp-app-ready", onReady, { once: true });
+    window.setTimeout(() => {
+      if (done) return;
+      done = true;
+      window.removeEventListener("pp-app-ready", onReady);
+      fade();
+    }, 8000);
+  };
   const schedule = (start: number) => {
     const wait = Math.max(0, start + 4500 - performance.now());
-    window.setTimeout(() => {
-      el.classList.add("pp-out");
-      window.setTimeout(() => el.remove(), 300);
-    }, wait);
+    window.setTimeout(afterAnimation, wait);
   };
   if (w.__ppSplashStart !== undefined) {
     schedule(w.__ppSplashStart);
@@ -264,6 +288,15 @@ function AccountPrefsGate({ children }: { children: ReactNode }) {
       window.clearTimeout(timer);
     };
   }, [userId]);
+
+  // Signal « application prête » : le contenu réel est rendu (préférences chargées ou pas de session).
+  const appReady = mounted && (!userId || readyFor === userId);
+  useEffect(() => {
+    if (!appReady) return;
+    const w = window as unknown as { __ppAppReady?: boolean };
+    w.__ppAppReady = true;
+    window.dispatchEvent(new Event("pp-app-ready"));
+  }, [appReady]);
 
   // Pendant le chargement des préférences, afficher un indicateur plutôt qu'un écran blanc.
   // Premier rendu identique au serveur (évite l'erreur d'hydratation) ; indicateur ensuite.
