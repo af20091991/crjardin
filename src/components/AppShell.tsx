@@ -831,19 +831,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           <FitTitle text={headerTitle} />
           <div className="flex h-[76px] shrink-0 flex-col items-end justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-serif text-[10px] font-semibold leading-none text-primary">
-                PilotPro
-              </span>
-              <span
-                data-shell="app-version"
-                className="text-[11px] leading-none text-muted-foreground"
-              >
-                {appVersion ? `v${appVersion}` : ""}
-              </span>
+              <div className="flex flex-col items-end gap-0.5 text-[11px] leading-none">
+                <span className="font-serif font-semibold text-primary">PilotPro</span>
+                <span data-shell="app-version" className="text-muted-foreground">
+                  {appVersion ? `v${appVersion}` : ""}
+                </span>
+              </div>
               <img
-                src={logo}
-                alt="De la graine au jardin"
-                className="h-10 w-10 shrink-0 object-contain"
+                src="/pilotpro-splash.svg"
+                alt="PilotPro"
+                className="h-12 w-12 shrink-0 object-contain"
               />
             </div>
             <div className="flex items-center gap-3">
