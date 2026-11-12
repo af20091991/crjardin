@@ -24,7 +24,7 @@ function EditFiche() {
   const { ficheId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { canEdit, canView, isLoading: roleLoading } = useRole();
+  const { canEdit, canView, role, isLoading: roleLoading } = useRole();
 
   useEffect(() => {
     if (!roleLoading && !canView) {
@@ -103,7 +103,7 @@ function EditFiche() {
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
           <div className="flex items-center gap-2">
-            {canEdit && (
+            {canEdit && role !== "prestataire" && (
               <Button size="sm" variant="outline" disabled={!sheet} onClick={duplicate}>
                 <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
               </Button>
