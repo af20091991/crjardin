@@ -18,6 +18,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HourlyRateSection } from "@/components/pilot/HourlyRateSection";
 import { ProfitabilityServicesView } from "@/components/pilot/rentabilite/ProfitabilityServicesView";
+import { ChantierProfitabilityView } from "@/components/pilot/rentabilite/ChantierProfitabilityView";
 import { ClientProfitabilityTable } from "@/components/pilot/temps/ClientProfitabilityTable";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import {
@@ -96,6 +97,7 @@ function TimeAndProfitPage() {
           <TabsTrigger value="realises">Temps réalisés &amp; taux horaire</TabsTrigger>
           <TabsTrigger value="rentabilite">Rentabilité du temps</TabsTrigger>
           <TabsTrigger value="prestations">Rentabilité prestations</TabsTrigger>
+          <TabsTrigger value="chantier">Rentabilité chantier</TabsTrigger>
         </TabsList>
         <TabsContent value="realises">
           <HourlyRateSection />
@@ -105,6 +107,9 @@ function TimeAndProfitPage() {
         </TabsContent>
         <TabsContent value="prestations">
           <ProfitabilityServicesView />
+        </TabsContent>
+        <TabsContent value="chantier">
+          <ChantierProfitabilityView />
         </TabsContent>
       </Tabs>
     </div>
