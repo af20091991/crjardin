@@ -70,3 +70,31 @@ describe("buildChantierRows", () => {
     expect(rows[0].statut).toBe("temps_vente_manquant");
   });
 });
+
+import { serieMensuelle, tauxParClient } from "@/lib/rentabilite-chantier";
+
+describe("graphiques", () => {
+  const rows = buildChantierRows(
+    [
+      sale({ client_id: "a", month: 1, amount_ht: 1000, hours: 10 }),
+      sale({ client_id: "a", month: 2, amount_ht: 500 }),
+      sale({ client_id: "b", month: 1, amount_ht: 800, hours: 4 }),
+    ],
+    2026,
+  );
+
+  it("série mensuelle : 12 points, CA et marge par mois", () => {
+    const serie = serieMensuelle(rows);
+    expect(serie).toHaveLength(12);
+    expect(serie[0]).toMatchObject({ ca_ht: 1800, marge_ht: 1800 });
+    expect(serie[1].ca_ht).toBe(500);
+  });
+
+  it("taux par client : pondéré par les heures, sans les chantiers sans temps", () => {
+    const s = tauxParClient(rows);
+    expect(s.exclus).toBe(1);
+    expect(s.points.map((p) => p.client_id)).toEqual(["b", "a"]);
+    expect(s.points[0].taux_horaire).toBe(200);
+    expect(s.taux_moyen).toBe(128.57);
+  });
+});

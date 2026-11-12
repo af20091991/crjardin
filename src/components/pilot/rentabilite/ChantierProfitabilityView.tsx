@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, MessageSquare, Wrench } from "lucide-react";
+import { ChantierCharts } from "@/components/pilot/rentabilite/ChantierCharts";
 import { CATEGORY_LABELS, listCaEntries } from "@/lib/pilot-ca";
 import { listClients } from "@/lib/clients";
 import { currentYear } from "@/lib/date-utils";
@@ -139,6 +140,7 @@ export function ChantierProfitabilityView() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ChantierCharts rows={rows} nameOf={nameOf} />
         <div className="grid gap-2 md:grid-cols-4">
           <Input
             placeholder="Rechercher un client…"
