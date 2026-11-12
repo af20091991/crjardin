@@ -35,13 +35,29 @@ jobs:
         with:
           name: pp-android-debug-apk
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
-      - name: Publier la release (APK téléchargeable)
+      - name: Publier la release (APK téléchargeable, via API REST)
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # API REST uniquement (gh release create passe par GraphQL, refusé dans les sessions).
+          # Idempotent : une release existante pour ce build est remplacée, jamais dupliquée.
+          TAG="mobile-v${VERSION_CODE}"
+          REPO="${GITHUB_REPOSITORY}"
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk PilotPro.apk
-          gh release create "mobile-v${VERSION_CODE}" PilotPro.apk --title "PilotPro Android ${VERSION_NAME} (build ${VERSION_CODE})" --notes "Installer PilotPro.apk par-dessus l'ancienne version." --latest
+          EXISTING=$(gh api "repos/${REPO}/releases/tags/${TAG}" --jq .id 2>/dev/null || true)
+          if [ -n "$EXISTING" ]; then
+            gh api -X DELETE "repos/${REPO}/releases/${EXISTING}"
+            gh api -X DELETE "repos/${REPO}/git/refs/tags/${TAG}" >/dev/null 2>&1 || true
+          fi
+          NOTES="Installer PilotPro.apk par-dessus l'ancienne version (même signature, aucune désinstallation)."
+          RELEASE_ID=$(gh api -X POST "repos/${REPO}/releases" \
+            -f tag_name="${TAG}" -f target_commitish="${GITHUB_SHA}" \
+            -f name="PilotPro Android ${VERSION_NAME} (build ${VERSION_CODE})" \
+            -f body="${NOTES}" -F draft=false -F prerelease=false --jq .id)
+          gh api -X POST "https://uploads.github.com/repos/${REPO}/releases/${RELEASE_ID}/assets?name=PilotPro.apk" \
+            -H "Content-Type: application/vnd.android.package-archive" --input PilotPro.apk >/dev/null
+          gh api -X PATCH "repos/${REPO}/releases/${RELEASE_ID}" -F make_latest=true >/dev/null
   ios:
     runs-on: macos-latest
     env:
