@@ -47,6 +47,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
+import { useQueryClient } from "@tanstack/react-query";
 import { nativePlugin } from "@/lib/native-app";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { DevTimeCounter } from "@/components/DevTimeCounter";
@@ -113,6 +114,55 @@ export function filterNavItems<T extends { label: string; short: string; to: str
 }
 
 /**
+ * Tirer vers le bas en haut de page : recharge les données affichées (appli mobile).
+ * Seuil de 70 px ; pas de rechargement complet de la page.
+ */
+function usePullToRefresh(enabled: boolean) {
+  const queryClient = useQueryClient();
+  const [pulling, setPulling] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let startY: number | null = null;
+    let dy = 0;
+    const onStart = (e: TouchEvent) => {
+      if (window.scrollY > 0 || refreshing) return;
+      startY = e.touches[0].clientY;
+      dy = 0;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startY === null) return;
+      dy = e.touches[0].clientY - startY;
+      if (dy > 0 && window.scrollY === 0) {
+        setPulling(Math.min(dy, 120));
+      }
+    };
+    const onEnd = () => {
+      if (startY === null) return;
+      startY = null;
+      if (dy >= 70) {
+        setRefreshing(true);
+        setPulling(0);
+        void queryClient.invalidateQueries().finally(() => setRefreshing(false));
+      } else {
+        setPulling(0);
+      }
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [enabled, queryClient, refreshing]);
+
+  return { pulling, refreshing };
+}
+
+/**
  * Numéro de version affiché sous le logo : celui de l'APK installée (plugin App),
  * sinon celui publié dans mobile-version.json (PWA / navigateur).
  */
@@ -150,6 +200,7 @@ function useAppVersion(): string {
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const appVersion = useAppVersion();
+  const { pulling, refreshing } = usePullToRefresh(true);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
@@ -741,19 +792,19 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             <img
               src={logo}
               alt="De la graine au jardin"
-              className="h-8 w-8 shrink-0 object-contain"
+              className="h-10 w-10 shrink-0 object-contain"
             />
             <span className="font-serif text-[10px] font-semibold leading-none text-primary">
               PilotPro
             </span>
             <span
               data-shell="app-version"
-              className="text-[9px] leading-none text-muted-foreground"
+              className="text-[11px] leading-none text-muted-foreground"
             >
               {appVersion ? `v${appVersion}` : ""}
             </span>
           </div>
-          <span className="min-w-0 flex-1 truncate px-2 text-center font-serif text-[21px] font-medium leading-tight text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate px-2 text-center font-serif text-[32px] font-normal leading-tight text-muted-foreground">
             {headerTitle}
           </span>
           <div className="flex shrink-0 items-center gap-3">
@@ -791,6 +842,22 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 <PilotYearSwitcher />
               </div>
             )}
+          </div>
+        )}
+
+        {(pulling > 0 || refreshing) && (
+          <div
+            data-shell="pull-refresh"
+            className="pointer-events-none fixed left-0 right-0 top-[calc(env(safe-area-inset-top)+4.5rem)] z-30 flex justify-center md:hidden"
+            style={{ transform: `translateY(${refreshing ? 0 : pulling / 2}px)` }}
+          >
+            <span className="rounded-full bg-card px-3 py-1 text-xs text-muted-foreground shadow">
+              {refreshing
+                ? "Actualisation…"
+                : pulling >= 70
+                  ? "Relâcher pour actualiser"
+                  : "Tirer pour actualiser"}
+            </span>
           </div>
         )}
 
