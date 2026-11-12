@@ -1,12 +1,11 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Wrench } from "lucide-react";
-import { listCaEntries } from "@/lib/pilot-ca";
-import { listMissions } from "@/lib/subcontractors";
+import { MessageSquare, Wrench } from "lucide-react";
+import { CATEGORY_LABELS, listCaEntries } from "@/lib/pilot-ca";
 import { listClients } from "@/lib/clients";
 import { currentYear } from "@/lib/date-utils";
 import { formatEuro } from "@/lib/pilot";
@@ -48,7 +47,6 @@ const fmtH = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-
 export function ChantierProfitabilityView() {
   const year = currentYear();
   const caQ = useQuery({ queryKey: ["ca-entries", year], queryFn: () => listCaEntries(year) });
-  const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const clientsQ = useQuery({ queryKey: ["clients"], queryFn: listClients });
 
   const [search, setSearch] = useState("");
@@ -56,11 +54,9 @@ export function ChantierProfitabilityView() {
   const [clientId, setClientId] = useState("tous");
   const [sortKey, setSortKey] = useState<SortKey>("client");
   const [sortDesc, setSortDesc] = useState(false);
+  const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({});
 
-  const rows = useMemo(
-    () => buildChantierRows(caQ.data ?? [], missionsQ.data ?? [], year),
-    [caQ.data, missionsQ.data, year],
-  );
+  const rows = useMemo(() => buildChantierRows(caQ.data ?? [], year), [caQ.data, year]);
   const names = useMemo(
     () => new Map((clientsQ.data ?? []).map((c) => [c.id, c.name])),
     [clientsQ.data],
@@ -123,8 +119,16 @@ export function ChantierProfitabilityView() {
     [rows, names],
   );
   const aRapprocher = rows.filter((r) => r.statut !== "complet").length;
+  const prestationLabel = (r: ChantierRow) =>
+    r.prestations
+      .map((p) =>
+        [p.category ? CATEGORY_LABELS[p.category] : null, p.designation]
+          .filter(Boolean)
+          .join(" · "),
+      )
+      .join(", ");
 
-  if (caQ.isLoading || missionsQ.isLoading) return <Skeleton className="h-64 w-full" />;
+  if (caQ.isLoading) return <Skeleton className="h-64 w-full" />;
 
   return (
     <Card>
@@ -222,36 +226,74 @@ export function ChantierProfitabilityView() {
                     <thead className="text-left text-xs text-muted-foreground">
                       <tr>
                         <th className="px-3 py-2 font-medium">Client</th>
+                        <th className="px-3 py-2 font-medium">Prestation</th>
                         <th className="px-3 py-2 text-right font-medium">CA HT</th>
                         <th className="px-3 py-2 text-right font-medium">Charges</th>
                         <th className="px-3 py-2 text-right font-medium">Marge</th>
                         <th className="px-3 py-2 text-right font-medium">Temps vente</th>
-                        <th className="px-3 py-2 text-right font-medium">Temps charge</th>
                         <th className="px-3 py-2 text-right font-medium">Taux horaire</th>
                         <th className="px-3 py-2 font-medium">Statut</th>
+                        <th className="px-3 py-2 font-medium" />
                       </tr>
                     </thead>
                     <tbody>
-                      {list.map((r) => (
-                        <tr key={r.key} className="border-t">
-                          <td className="px-3 py-2">{nameOf(r.client_id)}</td>
-                          <td className="px-3 py-2 text-right">{formatEuro(r.ca_ht)}</td>
-                          <td className="px-3 py-2 text-right">{formatEuro(r.charge_ht)}</td>
-                          <td className="px-3 py-2 text-right font-semibold">
-                            {formatEuro(r.marge_ht)}
-                          </td>
-                          <td className="px-3 py-2 text-right">{fmtH(r.temps_vente)}</td>
-                          <td className="px-3 py-2 text-right">{fmtH(r.temps_charge)}</td>
-                          <td className="px-3 py-2 text-right">
-                            {r.taux_horaire == null ? "—" : formatEuro(r.taux_horaire)}
-                          </td>
-                          <td className="px-3 py-2">
-                            <Badge variant={r.statut === "complet" ? "secondary" : "outline"}>
-                              {STATUT_LIBELLE[r.statut]}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
+                      {list.map((r) => {
+                        const open = !!openNotes[r.key];
+                        return (
+                          <Fragment key={r.key}>
+                            <tr className="border-t">
+                              <td className="px-3 py-2">{nameOf(r.client_id)}</td>
+                              <td className="px-3 py-2 text-xs">{prestationLabel(r) || "—"}</td>
+                              <td className="px-3 py-2 text-right">{formatEuro(r.ca_ht)}</td>
+                              <td className="px-3 py-2 text-right">{formatEuro(r.charge_ht)}</td>
+                              <td className="px-3 py-2 text-right font-semibold">
+                                {formatEuro(r.marge_ht)}
+                              </td>
+                              <td className="px-3 py-2 text-right">{fmtH(r.temps_vente)}</td>
+                              <td className="px-3 py-2 text-right">
+                                {r.taux_horaire == null ? "—" : formatEuro(r.taux_horaire)}
+                              </td>
+                              <td className="px-3 py-2">
+                                <Badge variant={r.statut === "complet" ? "secondary" : "outline"}>
+                                  {STATUT_LIBELLE[r.statut]}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2">
+                                {r.notes.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setOpenNotes((o) => ({ ...o, [r.key]: !o[r.key] }))
+                                    }
+                                    className="inline-flex items-center gap-1 text-xs text-primary"
+                                    title="Voir le commentaire"
+                                  >
+                                    <MessageSquare className="h-3.5 w-3.5" />
+                                    {open ? "Masquer" : `Commentaire (${r.notes.length})`}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                            {open && (
+                              <tr className="bg-muted/30">
+                                <td colSpan={9} className="px-3 py-2 text-xs">
+                                  <ul className="space-y-1">
+                                    {r.notes.map((n, i) => (
+                                      <li key={i}>
+                                        <span className="font-medium">
+                                          {n.source === "vente" ? "Vente" : "Charge"}
+                                          {n.designation ? ` (${n.designation})` : ""} :
+                                        </span>{" "}
+                                        {n.text}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
