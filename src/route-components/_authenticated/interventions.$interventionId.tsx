@@ -806,7 +806,7 @@ function InterventionDetail() {
                         <Eye className="mr-1.5 h-4 w-4" /> Aperçu
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl overflow-y-auto sm:max-h-[90vh]">
+                    <DialogContent className="max-h-[90dvh] w-[calc(100vw-2rem)] max-w-4xl overflow-y-auto overscroll-contain sm:max-h-[90vh] sm:w-full">
                       <DialogHeader>
                         <DialogTitle>Aperçu du compte-rendu</DialogTitle>
                       </DialogHeader>
