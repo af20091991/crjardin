@@ -23,11 +23,6 @@ const SIGNATURE_TEXT = [
   "Facebook : https://www.facebook.com/delagraineaujardinpaysagiste",
 ];
 
-export interface ApOrderEmailContent {
-  pdfUrl: string;
-  ackUrl: string;
-}
-
 export interface ApOrderEmailBody {
   subject: string;
   text: string;
@@ -42,22 +37,13 @@ function esc(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function button(href: string, label: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px"><tr><td style="background:${ACCENT};border-radius:6px"><a href="${esc(href)}" style="display:inline-block;padding:7px 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:6px">${esc(label)}</a></td></tr></table>`;
-}
-
-export function buildApOrderEmail(content: ApOrderEmailContent): ApOrderEmailBody {
-  const pdfLabel = "Ouvrir la commande (PDF)";
-  const ackLabel = "Accuser réception de la commande";
-
+export function buildApOrderEmail(): ApOrderEmailBody {
   const text = [
     "Bonjour,",
     "",
-    "Veuillez trouver ci-joint la commande dans le fichier PDF en PJ de ce mail.",
-    `${pdfLabel} : ${content.pdfUrl}`,
+    "Veuillez trouver ci-joint la commande au format PDF, en pièce jointe de ce mail.",
     "",
-    "Je vous remercie par avance de bien vouloir m'accuser réception de cette commande en cliquant sur le lien ci-dessous ou en cliquant sur l'accusé de réception de ce mail.",
-    `${ackLabel} : ${content.ackUrl}`,
+    "Je vous remercie par avance de bien vouloir m'accuser réception de cette commande.",
     "",
     "Si des produits venaient à manquer, je vous remercie de bien vouloir me proposer des substituts afin que la commande soit complète.",
     "",
@@ -80,10 +66,8 @@ export function buildApOrderEmail(content: ApOrderEmailContent): ApOrderEmailBod
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;border-top:4px solid ${ACCENT}">
 <tr><td style="padding:28px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:${TEXT}">
 <p style="margin:0 0 16px">Bonjour,</p>
-<p style="margin:0 0 4px">Veuillez trouver ci-joint la commande dans le fichier PDF en PJ de ce mail.</p>
-${button(content.pdfUrl, pdfLabel)}
-<p style="margin:0 0 4px">Je vous remercie par avance de bien vouloir m'accuser réception de cette commande en cliquant sur le bouton ci-dessous ou en cliquant sur l'accusé de réception de ce mail.</p>
-${button(content.ackUrl, ackLabel)}
+<p style="margin:0 0 16px">Veuillez trouver ci-joint la commande au format PDF, en pièce jointe de ce mail.</p>
+<p style="margin:0 0 16px">Je vous remercie par avance de bien vouloir m'accuser réception de cette commande.</p>
 <p style="margin:0 0 16px">Si des produits venaient à manquer, je vous remercie de bien vouloir me proposer des substituts afin que la commande soit complète.</p>
 <p style="margin:0 0 16px">Vous remerciant par avance,</p>
 <p style="margin:0">Bien cordialement,</p>

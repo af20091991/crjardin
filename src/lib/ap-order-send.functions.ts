@@ -3,7 +3,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MAX_PDF_BYTES = 4 * 1024 * 1024;
-const SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
 
 export interface SendApOrderInput {
   supplierId: string;
@@ -52,7 +51,6 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
       const { error: traceError } = await (context.supabase.from as any)("ap_order_sends").insert({
         worksite_id: data.worksiteId,
         worksite_label: data.worksiteLabel,
-        ack_token: ackToken,
         supplier_id: supplier.id,
         supplier_name: supplier.name,
         recipient_email: to,
@@ -66,8 +64,6 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
     };
 
     const attempt = data.attemptId.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 40);
-    // Jeton du lien « Accuser réception » : généré ici, stocké dans le journal, envoyé dans le mail.
-    const ackToken = crypto.randomUUID();
     let pdfPath: string | null = null;
     try {
       const bytes = decodePdf(data.pdfBase64);
@@ -79,16 +75,10 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
         .upload(pdfPath, bytes, { contentType: "application/pdf", upsert: true });
       if (uploadError) throw uploadError;
 
-      const { data: signed, error: signError } = await supabaseAdmin.storage
-        .from("ap-orders")
-        .createSignedUrl(pdfPath, SIGNED_URL_SECONDS);
-      if (signError || !signed?.signedUrl) throw signError ?? new Error("Lien PDF indisponible.");
 
       const { sendApOrderEmail } = await import("@/lib/ap-order-mailer.server");
       const result = await sendApOrderEmail({
         to,
-        pdfUrl: signed.signedUrl,
-        ackToken,
         idempotencyKey: `ap-order-${attempt}-${supplier.id}`,
       });
       await writeTrace({

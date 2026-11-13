@@ -1,4 +1,4 @@
-// Assistant AP — envoi d'une commande fournisseur par e-mail (gabarit + lien PDF + accusé de réception).
+// Assistant AP — envoi d'une commande fournisseur par e-mail (gabarit du mail).
 // Server-only. Pas de pixel de suivi, pas de raccourcisseur d'URL.
 import { EmailAPIError, sendLovableEmail } from "@lovable.dev/email-js";
 import { buildApOrderEmail, AP_ORDER_SITE_NAME } from "@/lib/ap-order-email";
@@ -6,12 +6,9 @@ import { buildApOrderEmail, AP_ORDER_SITE_NAME } from "@/lib/ap-order-email";
 const SENDER_DOMAIN = "notify.delagraineaujardin.com";
 const FROM_DOMAIN = "delagraineaujardin.com";
 const CONTACT = "contact@delagraineaujardin.com";
-const APP_ORIGIN = "https://crjardin.lovable.app";
 
 export interface ApOrderEmailInput {
   to: string;
-  pdfUrl: string;
-  ackToken: string;
   idempotencyKey: string;
 }
 
@@ -22,8 +19,7 @@ export async function sendApOrderEmail(
 > {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
-  const ackUrl = `${APP_ORIGIN}/api/public/ap-order-ack?t=${encodeURIComponent(input.ackToken)}`;
-  const { subject, text, html } = buildApOrderEmail({ pdfUrl: input.pdfUrl, ackUrl });
+  const { subject, text, html } = buildApOrderEmail();
   try {
     const response = await sendLovableEmail(
       {
