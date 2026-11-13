@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 // prettier-ignore
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+const SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
 const MAX_PDF_BYTES = 4 * 1024 * 1024;
 
 export interface SendApOrderInput {
@@ -75,12 +76,15 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
         .upload(pdfPath, bytes, { contentType: "application/pdf", upsert: true });
       if (uploadError) throw uploadError;
 
+      const { data: signed, error: signError } = await supabaseAdmin.storage
+        .from("ap-orders")
+        .createSignedUrl(pdfPath, SIGNED_URL_SECONDS);
+      if (signError || !signed?.signedUrl) throw signError ?? new Error("Lien PDF indisponible.");
 
       const { sendApOrderEmail } = await import("@/lib/ap-order-mailer.server");
       const result = await sendApOrderEmail({
         to,
-        pdfBase64: data.pdfBase64,
-        pdfFilename: `commande-${supplier.name.normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "fournisseur"}.pdf`,
+        pdfUrl: signed.signedUrl,
         idempotencyKey: `ap-order-${attempt}-${supplier.id}`,
       });
       await writeTrace({

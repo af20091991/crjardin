@@ -23,6 +23,10 @@ const SIGNATURE_TEXT = [
   "Facebook : https://www.facebook.com/delagraineaujardinpaysagiste",
 ];
 
+export interface ApOrderEmailContent {
+  pdfUrl: string;
+}
+
 export interface ApOrderEmailBody {
   subject: string;
   text: string;
@@ -37,11 +41,12 @@ function esc(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function buildApOrderEmail(): ApOrderEmailBody {
+export function buildApOrderEmail(content: ApOrderEmailContent): ApOrderEmailBody {
   const text = [
     "Bonjour,",
     "",
-    "Veuillez trouver ci-joint la commande au format PDF, en pièce jointe de ce mail.",
+    "Veuillez trouver la commande au format PDF à l'adresse suivante :",
+    content.pdfUrl,
     "",
     "Je vous remercie par avance de bien vouloir m'accuser réception de cette commande.",
     "",
@@ -67,7 +72,8 @@ export function buildApOrderEmail(): ApOrderEmailBody {
 <tr><td style="padding:24px 32px 0 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:${ACCENT}">${esc(AP_ORDER_SITE_NAME)}</td></tr>
 <tr><td style="padding:16px 32px 28px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:${TEXT}">
 <p style="margin:0 0 16px">Bonjour,</p>
-<p style="margin:0 0 16px">Veuillez trouver ci-joint la commande au format PDF, en pièce jointe de ce mail.</p>
+<p style="margin:0 0 8px">Veuillez trouver la commande au format PDF à l'adresse suivante :</p>
+<p style="margin:0 0 16px"><a href="${esc(content.pdfUrl)}" style="color:${ACCENT};font-weight:bold">Ouvrir la commande (PDF)</a></p>
 <p style="margin:0 0 16px">Je vous remercie par avance de bien vouloir m'accuser réception de cette commande.</p>
 <p style="margin:0 0 16px">Si des produits venaient à manquer, je vous remercie de bien vouloir me proposer des substituts afin que la commande soit complète.</p>
 <p style="margin:0 0 16px">Vous remerciant par avance,</p>
