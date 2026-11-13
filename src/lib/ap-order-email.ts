@@ -9,6 +9,20 @@ const ACCENT = "#2f6b3a";
 const TEXT = "#222222";
 const MUTED = "#6b6b6b";
 
+const SIGNATURE_HTML = `<table width="334" height="174" cellspacing="2" cellpadding="2" border="1" style="margin-top:12px"><tbody><tr><td valign="top"><font face="Adobe Garamond Pro" color="#008000"><b><u>EURL De la graine au jardin</u><br></b><i><font size="2">Création de jardin sec et gazon alternatif<br>Entretien de jardin<br>Conseil aux particuliers</font></i><font size="2"><i><br></i></font></font><hr width="100%" size="2"><font face="Adobe Garamond Pro"><b><font color="#008000">tel:</font></b> 07.69.99.03.45<br><b><font color="#008000">@:</font></b>&nbsp;<font color="#008000"> <a href="mailto:stage@delagraineaujardin.com">stage@delagraineaujardin.com</a></font><br><b><font color="#008000">www:</font></b> </font><font face="Adobe Garamond Pro"><font color="#008000"><a href="https://www.delagraineaujardin.com/">De la graine au jardin<br></a><b>Facebook: </b><a href="https://www.facebook.com/delagraineaujardinpaysagiste">De la graine au jardin - Paysagiste</a></font></font></td></tr></tbody></table>`;
+
+const SIGNATURE_TEXT = [
+  "EURL De la graine au jardin",
+  "Création de jardin sec et gazon alternatif",
+  "Entretien de jardin",
+  "Conseil aux particuliers",
+  "",
+  "tel : 07.69.99.03.45",
+  "@ : stage@delagraineaujardin.com",
+  "www : https://www.delagraineaujardin.com/",
+  "Facebook : https://www.facebook.com/delagraineaujardinpaysagiste",
+];
+
 export interface ApOrderEmailContent {
   pdfUrl: string;
   ackUrl: string;
@@ -53,6 +67,8 @@ export function buildApOrderEmail(content: ApOrderEmailContent): ApOrderEmailBod
     AP_ORDER_SENDER_NAME,
     AP_ORDER_SITE_NAME,
     "",
+    ...SIGNATURE_TEXT,
+    "",
     "--",
     AP_ORDER_FOOTER,
   ].join("\n");
@@ -73,6 +89,7 @@ ${button(content.ackUrl, ackLabel)}
 <p style="margin:0 0 16px">Si des produits venaient à manquer, je vous remercie de bien vouloir me proposer des substituts afin que la commande soit complète.</p>
 <p style="margin:0 0 16px">Vous remerciant par avance,</p>
 <p style="margin:0">Bien cordialement,<br><strong>${esc(AP_ORDER_SENDER_NAME)}</strong><br>${esc(AP_ORDER_SITE_NAME)}</p>
+${SIGNATURE_HTML}
 </td></tr>
 <tr><td style="padding:14px 32px;border-top:1px solid #e6e6e6;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${MUTED}">${esc(AP_ORDER_FOOTER)}</td></tr>
 </table>
