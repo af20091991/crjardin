@@ -9,6 +9,8 @@ const CONTACT = "contact@delagraineaujardin.com";
 
 export interface ApOrderEmailInput {
   to: string;
+  pdfBase64: string;
+  pdfFilename: string;
   idempotencyKey: string;
 }
 
@@ -20,9 +22,14 @@ export async function sendApOrderEmail(
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
   const { subject, text, html } = buildApOrderEmail();
+  // Pièce jointe PDF de la commande (même champ que le corps JSON envoyé au service d'envoi).
+  const attachments = [
+    { filename: input.pdfFilename, content_type: "application/pdf", content: input.pdfBase64 },
+  ];
   try {
     const response = await sendLovableEmail(
       {
+        ...({ attachments } as Record<string, unknown>),
         to: input.to,
         from: `${AP_ORDER_SITE_NAME} <noreply@${FROM_DOMAIN}>`,
         sender_domain: SENDER_DOMAIN,

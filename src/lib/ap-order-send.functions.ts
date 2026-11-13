@@ -79,6 +79,8 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
       const { sendApOrderEmail } = await import("@/lib/ap-order-mailer.server");
       const result = await sendApOrderEmail({
         to,
+        pdfBase64: data.pdfBase64,
+        pdfFilename: `commande-${supplier.name.normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "fournisseur"}.pdf`,
         idempotencyKey: `ap-order-${attempt}-${supplier.id}`,
       });
       await writeTrace({
