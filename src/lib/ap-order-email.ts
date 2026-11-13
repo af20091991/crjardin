@@ -29,7 +29,7 @@ function esc(value: string): string {
 }
 
 function button(href: string, label: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px"><tr><td style="background:${ACCENT};border-radius:6px"><a href="${esc(href)}" style="display:inline-block;padding:12px 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:6px">${esc(label)}</a></td></tr></table>`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px"><tr><td style="background:${ACCENT};border-radius:6px"><a href="${esc(href)}" style="display:inline-block;padding:7px 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:6px">${esc(label)}</a></td></tr></table>`;
 }
 
 export function buildApOrderEmail(content: ApOrderEmailContent): ApOrderEmailBody {
