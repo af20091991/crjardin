@@ -64,8 +64,6 @@ export function buildApOrderEmail(content: ApOrderEmailContent): ApOrderEmailBod
     "Vous remerciant par avance,",
     "",
     "Bien cordialement,",
-    AP_ORDER_SENDER_NAME,
-    AP_ORDER_SITE_NAME,
     "",
     ...SIGNATURE_TEXT,
     "",
@@ -88,7 +86,7 @@ ${button(content.pdfUrl, pdfLabel)}
 ${button(content.ackUrl, ackLabel)}
 <p style="margin:0 0 16px">Si des produits venaient à manquer, je vous remercie de bien vouloir me proposer des substituts afin que la commande soit complète.</p>
 <p style="margin:0 0 16px">Vous remerciant par avance,</p>
-<p style="margin:0">Bien cordialement,<br><strong>${esc(AP_ORDER_SENDER_NAME)}</strong><br>${esc(AP_ORDER_SITE_NAME)}</p>
+<p style="margin:0">Bien cordialement,</p>
 ${SIGNATURE_HTML}
 </td></tr>
 <tr><td style="padding:14px 32px;border-top:1px solid #e6e6e6;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${MUTED}">${esc(AP_ORDER_FOOTER)}</td></tr>

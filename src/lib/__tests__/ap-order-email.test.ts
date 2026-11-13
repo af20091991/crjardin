@@ -7,10 +7,10 @@ const content = {
 };
 
 describe("buildApOrderEmail", () => {
-  test("utilise l'objet et la signature demandés", () => {
+  test("utilise l'objet demandé, sans nom de signature dans le corps", () => {
     const mail = buildApOrderEmail(content);
     expect(mail.subject).toBe(AP_ORDER_SUBJECT);
-    expect(mail.text).toContain("Anthony Fournier");
+    expect(mail.text).not.toContain("Anthony Fournier");
     expect(mail.text).toContain("Envoyé via PilotPro");
   });
 
