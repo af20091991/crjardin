@@ -10,7 +10,6 @@ export interface SendApOrderInput {
   worksiteId: string;
   worksiteLabel: string;
   pdfBase64: string;
-  orderText: string;
   attemptId: string;
 }
 
@@ -53,6 +52,7 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
       const { error: traceError } = await (context.supabase.from as any)("ap_order_sends").insert({
         worksite_id: data.worksiteId,
         worksite_label: data.worksiteLabel,
+        ack_token: ackToken,
         supplier_id: supplier.id,
         supplier_name: supplier.name,
         recipient_email: to,
@@ -66,6 +66,8 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
     };
 
     const attempt = data.attemptId.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 40);
+    // Jeton du lien « Accuser réception » : généré ici, stocké dans le journal, envoyé dans le mail.
+    const ackToken = crypto.randomUUID();
     let pdfPath: string | null = null;
     try {
       const bytes = decodePdf(data.pdfBase64);
@@ -85,10 +87,8 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
       const { sendApOrderEmail } = await import("@/lib/ap-order-mailer.server");
       const result = await sendApOrderEmail({
         to,
-        supplierName: supplier.name,
-        worksiteLabel: data.worksiteLabel,
-        orderText: data.orderText,
         pdfUrl: signed.signedUrl,
+        ackToken,
         idempotencyKey: `ap-order-${attempt}-${supplier.id}`,
       });
       await writeTrace({

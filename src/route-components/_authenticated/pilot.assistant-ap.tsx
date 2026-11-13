@@ -1924,7 +1924,6 @@ function SupplyReadinessPanel({
           worksiteId: worksite.id,
           worksiteLabel: worksite.client_label,
           pdfBase64,
-          orderText: buildOrderText(worksite, [order]),
           attemptId: crypto.randomUUID(),
         },
       });
