@@ -70,6 +70,7 @@ import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
+import { openRemotePdf } from "@/lib/native-pdf";
 import {
   archiveInterventionReport,
   listReportHistory,
@@ -409,9 +410,14 @@ function InterventionDetail() {
   });
 
   const openArchivedPdf = useMutation({
-    mutationFn: async (path: string) => signedReportUrl(path),
-    onSuccess: (url) => {
-      window.open(url, "_blank", "noopener");
+    mutationFn: async (path: string) => {
+      const url = await signedReportUrl(path);
+      const fileName =
+        path
+          .split("/")
+          .pop()
+          ?.replace(/\.pdf$/i, "") ?? "Compte rendu";
+      await openRemotePdf(url, fileName);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Lien indisponible"),
   });
