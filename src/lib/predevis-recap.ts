@@ -84,6 +84,8 @@ export type ManualHeader = {
   totalHtDeclared?: number | null;
   /** Par numéro de poste ; null = effacé. */
   subtotals?: Record<number, number | null>;
+  /** Coût de sous-traitance par poste (HT) ; null = non saisi. */
+  sst?: Record<number, number | null>;
 };
 
 export type RecapRow = {
@@ -156,10 +158,14 @@ export function previewStoredLine(row: RecapRow, m: ManualFields | undefined): S
 }
 
 /** Indicateurs du poste, calculés comme à l'enregistrement. */
-export function posteRecap(rows: RecapRow[], manual: ManualValues): PosteFinance {
+export function posteRecap(
+  rows: RecapRow[],
+  manual: ManualValues,
+  sstCostHt?: number | null,
+): PosteFinance {
   return posteFinance(
     rows.map((r) => lineFinance(previewStoredLine(r, manual[r.key]))),
-    { acceptZeroMo: true },
+    { acceptZeroMo: true, sstCostHt },
   );
 }
 

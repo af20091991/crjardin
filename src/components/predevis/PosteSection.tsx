@@ -37,8 +37,8 @@ export function PosteSection({
   meta?: ReactNode;
   rows: ViewRow[];
   fin: PosteFinance;
-  /** Coût de sous-traitance du poste : valeur, et champ de saisie en mode modification. */
-  sst?: { value: number | null; editor?: ReactNode };
+  /** Coût de sous-traitance saisi dans l'en-tête du poste (null = non saisi). */
+  sst?: { value: number | null };
   clientText: string;
   children?: ReactNode;
 }) {
@@ -129,9 +129,9 @@ export function PosteSection({
           <RecapLine label="Marge nette HT" value={eur(fin.margeHt)} strong />
           {sst && (
             <>
-              <RecapLine label="Coût SST" value={sst.editor ?? eur(sst.value)} />
+              <RecapLine label="Coût SST" value={eur(sst.value)} />
               <RecapLine
-                label="Marge nette HT (+SST)"
+                label="Marge nette HT après SST"
                 value={eur(fin.margeAvecSstHt ?? null)}
                 strong
               />
@@ -144,7 +144,7 @@ export function PosteSection({
           />
           {sst && (
             <RecapLine
-              label="Taux de marge affiné (SST inclus)"
+              label="Taux de marge après SST"
               value={
                 fin.tauxMargeAvecSst == null
                   ? "—"
