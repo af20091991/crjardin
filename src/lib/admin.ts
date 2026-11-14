@@ -239,3 +239,9 @@ export function parseUserAgent(ua: string | null): { device: string; os: string;
   const summary = `${device} · ${os} · ${browser}`;
   return { device, os, browser, summary };
 }
+/** Adresse de connexion de chaque compte (admins uniquement, via fonction SQL dédiée). */
+export async function listUserEmails(): Promise<Record<string, string>> {
+  const { data, error } = await supabase.rpc("admin_list_user_emails");
+  if (error) throw error;
+  return Object.fromEntries((data ?? []).map((r) => [r.user_id, r.email]));
+}
