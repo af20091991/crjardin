@@ -12,6 +12,7 @@ import {
   setUserApproval,
   listLoginEvents,
   listAllUsers,
+  listUserEmails,
   listClientAccesses,
   setUserRole,
   setUserApprovalStatus,
@@ -131,6 +132,11 @@ function AdminPage() {
     queryFn: () => fetchGeo({ data: { ips: accessIps } }),
   });
 
+  const { data: userEmails } = useQuery({
+    queryKey: ["admin-user-emails"],
+    enabled: isAdmin,
+    queryFn: () => listUserEmails(),
+  });
   const { data: allUsers } = useQuery({
     queryKey: ["admin-all-users"],
     enabled: isAdmin,
@@ -430,6 +436,9 @@ function AdminPage() {
                               Admin
                             </span>
                           )}
+                        </p>
+                        <p className="truncate text-xs text-foreground/80">
+                          {userEmails?.[u.id] ?? "Adresse indisponible"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {u.company_name ? `${u.company_name} · ` : ""}Inscrit le{" "}
