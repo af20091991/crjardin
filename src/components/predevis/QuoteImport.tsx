@@ -419,16 +419,7 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                           setSubDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
                         }
                       />
-                      · TTC {eur(p.sumTtc)} · Coût SST
-                      <AmountStepper
-                        label={`Coût SST poste ${p.index}`}
-                        step={0.01}
-                        width="w-44"
-                        value={sstValue ?? undefined}
-                        onChange={(v) =>
-                          setSstDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
-                        }
-                      />
+                      · TTC {eur(p.sumTtc)}
                     </span>
                     {p.reasons.length > 0 && (
                       <span className="w-full text-sm text-destructive">{p.reasons.join(" ")}</span>
@@ -437,7 +428,20 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                 }
                 rows={rows}
                 fin={fin}
-                sst={{ value: sstValue }}
+                sst={{
+                  value: sstValue,
+                  editor: (
+                    <AmountStepper
+                      label={`Coût SST poste ${p.index}`}
+                      step={0.01}
+                      width="w-40"
+                      value={sstValue ?? undefined}
+                      onChange={(v) =>
+                        setSstDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
+                      }
+                    />
+                  ),
+                }}
                 clientText={posteClientText(recapRows)}
               >
                 {(missing.length > 0 || fin.issues.length > 0 || noQuantity.length > 0) && (
