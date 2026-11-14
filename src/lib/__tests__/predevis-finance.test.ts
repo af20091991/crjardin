@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { posteFinance, type FinanceLine } from "../predevis-finance";
+import { chantierFinance, posteFinance, type FinanceLine } from "../predevis-finance";
 import { clientBlock, type ClientBlockLine } from "../predevis-client-block";
 
 const f = (ht: number, costHt: number | null, ttc?: number): FinanceLine => ({
@@ -152,5 +152,36 @@ describe("coût SST (rentabilité SST incluse)", () => {
     expect(f.margeHt).toBe(400);
     expect(f.margeAvecSstHt).toBe(250);
     expect(f.tauxMargeAvecSst).toBe(25);
+  });
+});
+
+describe("synthèse chantier", () => {
+  test("somme des postes, SST inclus, taux sur PV total", () => {
+    const a = posteFinance(
+      [{ kind: "fourniture", ht: 1000, ttc: 1200, costHt: 600, zeroCostReason: null }],
+      { sstCostHt: 100 },
+    );
+    const b = posteFinance(
+      [{ kind: "fourniture", ht: 1000, ttc: 1200, costHt: 400, zeroCostReason: null }],
+      { sstCostHt: 200 },
+    );
+    const c = chantierFinance([a, b]);
+    expect(c.pvHt).toBe(2000);
+    expect(c.margeHt).toBe(1000);
+    expect(c.sstCostHt).toBe(300);
+    expect(c.margeAvecSstHt).toBe(700);
+    expect(c.tauxMarge).toBe(50);
+    expect(c.tauxMargeAvecSst).toBe(35);
+    expect(c.postesAvecSst).toBe(2);
+  });
+  test("sans SST saisi : coût SST null, marge après SST null", () => {
+    const c = chantierFinance([
+      posteFinance([
+        { kind: "fourniture", ht: 1000, ttc: 1200, costHt: 600, zeroCostReason: null },
+      ]),
+    ]);
+    expect(c.sstCostHt).toBeNull();
+    expect(c.margeAvecSstHt).toBeNull();
+    expect(c.postesAvecSst).toBe(0);
   });
 });

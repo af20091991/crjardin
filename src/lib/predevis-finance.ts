@@ -125,3 +125,53 @@ export function posteFinance(
       partFournitures != null,
   };
 }
+
+/** Synthèse du chantier : somme des postes. Un total n'inclut que les valeurs connues. */
+export type ChantierFinance = {
+  postes: number;
+  postesComplets: number;
+  /** Postes dont le coût SST est saisi (0 = pas encore de SST). */
+  postesAvecSst: number;
+  pvHt: number | null;
+  achatFournituresHt: number | null;
+  moCoutHt: number | null;
+  sstCostHt: number | null;
+  prixAchatHt: number | null;
+  margeHt: number | null;
+  tauxMarge: number | null;
+  margeAvecSstHt: number | null;
+  tauxMargeAvecSst: number | null;
+};
+
+export function chantierFinance(list: PosteFinance[]): ChantierFinance {
+  const sum = (xs: (number | null | undefined)[]) => {
+    const known = xs.filter((x): x is number => x != null);
+    return known.length > 0 ? round2(known.reduce((s, x) => s + x, 0)) : null;
+  };
+  const pct = (num: number | null, base: number | null) =>
+    num != null && base != null && base > 0 ? round2((num / base) * 100) : null;
+  const pvHt = sum(list.map((f) => f.pvHt));
+  const achatFournituresHt = sum(list.map((f) => f.achatFournituresHt));
+  const prixAchatHt = sum(list.map((f) => f.prixAchatHt));
+  const margeHt = sum(list.map((f) => f.margeHt));
+  const sstCostHt = sum(list.map((f) => f.sstCostHt));
+  const margeAvecSstHt = sum(list.map((f) => f.margeAvecSstHt));
+  const moCoutHt =
+    prixAchatHt != null && achatFournituresHt != null
+      ? round2(prixAchatHt - achatFournituresHt)
+      : null;
+  return {
+    postes: list.length,
+    postesComplets: list.filter((f) => f.complete).length,
+    postesAvecSst: list.filter((f) => f.sstCostHt != null).length,
+    pvHt,
+    achatFournituresHt,
+    moCoutHt,
+    sstCostHt,
+    prixAchatHt,
+    margeHt,
+    tauxMarge: pct(margeHt, pvHt),
+    margeAvecSstHt,
+    tauxMargeAvecSst: pct(margeAvecSstHt, pvHt),
+  };
+}
