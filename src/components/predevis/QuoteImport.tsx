@@ -34,6 +34,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
+import { PredevisShell, SideCard, type PredevisStep } from "@/components/predevis/PredevisShell";
+import { ChantierTotalsBar, PosteRow } from "@/components/predevis/PredevisPilotage";
+import { detectThemes } from "@/lib/predevis-themes";
+import { TARGET_MARGIN_PCT } from "@/lib/predevis-finance";
 import { ChantierRecap } from "@/components/predevis/ChantierRecap";
 import { chantierFinance, type PosteFinance } from "@/lib/predevis-finance";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
@@ -74,6 +78,7 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
   const [subDrafts, setSubDrafts] = useState<Record<number, string>>({});
   const [sstDrafts, setSstDrafts] = useState<Record<number, string>>({});
   const [selected, setSelected] = useState<File | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
 
@@ -284,10 +289,50 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
     }
   }
 
-  const finsChantier: PosteFinance[] = [];
+  // Indicateurs par poste, calculés une fois : bandeau, synthèse et liste s'en servent.
+  const sstFor = (index: number) => parseAmountDraft(sstDrafts[index] ?? "") ?? null;
+  const rowsByPoste = new Map(quote?.postes.map((p) => [p.index, buildRecapRows(p)]) ?? []);
+  const finsByPoste = new Map<number, PosteFinance>(
+    (quote?.postes ?? []).map((p) => [
+      p.index,
+      posteRecap(rowsByPoste.get(p.index) ?? [], manual, sstFor(p.index)),
+    ]),
+  );
+  const finsChantier = (quote?.postes ?? []).map((p) => finsByPoste.get(p.index)!);
+  // Éléments bloquants : tout ce qui manque pour calculer la rentabilité, avec son champ de saisie.
+  const blockers = (quote?.postes ?? []).flatMap((p) => {
+    const recapRows = rowsByPoste.get(p.index) ?? [];
+    const missing = missingFields(recapRows, manual).map((m) => ({ ...m, poste: p.index }));
+    const noQuantity = recapRows
+      .filter((r) => r.quantity == null)
+      .map((r) => ({ key: r.key, poste: p.index, designation: r.designation }));
+    return { missing, noQuantity };
+  });
+  const missingAll = blockers.flatMap((b) => b.missing);
+  const noQuantityAll = blockers.flatMap((b) => b.noQuantity);
+  const blockingCount = missingAll.length + noQuantityAll.length + (title.trim() ? 0 : 1);
+  const currentIndex = openIndex ?? quote?.postes[0]?.index ?? null;
+  const openPoste = quote?.postes.find((p) => p.index === currentIndex) ?? null;
+  const postesSousSeuil = finsChantier.filter(
+    (f) => f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT,
+  ).length;
+
+  const steps: PredevisStep[] = [
+    {
+      label: "Import et blocages",
+      hint: blockingCount > 0 ? `${blockingCount} à lever` : "Tout est levé",
+      state: quote ? (blockingCount > 0 ? "current" : "done") : "current",
+    },
+    {
+      label: "Rentabilité",
+      hint: "Marges et SST",
+      state: quote ? (blockingCount > 0 ? "locked" : "current") : "locked",
+    },
+    { label: "Texte client", hint: "Puis enregistrement", state: "locked" },
+  ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <section className="space-y-4 rounded-xl border bg-card p-6">
         <div>
           <h2 className="font-display text-lg">Importer un devis Henrri détaillé</h2>
@@ -318,13 +363,80 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
         </div>
       </section>
 
-      {quote && (
-        <div className="space-y-8">
-          <section className="grid gap-4 rounded-xl border bg-card p-6 md:grid-cols-[1fr_auto] md:items-end">
+      {quote && openPoste && (
+        <PredevisShell
+          crumbs={
+            <>
+              <span className="text-muted-foreground">Pré-devis</span>
+              <span className="text-muted-foreground">›</span>
+              <strong className="font-semibold">{title || "Nouveau devis"}</strong>
+            </>
+          }
+          status="Brouillon"
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={() => setQuote(null)}>
+                Fermer
+              </Button>
+              <Button
+                size="sm"
+                disabled={busy || quote.postes.length === 0 || blockingCount > 0}
+                onClick={save}
+                title={blockingCount > 0 ? "Lève d'abord les éléments bloquants" : undefined}
+              >
+                Enregistrer dans Devis importés
+              </Button>
+            </>
+          }
+          totals={
+            <ChantierTotalsBar
+              f={chantierFinance(finsChantier)}
+              postesSousSeuil={postesSousSeuil}
+            />
+          }
+          steps={steps}
+          aside={
+            <>
+              <SideCard title="À traiter">
+                {blockingCount === 0 ? (
+                  <p className="text-muted-foreground">
+                    Rien à lever : la rentabilité est calculée.
+                  </p>
+                ) : (
+                  <ul className="space-y-1">
+                    {missingAll.map((m) => (
+                      <li key={`${m.key}-${m.field}`}>
+                        Poste {m.poste} · {m.label} : {FIELD_LABEL[m.field]}
+                      </li>
+                    ))}
+                    {noQuantityAll.map((r) => (
+                      <li key={r.key}>
+                        Poste {r.poste} · quantité absente : {r.designation}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </SideCard>
+              <SideCard title="Texte client">
+                <p className="whitespace-pre-wrap text-muted-foreground">
+                  {posteClientText(rowsByPoste.get(openPoste.index) ?? []) || "—"}
+                </p>
+              </SideCard>
+            </>
+          }
+        >
+          {quote.warnings.length > 0 && (
+            <ul className="list-disc space-y-1 pl-5 text-sm text-destructive">
+              {quote.warnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          )}
+
+          {/* Étape 1 : identification et éléments bloquants */}
+          <section className="grid gap-4 rounded-xl border bg-card p-5 md:grid-cols-[1fr_auto] md:items-end">
             <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">
-                Nom du devis (titre de l'en-tête du PDF)
-              </span>
+              <span className="text-muted-foreground">Nom du devis</span>
               <Input
                 className="h-9 font-medium"
                 value={title}
@@ -347,154 +459,183 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
             </p>
           </section>
 
-          {quote.warnings.length > 0 && (
-            <ul className="list-disc space-y-1 pl-5 text-sm text-destructive">
-              {quote.warnings.map((w) => (
-                <li key={w}>{w}</li>
+          {blockingCount > 0 && (
+            <section className="space-y-3 rounded-xl border border-destructive/50 bg-card p-5">
+              <h3 className="font-display text-lg">
+                {blockingCount} élément{blockingCount > 1 ? "s" : ""} à lever avant la rentabilité
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Ces montants sont saisis ici, sans passer par les postes.
+              </p>
+              {missingAll.map((m) => (
+                <div
+                  key={`${m.key}-${m.field}`}
+                  className="flex flex-wrap items-center gap-3 border-t pt-3"
+                >
+                  <span className="min-w-0 flex-1 text-sm">
+                    <span className="text-muted-foreground">Poste {m.poste} · </span>
+                    {m.label}
+                  </span>
+                  <span className="text-sm text-muted-foreground">{FIELD_LABEL[m.field]}</span>
+                  <AmountStepper
+                    label={`${FIELD_LABEL[m.field]}, ${m.label}`}
+                    step={0.01}
+                    value={manual[m.key]?.[m.field]}
+                    onChange={(v) =>
+                      setManual((cur) => ({
+                        ...cur,
+                        [m.key]: { ...(cur[m.key] ?? {}), [m.field]: v },
+                      }))
+                    }
+                  />
+                </div>
               ))}
-            </ul>
+              {noQuantityAll.map((r) => (
+                <p key={r.key} className="border-t pt-3 text-sm text-destructive">
+                  Poste {r.poste} · quantité absente du devis : {r.designation}
+                </p>
+              ))}
+            </section>
           )}
 
-          {quote.postes.map((p) => {
-            const recapRows = buildRecapRows(p);
-            const sstValue = parseAmountDraft(sstDrafts[p.index] ?? "") ?? null;
-            const fin = posteRecap(recapRows, manual, sstValue);
-            finsChantier.push(fin);
-            const missing = missingFields(recapRows, manual);
-            const noQuantity = recapRows.filter((r) => r.quantity == null);
-            const rows: ViewRow[] = p.rows.map((r) => {
-              const key = quoteRowKey(p.index, r.position);
-              const base = { quantity: r.quantity, pu: r.pu, ht: r.ht, ttc: r.ttc };
-              const cur = manual[key] ?? {};
-              const shown = {
-                quantity: cur.quantity ?? r.quantity,
-                pu: cur.pu ?? r.pu,
-                ht: cur.ht ?? r.ht,
-                ttc: cur.ttc ?? r.ttc,
-              };
-              const amountCell = (f: "quantity" | "pu" | "ht" | "ttc") => (
-                <AmountStepper
-                  label={`${FIELD_LABEL[f]}, ${r.designation}`}
-                  step={f === "quantity" ? 1 : 0.01}
-                  width={f === "quantity" ? "w-32" : "w-40"}
-                  value={shown[f]}
-                  onChange={(v) => editAmount(key, base, f, v)}
-                />
-              );
-              return {
-                key: String(r.position),
-                ref: r.ref,
-                designation: r.designation,
-                kind: r.kind,
-                continued: r.continued,
-                quantity: shown.quantity,
-                pu: shown.pu,
-                ht: shown.ht,
-                ttc: shown.ttc,
-                pau: renderPau(p.index, r.position, r.ref, r.designation, r.kind),
-                rattachement: renderMatch(p.index, r.position, r.ref, r.designation, r.kind),
-                editable: {
-                  quantity: amountCell("quantity"),
-                  pu: amountCell("pu"),
-                  ht: amountCell("ht"),
-                  ttc: amountCell("ttc"),
-                },
-              };
-            });
-            return (
-              <PosteSection
-                key={p.index}
-                index={p.index}
-                title={p.title ?? "sans titre (à nommer)"}
-                meta={
-                  <>
-                    <Badge variant={p.status === "ok" ? "secondary" : "destructive"}>
-                      {p.status === "ok" ? "contrôle OK" : "à vérifier"}
-                    </Badge>
-                    <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                      {p.rows.length} lignes · Sous-total
-                      <AmountStepper
-                        label={`Sous-total poste ${p.index}`}
-                        step={0.01}
-                        width="w-44"
-                        value={
-                          parseAmountDraft(subDrafts[p.index] ?? numText(p.subtotalHt)) ?? undefined
-                        }
-                        onChange={(v) =>
-                          setSubDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
-                        }
+          {/* Étape 2 : rentabilité, verrouillée tant que des blocages restent */}
+          {blockingCount === 0 ? (
+            <>
+              <section className="space-y-2 rounded-xl border bg-card p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Postes du devis
+                </p>
+                <div className="divide-y">
+                  {quote.postes.map((p) => {
+                    const recap = rowsByPoste.get(p.index) ?? [];
+                    const detected = detectThemes(
+                      p.title ?? "",
+                      recap.map((r) => r.designation),
+                    ).main;
+                    return (
+                      <PosteRow
+                        key={p.index}
+                        index={p.index}
+                        title={p.title ?? "sans titre (à nommer)"}
+                        theme={detected}
+                        fin={finsByPoste.get(p.index)!}
+                        open={p.index === currentIndex}
+                        onOpen={() => setOpenIndex(p.index)}
+                        flag={p.status === "ok" ? null : "à vérifier"}
                       />
-                      · TTC {eur(p.sumTtc)}
-                    </span>
-                    {p.reasons.length > 0 && (
-                      <span className="w-full text-sm text-destructive">{p.reasons.join(" ")}</span>
-                    )}
-                  </>
-                }
-                rows={rows}
-                fin={fin}
-                sst={{
-                  value: sstValue,
-                  editor: (
+                    );
+                  })}
+                </div>
+              </section>
+
+              {(() => {
+                const p = openPoste;
+                const recapRows = rowsByPoste.get(p.index) ?? [];
+                const fin = finsByPoste.get(p.index)!;
+                const sstValue = sstFor(p.index);
+                const rows: ViewRow[] = p.rows.map((r) => {
+                  const key = quoteRowKey(p.index, r.position);
+                  const base = { quantity: r.quantity, pu: r.pu, ht: r.ht, ttc: r.ttc };
+                  const cur = manual[key] ?? {};
+                  const shown = {
+                    quantity: cur.quantity ?? r.quantity,
+                    pu: cur.pu ?? r.pu,
+                    ht: cur.ht ?? r.ht,
+                    ttc: cur.ttc ?? r.ttc,
+                  };
+                  const amountCell = (f: "quantity" | "pu" | "ht" | "ttc") => (
                     <AmountStepper
-                      label={`Coût SST poste ${p.index}`}
-                      step={0.01}
-                      width="w-40"
-                      value={sstValue ?? undefined}
-                      onChange={(v) =>
-                        setSstDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
-                      }
+                      label={`${FIELD_LABEL[f]}, ${r.designation}`}
+                      step={f === "quantity" ? 1 : 0.01}
+                      width={f === "quantity" ? "w-32" : "w-40"}
+                      value={shown[f]}
+                      onChange={(v) => editAmount(key, base, f, v)}
                     />
-                  ),
-                }}
-                clientText={posteClientText(recapRows)}
-              >
-                {(missing.length > 0 || fin.issues.length > 0 || noQuantity.length > 0) && (
-                  <div className="space-y-3 rounded-lg border border-destructive/50 p-4">
-                    <p className="font-medium">À compléter</p>
-                    <p className="text-sm text-muted-foreground">
-                      Ces informations n'empêchent pas le calcul : il porte déjà sur les lignes
-                      renseignées. Elles seront enregistrées avec le devis.
-                    </p>
-                    {missing.map((m) => (
-                      <div
-                        key={`${m.key}-${m.field}`}
-                        className="flex flex-wrap items-center gap-3"
-                      >
-                        <span className="min-w-0 flex-1 text-sm">{m.label}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {FIELD_LABEL[m.field]}
-                        </span>
+                  );
+                  return {
+                    key: String(r.position),
+                    ref: r.ref,
+                    designation: r.designation,
+                    kind: r.kind,
+                    continued: r.continued,
+                    quantity: shown.quantity,
+                    pu: shown.pu,
+                    ht: shown.ht,
+                    ttc: shown.ttc,
+                    pau: renderPau(p.index, r.position, r.ref, r.designation, r.kind),
+                    rattachement: renderMatch(p.index, r.position, r.ref, r.designation, r.kind),
+                    editable: {
+                      quantity: amountCell("quantity"),
+                      pu: amountCell("pu"),
+                      ht: amountCell("ht"),
+                      ttc: amountCell("ttc"),
+                    },
+                  };
+                });
+                return (
+                  <PosteSection
+                    key={p.index}
+                    index={p.index}
+                    title={p.title ?? "sans titre (à nommer)"}
+                    meta={
+                      <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        {p.rows.length} lignes · Sous-total
                         <AmountStepper
-                          label={`${FIELD_LABEL[m.field]}, ${m.label}`}
+                          label={`Sous-total poste ${p.index}`}
                           step={0.01}
-                          value={manual[m.key]?.[m.field]}
+                          width="w-44"
+                          value={
+                            parseAmountDraft(subDrafts[p.index] ?? numText(p.subtotalHt)) ??
+                            undefined
+                          }
                           onChange={(v) =>
-                            setManual((cur) => ({
-                              ...cur,
-                              [m.key]: { ...(cur[m.key] ?? {}), [m.field]: v },
-                            }))
+                            setSubDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
                           }
                         />
+                        · TTC {eur(p.sumTtc)}
+                      </span>
+                    }
+                    rows={rows}
+                    fin={fin}
+                    sst={{
+                      value: sstValue,
+                      editor: (
+                        <AmountStepper
+                          label={`Coût SST poste ${p.index}`}
+                          step={0.01}
+                          width="w-40"
+                          value={sstValue ?? undefined}
+                          onChange={(v) =>
+                            setSstDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
+                          }
+                        />
+                      ),
+                    }}
+                    clientText={posteClientText(recapRows)}
+                  >
+                    {fin.issues.length > 0 && (
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        {fin.issues.map((i) => (
+                          <p key={i}>{i}</p>
+                        ))}
                       </div>
-                    ))}
-                    {noQuantity.map((r) => (
-                      <p key={r.key} className="text-sm text-destructive">
-                        Quantité absente du devis : {r.designation}
-                      </p>
-                    ))}
-                    {fin.issues.map((i) => (
-                      <p key={i} className="text-sm text-destructive">
-                        {i}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </PosteSection>
-            );
-          })}
+                    )}
+                  </PosteSection>
+                );
+              })()}
 
-          {finsChantier.length > 0 && <ChantierRecap f={chantierFinance(finsChantier)} />}
+              {finsChantier.length > 0 && (
+                <ChantierRecap
+                  f={chantierFinance(finsChantier)}
+                  postesSousSeuil={postesSousSeuil}
+                />
+              )}
+            </>
+          ) : (
+            <section className="rounded-xl border border-dashed bg-card p-6 text-sm text-muted-foreground">
+              La rentabilité s'affiche dès que les éléments ci-dessus sont levés.
+            </section>
+          )}
 
           {quote.orphanText.length > 0 && (
             <section className="rounded-xl border bg-card p-6">
@@ -502,16 +643,7 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
               <p className="mt-2 text-sm text-muted-foreground">{quote.orphanText.join(" ")}</p>
             </section>
           )}
-
-          <div className="flex flex-wrap gap-3">
-            <Button disabled={busy || quote.postes.length === 0} onClick={save}>
-              Enregistrer dans Devis importés
-            </Button>
-            <Button variant="outline" onClick={() => setQuote(null)}>
-              Fermer
-            </Button>
-          </div>
-        </div>
+        </PredevisShell>
       )}
     </div>
   );
