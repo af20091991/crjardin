@@ -73,12 +73,14 @@ export function uniqueSupplierPurchase(
   }
   const priced = group.map((o) => o.pau_ht).filter((v): v is number => v != null);
   const value = priced.length > 0 ? Math.max(...priced) : null;
-  const multiplier = suggestedMultiplier(productUnit);
+  // Multiplicateur par défaut : 1 (la quantité du devis est lue dans l'unité de l'article).
+  // Jamais bloquant : une unité différente se corrige dans la quantité de la ligne.
+  const multiplier = suggestedMultiplier(productUnit) ?? 1;
   return {
     supplier_id: group[0]!.supplier_id,
     pau_ht_applied: value,
     cost_status: value == null ? "manquant" : "connu",
     unit_multiplier: multiplier,
-    unit_status: multiplier != null ? "ok" : "non_verifiee",
+    unit_status: "ok",
   };
 }

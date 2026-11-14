@@ -4,6 +4,7 @@ import {
   storedPosteRecap,
   manualLineFields,
   missingFields,
+  previewStoredLine,
   posteClientText,
   posteRecap,
   type RecapRow,
@@ -118,7 +119,7 @@ describe("missingFields", () => {
     expect(fin.issues).toEqual([]);
   });
 
-  test("unité non pièce ni kg : multiplicateur demandé", () => {
+  test("unité non pièce ni kg : multiplicateur 1 par défaut, jamais bloquant", () => {
     const row = frn({
       unit: "m",
       purchase: {
@@ -129,8 +130,8 @@ describe("missingFields", () => {
         unit_status: "non_verifiee",
       },
     });
-    expect(missingFields([row], {}).map((m) => m.field)).toEqual(["multiplier"]);
-    expect(missingFields([row], { "1-1": { multiplier: 2 } })).toEqual([]);
+    expect(missingFields([row], {})).toEqual([]);
+    expect(previewStoredLine(row, undefined).unit_multiplier).toBe(1);
   });
 
   test("main-d'œuvre sans coût saisi : pas une information manquante (0 €)", () => {
