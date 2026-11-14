@@ -63,8 +63,8 @@ export async function listAllUsers(): Promise<AppUser[]> {
     const role: AppUser["role"] = set.has("admin")
       ? "admin"
       : set.has("prestataire")
-      ? "prestataire"
-      : "observateur";
+        ? "prestataire"
+        : "observateur";
     return { ...p, is_admin: role === "admin", role };
   });
 }
@@ -86,19 +86,31 @@ export async function listClientAccesses(limit = 50): Promise<ClientAccess[]> {
   return rows.map((r) => ({ ...r, client_name: names[r.client_id] ?? null }));
 }
 
-export async function setUserApproval(userId: string, status: "approved" | "rejected" | "pending"): Promise<void> {
-  const { error } = await supabase.rpc("set_user_approval", { p_user_id: userId, p_status: status });
+export async function setUserApproval(
+  userId: string,
+  status: "approved" | "rejected" | "pending",
+): Promise<void> {
+  const { error } = await supabase.rpc("set_user_approval", {
+    p_user_id: userId,
+    p_status: status,
+  });
   if (error) throw error;
 }
 
 export type ApprovalStatus = "approved" | "rejected" | "pending" | "suspended";
 
 export async function setUserApprovalStatus(userId: string, status: ApprovalStatus): Promise<void> {
-  const { error } = await supabase.rpc("set_user_approval", { p_user_id: userId, p_status: status });
+  const { error } = await supabase.rpc("set_user_approval", {
+    p_user_id: userId,
+    p_status: status,
+  });
   if (error) throw error;
 }
 
-export async function setUserRole(userId: string, role: "admin" | "prestataire" | "observateur"): Promise<void> {
+export async function setUserRole(
+  userId: string,
+  role: "admin" | "prestataire" | "observateur",
+): Promise<void> {
   const { error } = await supabase.rpc("set_user_role", { p_user_id: userId, p_role: role });
   if (error) throw error;
 }
@@ -140,9 +152,21 @@ export interface UserStats {
 export async function getUserStats(userId: string): Promise<UserStats> {
   const [clients, interventions, recos, login] = await Promise.all([
     supabase.from("clients").select("id", { count: "exact", head: true }).eq("user_id", userId),
-    supabase.from("interventions").select("id", { count: "exact", head: true }).eq("user_id", userId),
-    supabase.from("recommendations").select("id", { count: "exact", head: true }).eq("user_id", userId),
-    supabase.from("login_events").select("created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase
+      .from("interventions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+    supabase
+      .from("recommendations")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+    supabase
+      .from("login_events")
+      .select("created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
   return {
     clients: clients.count ?? 0,
@@ -197,7 +221,10 @@ export async function listLoginEvents(limit = 30): Promise<LoginEvent[]> {
   const ids = [...new Set(events.map((e) => e.user_id))];
   let names: Record<string, string | null> = {};
   if (ids.length) {
-    const { data: profs } = await supabase.from("profiles").select("id, display_name").in("id", ids);
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("id", ids);
     names = Object.fromEntries((profs ?? []).map((p) => [p.id, p.display_name]));
   }
   return events.map((e) => ({ ...e, display_name: names[e.user_id] ?? null }));
@@ -214,8 +241,14 @@ export async function recordLogin(): Promise<void> {
 }
 
 /** Analyse un user-agent pour en extraire un appareil, un OS et un navigateur lisibles. */
-export function parseUserAgent(ua: string | null): { device: string; os: string; browser: string; summary: string } {
-  if (!ua) return { device: "Inconnu", os: "Inconnu", browser: "Inconnu", summary: "Appareil inconnu" };
+export function parseUserAgent(ua: string | null): {
+  device: string;
+  os: string;
+  browser: string;
+  summary: string;
+} {
+  if (!ua)
+    return { device: "Inconnu", os: "Inconnu", browser: "Inconnu", summary: "Appareil inconnu" };
 
   let os = "Inconnu";
   if (/Windows NT/i.test(ua)) os = "Windows";
