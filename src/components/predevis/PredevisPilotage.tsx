@@ -241,13 +241,13 @@ export function ThemePicker({ poste, lines }: { poste: StoredPoste; lines: Store
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      <label className="text-muted-foreground" htmlFor={`theme-${poste.id}`}>
-        Thème
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm">
+      <label className="font-semibold text-primary" htmlFor={`theme-${poste.id}`}>
+        Thème du poste
       </label>
       <select
         id={`theme-${poste.id}`}
-        className="h-8 rounded-md border bg-background px-2"
+        className="h-10 min-w-[240px] rounded-md border-2 border-primary/60 bg-background px-3 font-medium"
         value={main}
         onChange={(e) => change(e.target.value)}
       >

@@ -521,7 +521,7 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                         fin={finsByPoste.get(p.index)!}
                         open={p.index === currentIndex}
                         onOpen={() => setOpenIndex(p.index)}
-                        flag={p.status === "ok" ? null : "à vérifier"}
+                        flag={finsByPoste.get(p.index)!.complete ? null : "à compléter"}
                       />
                     );
                   })}
@@ -628,6 +628,10 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                 <ChantierRecap
                   f={chantierFinance(finsChantier)}
                   postesSousSeuil={postesSousSeuil}
+                  postes={quote.postes.map((p) => ({
+                    label: `${p.index}. ${p.title ?? "sans titre (à nommer)"}`,
+                    fin: finsByPoste.get(p.index)!,
+                  }))}
                 />
               )}
             </>
