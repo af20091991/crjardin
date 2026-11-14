@@ -84,6 +84,11 @@ export function SavedQuotes({
   return <QuoteList onOpen={onOpen} />;
 }
 
+/** Prestation : ligne sans achat (motif SAV, remise, ou PAU à 0) ; elle n'appelle ni rattachement ni prix. */
+function isPrestation(l: StoredQuoteLine): boolean {
+  return l.zero_cost_reason != null || (l.pau_ht_applied != null && Number(l.pau_ht_applied) === 0);
+}
+
 function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["predevis", "quotes"],
@@ -464,6 +469,8 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             )
           ) : editing ? (
             stepper(`l:${l.id}:pau_ht_applied`, 0.01, `PAU HT, ${l.designation}`)
+          ) : isPrestation(l) ? (
+            <span className="text-muted-foreground">sans achat</span>
           ) : l.pau_ht_applied != null ? (
             eur(num(l.pau_ht_applied))
           ) : (
@@ -482,6 +489,8 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             pau: pauCell,
             rattachement: !isFourniture ? (
               <span className="text-muted-foreground">—</span>
+            ) : isPrestation(l) && !l.catalogue_product_id ? (
+              <span className="text-muted-foreground">prestation</span>
             ) : l.catalogue_product_id ? (
               <Badge variant="secondary">
                 {productCode.get(l.catalogue_product_id) ?? "rattaché"}
