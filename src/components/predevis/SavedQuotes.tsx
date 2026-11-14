@@ -23,6 +23,8 @@ import {
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { eur } from "@/components/predevis/predevis-format";
+import { ChantierRecap } from "@/components/predevis/ChantierRecap";
+import { chantierFinance, type PosteFinance } from "@/lib/predevis-finance";
 
 const num = (v: unknown) => (v == null ? null : Number(v));
 const showNum = (n: number | null | undefined) => (n == null ? "" : String(Number(n)));
@@ -275,6 +277,8 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     />
   );
 
+  const finsChantier: PosteFinance[] = [];
+
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -345,6 +349,7 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
           ? (parseAmount(drafts[`s:${poste.id}`] ?? "") ?? null)
           : num(poste.sst_cost_ht);
         const fin = storedPosteRecap(lines.map(liveLine), sstValue);
+        finsChantier.push(fin);
         const rows: ViewRow[] = lines.map((l) => {
           const isFourniture = l.line_kind === "fourniture";
           const pauCell = !isFourniture ? (
@@ -427,6 +432,8 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
           />
         );
       })}
+
+      {finsChantier.length > 0 && <ChantierRecap f={chantierFinance(finsChantier)} />}
     </div>
   );
 }

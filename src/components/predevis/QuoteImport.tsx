@@ -34,6 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
+import { ChantierRecap } from "@/components/predevis/ChantierRecap";
+import { chantierFinance, type PosteFinance } from "@/lib/predevis-finance";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { FilePicker } from "@/components/FilePicker";
 import { eur } from "@/components/predevis/predevis-format";
@@ -282,6 +284,8 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
     }
   }
 
+  const finsChantier: PosteFinance[] = [];
+
   return (
     <div className="space-y-8">
       <section className="space-y-4 rounded-xl border bg-card p-6">
@@ -355,6 +359,7 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
             const recapRows = buildRecapRows(p);
             const sstValue = parseAmountDraft(sstDrafts[p.index] ?? "") ?? null;
             const fin = posteRecap(recapRows, manual, sstValue);
+            finsChantier.push(fin);
             const missing = missingFields(recapRows, manual);
             const noQuantity = recapRows.filter((r) => r.quantity == null);
             const rows: ViewRow[] = p.rows.map((r) => {
@@ -488,6 +493,8 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
               </PosteSection>
             );
           })}
+
+          {finsChantier.length > 0 && <ChantierRecap f={chantierFinance(finsChantier)} />}
 
           {quote.orphanText.length > 0 && (
             <section className="rounded-xl border bg-card p-6">
