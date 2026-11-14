@@ -395,6 +395,8 @@ export type StoredPoste = {
   review_status: "a_verifier" | "valide";
   subtotal_ht: number | null;
   client_block: string | null;
+  /** Coût de sous-traitance du poste (HT), saisi à la main. */
+  sst_cost_ht?: number | null;
 };
 
 export type StoredQuoteLine = Omit<StoredLine, "kind"> & {
@@ -435,7 +437,7 @@ export async function loadQuoteDetail(quoteId: string): Promise<QuoteDetail> {
       .single(),
     db()
       .from("predevis_postes")
-      .select("id, position, title, review_status, subtotal_ht, client_block")
+      .select("id, position, title, review_status, subtotal_ht, client_block, sst_cost_ht")
       .eq("quote_id", quoteId)
       .order("position"),
     db().from("predevis_lines").select("*").eq("quote_id", quoteId).order("position"),
@@ -530,10 +532,12 @@ export async function saveQuoteAmounts(args: {
   quoteId: string;
   lines: Record<string, LineAmountPatch>;
   postes: Record<string, number | null>;
+  /** Coût SST par poste (id du poste → montant HT). */
+  sst?: Record<string, number | null>;
   totalHtDeclared?: number | null;
   title?: string;
 }): Promise<void> {
-  const { quoteId, lines, postes, totalHtDeclared, title } = args;
+  const { quoteId, lines, postes, sst, totalHtDeclared, title } = args;
   const ops: PromiseLike<{ error: unknown }>[] = [];
   if (title !== undefined) {
     ops.push(db().from("predevis_quotes").update({ title }).eq("id", quoteId));
@@ -545,6 +549,9 @@ export async function saveQuoteAmounts(args: {
   }
   for (const [id, subtotal_ht] of Object.entries(postes)) {
     ops.push(db().from("predevis_postes").update({ subtotal_ht }).eq("id", id));
+  }
+  for (const [id, sst_cost_ht] of Object.entries(sst ?? {})) {
+    ops.push(db().from("predevis_postes").update({ sst_cost_ht }).eq("id", id));
   }
   if (totalHtDeclared !== undefined) {
     ops.push(

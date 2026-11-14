@@ -136,3 +136,21 @@ describe("posteFinance : achat des fournitures indépendant de la main-d'œuvre"
     expect(r.achatFournituresHt).toBeNull();
   });
 });
+
+describe("coût SST (rentabilité SST incluse)", () => {
+  const lines = [
+    { kind: "fourniture" as const, ht: 1000, ttc: 1200, costHt: 600, zeroCostReason: null },
+  ];
+  test("sans coût SST saisi : marge SST-incluse non calculée", () => {
+    const f = posteFinance(lines);
+    expect(f.sstCostHt ?? null).toBeNull();
+    expect(f.margeAvecSstHt ?? null).toBeNull();
+    expect(f.tauxMargeAvecSst ?? null).toBeNull();
+  });
+  test("coût SST déduit de la marge nette et reporté en taux", () => {
+    const f = posteFinance(lines, { sstCostHt: 150 });
+    expect(f.margeHt).toBe(400);
+    expect(f.margeAvecSstHt).toBe(250);
+    expect(f.tauxMargeAvecSst).toBe(25);
+  });
+});

@@ -42,7 +42,10 @@ function initialDrafts(data: QuoteDetail): Record<string, string> {
     out[`l:${l.id}:pau_ht_applied`] = show(num(l.pau_ht_applied));
     out[`l:${l.id}:manual_cost_ht`] = show(num(l.manual_cost_ht));
   }
-  for (const p of data.postes) out[`p:${p.id}`] = show(num(p.subtotal_ht));
+  for (const p of data.postes) {
+    out[`p:${p.id}`] = show(num(p.subtotal_ht));
+    out[`s:${p.id}`] = show(num(p.sst_cost_ht));
+  }
   out.q = show(num(data.quote.total_ht_declared));
   out.t = data.quote.title;
   return out;
@@ -205,6 +208,7 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     const init = initialDrafts(current);
     const lines: Record<string, LineAmountPatch> = {};
     const postes: Record<string, number | null> = {};
+    const sst: Record<string, number | null> = {};
     let totalHtDeclared: number | null | undefined;
     let title: string | undefined;
     for (const [key, raw] of Object.entries(drafts)) {
@@ -226,6 +230,8 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
         totalHtDeclared = value;
       } else if (key.startsWith("p:")) {
         postes[key.slice(2)] = value;
+      } else if (key.startsWith("s:")) {
+        sst[key.slice(2)] = value;
       } else {
         const [, lineId, field] = key.split(":");
         if (!lineId || !LINE_FIELDS.includes(field as LineField)) continue;
@@ -241,7 +247,7 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     }
     setSaving(true);
     try {
-      await saveQuoteAmounts({ quoteId, lines, postes, totalHtDeclared, title });
+      await saveQuoteAmounts({ quoteId, lines, postes, sst, totalHtDeclared, title });
       await qc.invalidateQueries({ queryKey: ["predevis"] });
       toast.success("Montants enregistrés.");
       setEditing(false);
@@ -334,7 +340,11 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             unit_multiplier: pau != null ? (s.unit_multiplier ?? 1) : s.unit_multiplier,
           };
         };
-        const fin = storedPosteRecap(lines.map(liveLine));
+        // Coût SST : saisi dans le brouillon en modification, sinon celui enregistré.
+        const sstValue = editing
+          ? (parseAmount(drafts[`s:${poste.id}`] ?? "") ?? null)
+          : num(poste.sst_cost_ht);
+        const fin = storedPosteRecap(lines.map(liveLine), sstValue);
         const rows: ViewRow[] = lines.map((l) => {
           const isFourniture = l.line_kind === "fourniture";
           const pauCell = !isFourniture ? (
@@ -407,6 +417,12 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             }
             rows={rows}
             fin={fin}
+            sst={{
+              value: sstValue,
+              editor: editing
+                ? stepper(`s:${poste.id}`, 0.01, `Coût SST poste ${poste.position}`)
+                : undefined,
+            }}
             clientText={poste.client_block ?? ""}
           />
         );

@@ -164,12 +164,12 @@ export function posteRecap(rows: RecapRow[], manual: ManualValues): PosteFinance
 }
 
 /** Indicateurs d'un poste enregistré : mêmes règles que l'écran (main-d'œuvre sans coût = 0 €). */
-export function storedPosteRecap(lines: StoredLine[]): PosteFinance {
+export function storedPosteRecap(lines: StoredLine[], sstCostHt?: number | null): PosteFinance {
   return posteFinance(
     lines.map((l) =>
       lineFinance(l.kind === "mo" && l.manual_cost_ht == null ? { ...l, manual_cost_ht: 0 } : l),
     ),
-    { acceptZeroMo: true },
+    { acceptZeroMo: true, sstCostHt },
   );
 }
 
