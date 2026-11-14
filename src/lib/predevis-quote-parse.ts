@@ -66,7 +66,7 @@ type Line = { page: number; y: number; words: PdfWord[] };
 type Cells = { ref: string; designation: string; qty: string; pu: string; tva: string; ht: string };
 type Columns = { ref: number; desig: number; qty: number; pu: number; tva: number; ht: number };
 
-const NUMERIC_RE = /^[\d.,\u00a0\u202f]+€?$|^€$|^%$/;
+const NUMERIC_RE = /^\d[\d.,\u00a0\u202f ]*€?$|^€$|^%$/;
 const NOISE_RE = [
   /^DEVIS N°/,
   /^Le (lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche) /,
@@ -94,27 +94,52 @@ function groupLines(words: PdfWord[]): Line[] {
   return lines;
 }
 
+function columnsOf(l: Line): Columns | null {
+  const text = l.words.map((w) => w.str);
+  if (!text.includes("Référence") || !text.includes("Désignation")) return null;
+  const at = (s: string) => l.words.find((w) => w.str === s)?.x;
+  const ref = at("Référence");
+  const desig = at("Désignation");
+  const qty = at("Quantité");
+  const pu = at("PU");
+  const tva = at("TVA");
+  const ht = at("Montant");
+  if ([ref, desig, qty, pu, tva, ht].some((v) => v === undefined)) return null;
+  return { ref: ref!, desig: desig!, qty: qty!, pu: pu!, tva: tva!, ht: ht! };
+}
+
+/** Premier en-tête de tableau. Les pages suivantes peuvent avoir des colonnes décalées : voir parseQuote. */
 function findColumns(lines: Line[]): Columns | null {
   for (const l of lines) {
-    const text = l.words.map((w) => w.str);
-    if (!text.includes("Référence") || !text.includes("Désignation")) continue;
-    const at = (s: string) => l.words.find((w) => w.str === s)?.x;
-    const ref = at("Référence");
-    const desig = at("Désignation");
-    const qty = at("Quantité");
-    const pu = at("PU");
-    const tva = at("TVA");
-    const ht = at("Montant");
-    if ([ref, desig, qty, pu, tva, ht].some((v) => v === undefined)) continue;
-    return { ref: ref!, desig: desig!, qty: qty!, pu: pu!, tva: tva!, ht: ht! };
+    const cols = columnsOf(l);
+    if (cols) return cols;
   }
   return null;
 }
 
 /** Affecte chaque mot à une colonne : numérique par centre, texte par bord gauche. */
+/** Fusionne « 1 » + « 400,0000 € » (séparateur de milliers) en un seul mot numérique. */
+function mergeThousands(words: PdfWord[]): PdfWord[] {
+  const out: PdfWord[] = [];
+  for (const w of words) {
+    const prev = out[out.length - 1];
+    if (
+      prev &&
+      /^\d{1,3}$/.test(prev.str) &&
+      /^\d{3}([.,]\d+)?€?$/.test(w.str) &&
+      w.x - prev.x1 < 6
+    ) {
+      out[out.length - 1] = { ...prev, str: `${prev.str} ${w.str}`, x1: w.x1 };
+    } else {
+      out.push(w);
+    }
+  }
+  return out;
+}
+
 function splitCells(line: Line, cols: Columns): Cells {
   const cells: Cells = { ref: "", designation: "", qty: "", pu: "", tva: "", ht: "" };
-  for (const w of line.words) {
+  for (const w of mergeThousands(line.words)) {
     const center = (w.x + w.x1) / 2;
     if (NUMERIC_RE.test(w.str) && center >= cols.qty) {
       const key =
@@ -137,7 +162,7 @@ function num(s: string): number | null {
 
 export function cleanReference(raw: string): string | null {
   const cleaned = raw
-    .replace(/\s*\(copie[^)]*\)?.*$/i, "")
+    .replace(/\s*\(copi[^)]*\)?.*$/i, "")
     .replace(/…/g, "")
     .trim();
   return cleaned.replace(/\s*\(\d+\)$/, "").trim() || null;
@@ -169,7 +194,7 @@ export function quoteTitle(words: PdfWord[]): string | null {
 
 export function parseQuote(words: PdfWord[]): QuoteParse {
   const firstLines = groupLines(words);
-  const cols = findColumns(firstLines);
+  let cols = findColumns(firstLines);
   const warnings: string[] = [];
   const title = quoteTitle(words);
   if (!cols) {
@@ -229,7 +254,10 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
   for (const line of lines) {
     if (stop) break;
     const lineText = line.words.map((w) => w.str).join(" ");
-    const cells = splitCells(line, cols);
+    // Chaque page répète l'en-tête, mais à d'autres positions : on suit le dernier en-tête lu.
+    const header = columnsOf(line);
+    if (header) cols = header;
+    const cells = splitCells(line, cols!);
 
     if (END_RE.test(lineText)) {
       stop = true;
