@@ -142,6 +142,9 @@ export function previewStoredLine(row: RecapRow, m: ManualFields | undefined): S
     ...(row.purchase ?? {}),
     ...manualLineFields(row.kind, m),
   };
+  const pau = (f.pau_ht_applied as number | undefined) ?? null;
+  // Un PAU connu vaut multiplicateur 1 tant qu'aucune autre unité n'est saisie.
+  const unitMultiplier = (f.unit_multiplier as number | undefined) ?? (pau != null ? 1 : null);
   return {
     kind: row.kind,
     quantity: (f.quantity as number | undefined) ?? row.quantity,
@@ -149,8 +152,10 @@ export function previewStoredLine(row: RecapRow, m: ManualFields | undefined): S
     ttc: (f.ttc as number | undefined) ?? row.ttc,
     pau_ht_applied: (f.pau_ht_applied as number | undefined) ?? null,
     cost_status: (f.cost_status as StoredLine["cost_status"] | undefined) ?? "manquant",
-    unit_status: (f.unit_status as StoredLine["unit_status"] | undefined) ?? "non_verifiee",
-    unit_multiplier: (f.unit_multiplier as number | undefined) ?? null,
+    unit_status:
+      (f.unit_status as StoredLine["unit_status"] | undefined) ??
+      (pau != null ? "ok" : "non_verifiee"),
+    unit_multiplier: unitMultiplier,
     // Main-d'œuvre sans coût saisi : 0 € sur cet écran (règle validée), jamais une donnée manquante.
     manual_cost_ht: (f.manual_cost_ht as number | undefined) ?? (row.kind === "mo" ? 0 : null),
     zero_cost_reason: null,
@@ -172,29 +177,26 @@ export function posteRecap(
 /** Indicateurs d'un poste enregistré : mêmes règles que l'écran (main-d'œuvre sans coût = 0 €). */
 export function storedPosteRecap(lines: StoredLine[], sstCostHt?: number | null): PosteFinance {
   return posteFinance(
-    lines.map((l) =>
-      lineFinance(l.kind === "mo" && l.manual_cost_ht == null ? { ...l, manual_cost_ht: 0 } : l),
-    ),
+    lines.map((l) => {
+      // Lignes enregistrées sans multiplicateur : un PAU connu vaut 1 (règle non bloquante).
+      const withUnit =
+        l.pau_ht_applied != null && l.unit_multiplier == null
+          ? { ...l, unit_multiplier: 1, unit_status: "ok" as const }
+          : l;
+      return lineFinance(
+        withUnit.kind === "mo" && withUnit.manual_cost_ht == null
+          ? { ...withUnit, manual_cost_ht: 0 }
+          : withUnit,
+      );
+    }),
     { acceptZeroMo: true, sstCostHt },
   );
 }
 
 /** Informations manquantes, avec le champ à saisir. Une valeur absente n'est jamais remplacée par 0. */
-export function missingFields(rows: RecapRow[], manual: ManualValues): MissingField[] {
-  const out: MissingField[] = [];
-  for (const row of rows) {
-    if (row.kind === "mo") continue;
-    const line = previewStoredLine(row, manual[row.key]);
-    // Prix d'achat absent : saisi directement dans la ligne (colonne PAU HT), pas ici.
-    if (line.pau_ht_applied != null && line.unit_status !== "ok") {
-      out.push({
-        key: row.key,
-        field: "multiplier",
-        label: `Unité : ${row.designation}`,
-      });
-    }
-  }
-  return out;
+export function missingFields(_rows: RecapRow[], _manual: ManualValues): MissingField[] {
+  // Aucun champ ne bloque le calcul : le PAU se saisit dans la ligne, et le multiplicateur vaut 1 par défaut.
+  return [];
 }
 
 /** Complément d'unité quand un PAU est saisi sur une ligne enregistrée : multiplicateur 1 si aucun. */
