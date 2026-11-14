@@ -28,6 +28,7 @@ export function PosteSection({
   meta,
   rows,
   fin,
+  sst,
   clientText,
   children,
 }: {
@@ -36,6 +37,8 @@ export function PosteSection({
   meta?: ReactNode;
   rows: ViewRow[];
   fin: PosteFinance;
+  /** Coût de sous-traitance du poste : valeur, et champ de saisie en mode modification. */
+  sst?: { value: number | null; editor?: ReactNode };
   clientText: string;
   children?: ReactNode;
 }) {
@@ -124,11 +127,32 @@ export function PosteSection({
           />
           <RecapLine label="Prix de revient HT (fournitures + MO)" value={eur(fin.prixAchatHt)} />
           <RecapLine label="Marge nette HT" value={eur(fin.margeHt)} strong />
+          {sst && (
+            <>
+              <RecapLine label="Coût SST" value={sst.editor ?? eur(sst.value)} />
+              <RecapLine
+                label="Marge nette HT (+SST)"
+                value={eur(fin.margeAvecSstHt ?? null)}
+                strong
+              />
+            </>
+          )}
           <RecapLine
             label="Taux de marge"
             value={fin.tauxMarge == null ? "—" : `${fin.tauxMarge.toFixed(2).replace(".", ",")} %`}
             strong
           />
+          {sst && (
+            <RecapLine
+              label="Taux de marge affiné (SST inclus)"
+              value={
+                fin.tauxMargeAvecSst == null
+                  ? "—"
+                  : `${fin.tauxMargeAvecSst.toFixed(2).replace(".", ",")} %`
+              }
+              strong
+            />
+          )}
           {fin.issues.length > 0 && (
             <p className="text-xs text-muted-foreground">
               Calcul sur les lignes renseignées : {fin.issues.length} information
@@ -169,7 +193,7 @@ function RecapLine({
   strong,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   copy?: string | null;
   copyLabel?: string;
   strong?: boolean;

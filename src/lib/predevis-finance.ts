@@ -24,6 +24,12 @@ export type PosteFinance = {
   tauxMarge: number | null; // en %
   partMo: number | null; // en % du PV HT
   partFournitures: number | null; // en % du PV HT
+  /** Coût de sous-traitance saisi pour le poste (HT). null = non saisi. */
+  sstCostHt?: number | null;
+  /** Marge nette HT après déduction du coût SST : marge HT − coût SST. */
+  margeAvecSstHt?: number | null;
+  /** Taux de marge affiné, SST inclus, en % du PV HT. */
+  tauxMargeAvecSst?: number | null;
   /** Données manquantes, à compléter. Le calcul ne s'arrête pas pour autant. */
   issues: string[];
   complete: boolean;
@@ -41,7 +47,7 @@ export function lineCostHt(line: FinanceLine): number | null {
  */
 export function posteFinance(
   lines: FinanceLine[],
-  opts: { acceptZeroMo?: boolean } = {},
+  opts: { acceptZeroMo?: boolean; sstCostHt?: number | null } = {},
 ): PosteFinance {
   const issues: string[] = [];
   const note = (msg: string) => {
@@ -83,6 +89,13 @@ export function posteFinance(
   const tauxMarge =
     margeHt != null && pvHt != null && pvHt > 0 ? round2((margeHt / pvHt) * 100) : null;
 
+  const sstCostHt = opts.sstCostHt ?? null;
+  const margeAvecSstHt = margeHt != null && sstCostHt != null ? round2(margeHt - sstCostHt) : null;
+  const tauxMargeAvecSst =
+    margeAvecSstHt != null && pvHt != null && pvHt > 0
+      ? round2((margeAvecSstHt / pvHt) * 100)
+      : null;
+
   const sumKind = (kind: FinanceLine["kind"]) =>
     sumKnown(lines.filter((l) => l.kind === kind).map((l) => l.ht));
   const moHt = sumKind("mo");
@@ -98,6 +111,9 @@ export function posteFinance(
     achatFournituresHt,
     margeHt,
     tauxMarge,
+    sstCostHt,
+    margeAvecSstHt,
+    tauxMargeAvecSst,
     partMo,
     partFournitures,
     issues,
