@@ -1,11 +1,17 @@
 import type { ReactNode } from "react";
-import type { ChantierFinance } from "@/lib/predevis-finance";
+import { TARGET_MARGIN_PCT, type ChantierFinance } from "@/lib/predevis-finance";
 import { eur } from "@/components/predevis/predevis-format";
 
 const pct = (v: number | null) => (v == null ? "—" : `${v.toFixed(2).replace(".", ",")} %`);
 
 /** Synthèse de rentabilité du chantier, tous postes confondus. */
-export function ChantierRecap({ f }: { f: ChantierFinance }) {
+export function ChantierRecap({
+  f,
+  postesSousSeuil = 0,
+}: {
+  f: ChantierFinance;
+  postesSousSeuil?: number;
+}) {
   const pv = f.pvHt ?? 0;
   const share = (v: number | null) => (pv > 0 && v != null ? Math.max(0, (v / pv) * 100) : 0);
   const segments: { label: string; value: number | null; cls: string }[] = [
@@ -29,6 +35,8 @@ export function ChantierRecap({ f }: { f: ChantierFinance }) {
         <span className="text-sm text-muted-foreground">
           {f.postesComplets}/{f.postes} postes complets · SST saisi pour {f.postesAvecSst}/
           {f.postes}
+          {postesSousSeuil > 0 &&
+            ` · ${postesSousSeuil} poste${postesSousSeuil > 1 ? "s" : ""} sous ${TARGET_MARGIN_PCT} % après SST`}
         </span>
       </header>
 

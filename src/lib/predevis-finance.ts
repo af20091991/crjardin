@@ -175,3 +175,19 @@ export function chantierFinance(list: PosteFinance[]): ChantierFinance {
     tauxMargeAvecSst: pct(margeAvecSstHt, pvHt),
   };
 }
+
+/** Seuil de marge cible après sous-traitance, en %. En dessous, le poste est signalé. */
+export const TARGET_MARGIN_PCT = 15;
+
+/**
+ * Prix de vente HT qui atteint le taux cible après SST : (prix de revient + SST) ÷ (1 − cible).
+ * Null si le prix de revient ou la SST n'est pas connu : aucun prix n'est inventé.
+ */
+export function prixCiblePourTaux(
+  prixAchatHt: number | null,
+  sstCostHt: number | null,
+  cibleEnPct: number = TARGET_MARGIN_PCT,
+): number | null {
+  if (prixAchatHt == null || sstCostHt == null || cibleEnPct >= 100) return null;
+  return round2((prixAchatHt + sstCostHt) / (1 - cibleEnPct / 100));
+}
