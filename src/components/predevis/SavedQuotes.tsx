@@ -9,6 +9,7 @@ import {
   listQuotes,
   loadQuoteDetail,
   saveQuoteAmounts,
+  toStoredLine,
   type LineAmountPatch,
   type QuoteDetail,
   type StoredQuoteLine,
@@ -24,6 +25,12 @@ import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { eur } from "@/components/predevis/predevis-format";
 import { ChantierRecap } from "@/components/predevis/ChantierRecap";
+import {
+  ChantierTotalsBar,
+  QuoteBlockers,
+  ThemeBenchmark,
+  ThemePicker,
+} from "@/components/predevis/PredevisPilotage";
 import { chantierFinance, TARGET_MARGIN_PCT, type PosteFinance } from "@/lib/predevis-finance";
 
 const num = (v: unknown) => (v == null ? null : Number(v));
@@ -58,21 +65,6 @@ function parseAmount(v: string): number | null | undefined {
   if (v.trim() === "") return null;
   const n = Number(v.replace(",", "."));
   return Number.isFinite(n) && n >= 0 ? n : undefined;
-}
-
-function toStoredLine(l: StoredQuoteLine): StoredLine {
-  return {
-    kind: l.line_kind,
-    quantity: num(l.quantity),
-    ht: num(l.ht),
-    ttc: num(l.ttc),
-    pau_ht_applied: num(l.pau_ht_applied),
-    cost_status: l.cost_status,
-    unit_status: l.unit_status,
-    unit_multiplier: num(l.unit_multiplier),
-    manual_cost_ht: num(l.manual_cost_ht),
-    zero_cost_reason: l.zero_cost_reason,
-  };
 }
 
 /** Onglet « Devis importés » : liste des devis enregistrés, puis détail avec le même tableau que l'import. */
@@ -277,7 +269,50 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     />
   );
 
-  const finsChantier: PosteFinance[] = [];
+  // Indicateurs de chaque poste calculés une fois : le bandeau, les blocages et la synthèse s'en servent.
+  const linesOf = (posteId: string) =>
+    (data.lines ?? [])
+      .filter((l) => l.poste_id === posteId)
+      .sort((a, b) => a.position - b.position);
+  // En modification, les indicateurs suivent les montants saisis (pas encore enregistrés).
+  const liveLine = (l: StoredQuoteLine): StoredLine => {
+    const s = toStoredLine(l);
+    if (!editing) return s;
+    const read = (name: string) => parseAmount(drafts[`l:${l.id}:${name}`] ?? "") ?? null;
+    const pau = read("pau_ht_applied");
+    return {
+      ...s,
+      quantity: read("quantity"),
+      ht: read("ht"),
+      ttc: read("ttc"),
+      manual_cost_ht: read("manual_cost_ht"),
+      pau_ht_applied: pau,
+      cost_status: pau != null ? "connu" : s.cost_status,
+      unit_status: pau != null ? "ok" : s.unit_status,
+      unit_multiplier: pau != null ? (s.unit_multiplier ?? 1) : s.unit_multiplier,
+    };
+  };
+  // Coût SST : saisi dans le brouillon en modification, sinon celui enregistré.
+  const sstOf = (posteId: string) =>
+    editing
+      ? (parseAmount(drafts[`s:${posteId}`] ?? "") ?? null)
+      : num(data.postes.find((p) => p.id === posteId)?.sst_cost_ht);
+  const finsByPoste = new Map<string, PosteFinance>(
+    data.postes.map((p) => [p.id, storedPosteRecap(linesOf(p.id).map(liveLine), sstOf(p.id))]),
+  );
+  const finsChantier: PosteFinance[] = data.postes.map((p) => finsByPoste.get(p.id)!);
+  const incomplets = data.postes
+    .map((p) => ({
+      position: p.position,
+      issues: finsByPoste.get(p.id)?.issues.length ?? 0,
+      complete: finsByPoste.get(p.id)?.complete ?? true,
+    }))
+    .filter((p) => !p.complete)
+    .map((p) => ({ position: p.position, issues: p.issues }));
+  const sansTheme = data.postes.filter((p) => p.theme == null).length;
+  const postesSousSeuil = finsChantier.filter(
+    (f) => f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT,
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -322,34 +357,19 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
         </div>
       </div>
 
+      <ChantierTotalsBar f={chantierFinance(finsChantier)} postesSousSeuil={postesSousSeuil} />
+
+      <QuoteBlockers
+        quote={data.quote}
+        incomplets={incomplets}
+        sansTheme={sansTheme}
+        onEditCosts={startEdit}
+      />
+
       {data.postes.map((poste) => {
-        const lines = data.lines
-          .filter((l) => l.poste_id === poste.id)
-          .sort((a, b) => a.position - b.position);
-        // En modification, les indicateurs suivent les montants saisis (pas encore enregistrés).
-        const liveLine = (l: StoredQuoteLine): StoredLine => {
-          const s = toStoredLine(l);
-          if (!editing) return s;
-          const read = (name: string) => parseAmount(drafts[`l:${l.id}:${name}`] ?? "") ?? null;
-          const pau = read("pau_ht_applied");
-          return {
-            ...s,
-            quantity: read("quantity"),
-            ht: read("ht"),
-            ttc: read("ttc"),
-            manual_cost_ht: read("manual_cost_ht"),
-            pau_ht_applied: pau,
-            cost_status: pau != null ? "connu" : s.cost_status,
-            unit_status: pau != null ? "ok" : s.unit_status,
-            unit_multiplier: pau != null ? (s.unit_multiplier ?? 1) : s.unit_multiplier,
-          };
-        };
-        // Coût SST : saisi dans le brouillon en modification, sinon celui enregistré.
-        const sstValue = editing
-          ? (parseAmount(drafts[`s:${poste.id}`] ?? "") ?? null)
-          : num(poste.sst_cost_ht);
-        const fin = storedPosteRecap(lines.map(liveLine), sstValue);
-        finsChantier.push(fin);
+        const lines = linesOf(poste.id);
+        const fin = finsByPoste.get(poste.id)!;
+        const sstValue = sstOf(poste.id);
         const rows: ViewRow[] = lines.map((l) => {
           const isFourniture = l.line_kind === "fourniture";
           const pauCell = !isFourniture ? (
@@ -413,11 +433,12 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
             index={poste.position}
             title={poste.title}
             meta={
-              <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 {lines.length} lignes · Sous-total{" "}
                 {editing
                   ? stepper(`p:${poste.id}`, 0.01, `Sous-total poste ${poste.position}`)
                   : eur(num(poste.subtotal_ht))}
+                <ThemePicker poste={poste} lines={linesOf(poste.id)} />
               </span>
             }
             rows={rows}
@@ -434,14 +455,15 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
       })}
 
       {finsChantier.length > 0 && (
-        <ChantierRecap
-          f={chantierFinance(finsChantier)}
-          postesSousSeuil={
-            finsChantier.filter(
-              (f) => f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT,
-            ).length
-          }
-        />
+        <>
+          <ChantierRecap f={chantierFinance(finsChantier)} postesSousSeuil={postesSousSeuil} />
+          <ThemeBenchmark
+            postes={data.postes.map((p) => ({
+              theme: p.theme ?? null,
+              fin: finsByPoste.get(p.id)!,
+            }))}
+          />
+        </>
       )}
     </div>
   );

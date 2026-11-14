@@ -33,7 +33,13 @@ import { posteFinance, type PosteFinance } from "./predevis-finance";
 
 import type { QuoteParse } from "./predevis-quote-parse";
 import { clientBlock } from "./predevis-client-block";
-import { manualLineFields, type ManualHeader, type ManualValues } from "./predevis-recap";
+import {
+  manualLineFields,
+  storedPosteRecap,
+  type ManualHeader,
+  type ManualValues,
+} from "./predevis-recap";
+import { detectThemes } from "./predevis-themes";
 
 // Temporaire : types.ts ne contient pas encore les tables predevis_* (resynchronisation Lovable à faire).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -378,12 +384,16 @@ export type QuoteSummary = {
   total_ht_declared: number | null;
   status: string;
   created_at: string;
+  archived_at?: string | null;
+  superseded_at?: string | null;
 };
 
 export async function listQuotes(): Promise<QuoteSummary[]> {
   const { data, error } = await db()
     .from("predevis_quotes")
-    .select("id, title, devis_number, total_ht_declared, status, created_at")
+    .select(
+      "id, title, devis_number, total_ht_declared, status, created_at, archived_at, superseded_at",
+    )
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -398,6 +408,9 @@ export type StoredPoste = {
   client_block: string | null;
   /** Coût de sous-traitance du poste (HT), saisi à la main. */
   sst_cost_ht?: number | null;
+  /** Thème principal de travaux, choisi ou suggéré. */
+  theme?: string | null;
+  secondary_themes?: string[] | null;
 };
 
 export type StoredQuoteLine = Omit<StoredLine, "kind"> & {
@@ -433,12 +446,16 @@ export async function loadQuoteDetail(quoteId: string): Promise<QuoteDetail> {
   const [quote, postes, lines, products, offers, suppliers] = await Promise.all([
     db()
       .from("predevis_quotes")
-      .select("id, title, devis_number, total_ht_declared, status, created_at")
+      .select(
+        "id, title, devis_number, total_ht_declared, status, created_at, archived_at, superseded_at",
+      )
       .eq("id", quoteId)
       .single(),
     db()
       .from("predevis_postes")
-      .select("id, position, title, review_status, subtotal_ht, client_block, sst_cost_ht")
+      .select(
+        "id, position, title, review_status, subtotal_ht, client_block, sst_cost_ht, theme, secondary_themes",
+      )
       .eq("quote_id", quoteId)
       .order("position"),
     db().from("predevis_lines").select("*").eq("quote_id", quoteId).order("position"),
@@ -686,4 +703,118 @@ export async function saveAefChoices(args: {
     if (error) throw error;
   }
   return { offerCount: rows.length };
+}
+
+// ---------------------------------------------------------------------------
+// Pré-devis 3.0 : archivage, versions écartées, thèmes et historique par thème.
+// ---------------------------------------------------------------------------
+
+/** Ligne enregistrée mise au format de calcul des marges. */
+export function toStoredLine(l: StoredQuoteLine): StoredLine {
+  const n = (v: unknown) => (v == null ? null : Number(v));
+  return {
+    kind: l.line_kind,
+    quantity: n(l.quantity),
+    ht: n(l.ht),
+    ttc: n(l.ttc),
+    pau_ht_applied: n(l.pau_ht_applied),
+    cost_status: l.cost_status,
+    unit_status: l.unit_status,
+    unit_multiplier: n(l.unit_multiplier),
+    manual_cost_ht: n(l.manual_cost_ht),
+    zero_cost_reason: l.zero_cost_reason,
+  };
+}
+
+export async function setQuoteFlags(
+  quoteId: string,
+  flags: { archived_at?: string | null; superseded_at?: string | null },
+): Promise<void> {
+  const { error } = await db().from("predevis_quotes").update(flags).eq("id", quoteId);
+  if (error) throw error;
+}
+
+/** Écarte les versions plus anciennes d'un même devis (hors la version gardée). */
+export async function supersedeOlderVersions(args: {
+  devisNumber: string;
+  keepQuoteId: string;
+  keptCreatedAt: string;
+}): Promise<void> {
+  const { error } = await db()
+    .from("predevis_quotes")
+    .update({ superseded_at: new Date().toISOString() })
+    .eq("devis_number", args.devisNumber)
+    .neq("id", args.keepQuoteId)
+    .lt("created_at", args.keptCreatedAt)
+    .is("superseded_at", null);
+  if (error) throw error;
+}
+
+export async function setPosteTheme(
+  posteId: string,
+  theme: string | null,
+  secondary: string[],
+): Promise<void> {
+  const { error } = await db()
+    .from("predevis_postes")
+    .update({ theme, secondary_themes: secondary })
+    .eq("id", posteId);
+  if (error) throw error;
+}
+
+/** Thème suggéré pour un poste, à partir de son titre et de ses désignations. */
+export function suggestedTheme(
+  title: string,
+  lines: StoredQuoteLine[],
+): { main: string | null; secondary: string[] } {
+  return detectThemes(
+    title,
+    lines.map((l) => l.designation),
+  );
+}
+
+export type ThemeHistory = {
+  postes: number;
+  pvHt: number;
+  margeHt: number;
+  margeAvecSstHt: number;
+};
+
+/** Historique par thème : postes des devis archivés et non écartés, avec leur marge. */
+export async function loadThemeBenchmark(): Promise<Map<string, ThemeHistory>> {
+  const out = new Map<string, ThemeHistory>();
+  const quotes = await db()
+    .from("predevis_quotes")
+    .select("id")
+    .not("archived_at", "is", null)
+    .is("superseded_at", null);
+  if (quotes.error) throw quotes.error;
+  const ids: string[] = (quotes.data ?? []).map((q: { id: string }) => q.id);
+  if (ids.length === 0) return out;
+
+  const [postes, lines] = await Promise.all([
+    db()
+      .from("predevis_postes")
+      .select("id, quote_id, theme, sst_cost_ht")
+      .in("quote_id", ids)
+      .not("theme", "is", null),
+    db().from("predevis_lines").select("*").in("quote_id", ids),
+  ]);
+  if (postes.error) throw postes.error;
+  if (lines.error) throw lines.error;
+
+  for (const p of postes.data ?? []) {
+    const rows = (lines.data ?? []).filter((l: StoredQuoteLine) => l.poste_id === p.id);
+    const sst = p.sst_cost_ht == null ? null : Number(p.sst_cost_ht);
+    const fin = storedPosteRecap(rows.map(toStoredLine), sst);
+    if (fin.pvHt == null || fin.margeHt == null) continue;
+    const cur = out.get(p.theme) ?? { postes: 0, pvHt: 0, margeHt: 0, margeAvecSstHt: 0 };
+    out.set(p.theme, {
+      postes: cur.postes + 1,
+      pvHt: cur.pvHt + fin.pvHt,
+      margeHt: cur.margeHt + fin.margeHt,
+      margeAvecSstHt: cur.margeAvecSstHt + (fin.margeAvecSstHt ?? fin.margeHt),
+    });
+  }
+  return out;
 }
