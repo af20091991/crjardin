@@ -313,6 +313,7 @@ async function writePostesAndLines(
           header.subtotals && poste.index in header.subtotals
             ? header.subtotals[poste.index]
             : poste.subtotalHt,
+        sst_cost_ht: header.sst?.[poste.index] ?? null,
         client_block: clientBlock(
           rows.map(({ key, row, match }) => ({
             kind: row.kind,

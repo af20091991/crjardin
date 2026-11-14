@@ -70,6 +70,7 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
   const [title, setTitle] = useState<string>("");
   const [totalDraft, setTotalDraft] = useState<string>("");
   const [subDrafts, setSubDrafts] = useState<Record<number, string>>({});
+  const [sstDrafts, setSstDrafts] = useState<Record<number, string>>({});
   const [selected, setSelected] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
@@ -253,7 +254,9 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
       toast.error("Total HT déclaré invalide : saisis un nombre positif, ou laisse vide.");
       return;
     }
-    const header: ManualHeader = { title: title.trim(), totalHtDeclared, subtotals };
+    const sst: Record<number, number | null> = {};
+    for (const p of quote.postes) sst[p.index] = parseAmountDraft(sstDrafts[p.index] ?? "") ?? null;
+    const header: ManualHeader = { title: title.trim(), totalHtDeclared, subtotals, sst };
     setBusy(true);
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -350,7 +353,8 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
 
           {quote.postes.map((p) => {
             const recapRows = buildRecapRows(p);
-            const fin = posteRecap(recapRows, manual);
+            const sstValue = parseAmountDraft(sstDrafts[p.index] ?? "") ?? null;
+            const fin = posteRecap(recapRows, manual, sstValue);
             const missing = missingFields(recapRows, manual);
             const noQuantity = recapRows.filter((r) => r.quantity == null);
             const rows: ViewRow[] = p.rows.map((r) => {
@@ -415,7 +419,16 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                           setSubDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
                         }
                       />
-                      · TTC {eur(p.sumTtc)}
+                      · TTC {eur(p.sumTtc)} · Coût SST
+                      <AmountStepper
+                        label={`Coût SST poste ${p.index}`}
+                        step={0.01}
+                        width="w-44"
+                        value={sstValue ?? undefined}
+                        onChange={(v) =>
+                          setSstDrafts((d) => ({ ...d, [p.index]: v == null ? "" : String(v) }))
+                        }
+                      />
                     </span>
                     {p.reasons.length > 0 && (
                       <span className="w-full text-sm text-destructive">{p.reasons.join(" ")}</span>
@@ -424,6 +437,7 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                 }
                 rows={rows}
                 fin={fin}
+                sst={{ value: sstValue }}
                 clientText={posteClientText(recapRows)}
               >
                 {(missing.length > 0 || fin.issues.length > 0 || noQuantity.length > 0) && (

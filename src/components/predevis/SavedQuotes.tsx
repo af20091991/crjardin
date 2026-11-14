@@ -413,16 +413,15 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
                 {editing
                   ? stepper(`p:${poste.id}`, 0.01, `Sous-total poste ${poste.position}`)
                   : eur(num(poste.subtotal_ht))}
+                {" · "}Coût SST{" "}
+                {editing
+                  ? stepper(`s:${poste.id}`, 0.01, `Coût SST poste ${poste.position}`)
+                  : eur(num(poste.sst_cost_ht))}
               </span>
             }
             rows={rows}
             fin={fin}
-            sst={{
-              value: sstValue,
-              editor: editing
-                ? stepper(`s:${poste.id}`, 0.01, `Coût SST poste ${poste.position}`)
-                : undefined,
-            }}
+            sst={{ value: sstValue }}
             clientText={poste.client_block ?? ""}
           />
         );
