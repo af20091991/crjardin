@@ -25,13 +25,16 @@ import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { eur } from "@/components/predevis/predevis-format";
 import { ChantierRecap } from "@/components/predevis/ChantierRecap";
+import { PredevisShell, SideCard, type PredevisStep } from "@/components/predevis/PredevisShell";
 import {
   ChantierTotalsBar,
+  PosteRow,
   QuoteBlockers,
   ThemeBenchmark,
   ThemePicker,
 } from "@/components/predevis/PredevisPilotage";
 import { chantierFinance, TARGET_MARGIN_PCT, type PosteFinance } from "@/lib/predevis-finance";
+import { detectThemes } from "@/lib/predevis-themes";
 
 const num = (v: unknown) => (v == null ? null : Number(v));
 const showNum = (n: number | null | undefined) => (n == null ? "" : String(Number(n)));
@@ -141,6 +144,8 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [openPosteId, setOpenPosteId] = useState<string | null>(null);
+  const versions = useQuery({ queryKey: ["predevis", "quotes"], queryFn: listQuotes });
   const { data, isLoading, error } = useQuery({
     queryKey: ["predevis", "quote", quoteId],
     queryFn: () => loadQuoteDetail(quoteId),
@@ -314,50 +319,101 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     (f) => f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT,
   ).length;
 
-  return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="mr-1 h-4 w-4" /> Retour aux devis importés
-          </Button>
-          {!editing ? (
-            <Button variant="outline" size="sm" onClick={startEdit}>
-              <Pencil className="mr-1 h-3.5 w-3.5" /> Modifier les montants
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
-                Annuler
-              </Button>
-              <Button size="sm" disabled={saving} onClick={save}>
-                Enregistrer les montants
-              </Button>
-            </div>
-          )}
-        </div>
-        <div>
-          {editing ? (
-            <Input
-              className="h-9 max-w-2xl font-display text-xl"
-              value={drafts.t ?? ""}
-              onChange={(e) => setDraft("t", e.target.value)}
-              aria-label="Nom du devis"
-            />
-          ) : (
-            <h2 className="font-display text-xl">{data.quote.title}</h2>
-          )}
-          <p className="text-sm text-muted-foreground">
-            {data.quote.devis_number ? `Devis n° ${data.quote.devis_number} · ` : ""}
-            Total HT déclaré{" "}
-            {editing
-              ? stepper("q", 0.01, "Total HT déclaré")
-              : eur(num(data.quote.total_ht_declared))}
-          </p>
-        </div>
-      </div>
+  const openId = openPosteId ?? data.postes[0]?.id ?? null;
+  const openPoste = data.postes.find((p) => p.id === openId) ?? null;
+  const olderVersions = (versions.data ?? []).filter(
+    (v) =>
+      !!data.quote.devis_number &&
+      v.devis_number === data.quote.devis_number &&
+      v.id !== data.quote.id &&
+      !v.superseded_at &&
+      v.created_at < data.quote.created_at,
+  ).length;
+  const blockingCount = incomplets.length + sansTheme + (olderVersions > 0 ? 1 : 0);
+  const steps: PredevisStep[] = [
+    {
+      label: "Éléments bloquants",
+      hint: blockingCount > 0 ? `${blockingCount} à lever` : "Tout est levé",
+      state: data.quote.archived_at ? "done" : blockingCount > 0 ? "current" : "done",
+    },
+    {
+      label: "Rentabilité",
+      hint: "Postes et marges",
+      state: data.quote.archived_at ? "done" : "current",
+    },
+    {
+      label: "Archivage",
+      hint: data.quote.archived_at ? "Archivé" : "Après levée",
+      state: data.quote.archived_at ? "done" : blockingCount > 0 ? "locked" : "current",
+    },
+  ];
 
-      <ChantierTotalsBar f={chantierFinance(finsChantier)} postesSousSeuil={postesSousSeuil} />
+  return (
+    <PredevisShell
+      crumbs={
+        <>
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="mr-1 h-4 w-4" /> Devis importés
+          </Button>
+          <span className="text-muted-foreground">›</span>
+          <strong className="font-semibold">{data.quote.title}</strong>
+        </>
+      }
+      status={data.quote.archived_at ? "Archivé" : "Brouillon"}
+      actions={
+        !editing ? (
+          <Button variant="outline" size="sm" onClick={startEdit}>
+            <Pencil className="mr-1 h-3.5 w-3.5" /> Modifier les montants
+          </Button>
+        ) : (
+          <>
+            <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
+              Annuler
+            </Button>
+            <Button size="sm" disabled={saving} onClick={save}>
+              Enregistrer les montants
+            </Button>
+          </>
+        )
+      }
+      totals={
+        <ChantierTotalsBar f={chantierFinance(finsChantier)} postesSousSeuil={postesSousSeuil} />
+      }
+      steps={steps}
+      aside={
+        <>
+          <SideCard title="Devis">
+            <p>{data.quote.devis_number ? `N° ${data.quote.devis_number}` : "Sans numéro"}</p>
+            <p className="text-muted-foreground">
+              Total HT déclaré{" "}
+              {editing
+                ? stepper("q", 0.01, "Total HT déclaré")
+                : eur(num(data.quote.total_ht_declared))}
+            </p>
+            <p className="text-muted-foreground">
+              Enregistré le {new Date(data.quote.created_at).toLocaleDateString("fr-FR")}
+            </p>
+          </SideCard>
+          {openPoste && (
+            <SideCard title="Texte client">
+              <p className="whitespace-pre-wrap text-muted-foreground">
+                {openPoste.client_block || "—"}
+              </p>
+            </SideCard>
+          )}
+        </>
+      }
+    >
+      {editing && (
+        <section className="rounded-xl border bg-card p-5">
+          <Input
+            className="h-9 font-display text-xl"
+            value={drafts.t ?? ""}
+            onChange={(e) => setDraft("t", e.target.value)}
+            aria-label="Nom du devis"
+          />
+        </section>
+      )}
 
       <QuoteBlockers
         quote={data.quote}
@@ -366,10 +422,38 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
         onEditCosts={startEdit}
       />
 
+      <section className="space-y-2 rounded-xl border bg-card p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Postes du devis
+        </p>
+        <div className="divide-y">
+          {data.postes.map((poste) => {
+            const lines = linesOf(poste.id);
+            const detected = detectThemes(
+              poste.title,
+              lines.map((l) => l.designation),
+            ).main;
+            return (
+              <PosteRow
+                key={poste.id}
+                index={poste.position}
+                title={poste.title}
+                theme={poste.theme ?? detected}
+                fin={finsByPoste.get(poste.id)!}
+                open={poste.id === openId}
+                onOpen={() => setOpenPosteId(poste.id)}
+                flag={poste.review_status === "valide" ? null : "à vérifier"}
+              />
+            );
+          })}
+        </div>
+      </section>
+
       {data.postes.map((poste) => {
         const lines = linesOf(poste.id);
         const fin = finsByPoste.get(poste.id)!;
         const sstValue = sstOf(poste.id);
+        if (poste.id !== openId) return null;
         const rows: ViewRow[] = lines.map((l) => {
           const isFourniture = l.line_kind === "fourniture";
           const pauCell = !isFourniture ? (
@@ -455,16 +539,13 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
       })}
 
       {finsChantier.length > 0 && (
-        <>
-          <ChantierRecap f={chantierFinance(finsChantier)} postesSousSeuil={postesSousSeuil} />
-          <ThemeBenchmark
-            postes={data.postes.map((p) => ({
-              theme: p.theme ?? null,
-              fin: finsByPoste.get(p.id)!,
-            }))}
-          />
-        </>
+        <ChantierRecap f={chantierFinance(finsChantier)} postesSousSeuil={postesSousSeuil} />
       )}
-    </div>
+      {finsChantier.length > 0 && (
+        <ThemeBenchmark
+          postes={data.postes.map((p) => ({ theme: p.theme ?? null, fin: finsByPoste.get(p.id)! }))}
+        />
+      )}
+    </PredevisShell>
   );
 }

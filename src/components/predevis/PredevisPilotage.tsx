@@ -306,3 +306,68 @@ export function ThemeBenchmark({
     </section>
   );
 }
+
+/** Ligne compacte d'un poste : titre, thème, barre du taux de marge (après SST si connue), montant. */
+export function PosteRow({
+  index,
+  title,
+  theme,
+  fin,
+  open,
+  onOpen,
+  flag,
+}: {
+  index: number;
+  title: string;
+  theme: string | null;
+  fin: PosteFinance;
+  open: boolean;
+  onOpen: () => void;
+  flag?: string | null;
+}) {
+  const taux = fin.tauxMargeAvecSst ?? fin.tauxMarge;
+  const width = taux == null ? 0 : Math.max(0, Math.min(100, taux));
+  const low = taux != null && taux < TARGET_MARGIN_PCT;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-expanded={open}
+      className={`grid w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-2 py-3 text-left text-sm transition-colors hover:bg-muted/50 md:grid-cols-[28px_minmax(0,1fr)_minmax(120px,180px)_auto] ${
+        open ? "bg-primary/5" : ""
+      }`}
+    >
+      <span className="text-muted-foreground tabular-nums">{index}</span>
+      <span className="min-w-0">
+        <span className="block truncate font-semibold">
+          {flag && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-destructive" />}
+          {title}
+        </span>
+        <span className="mt-1 flex flex-wrap gap-2">
+          {theme && <Badge variant="outline">{theme}</Badge>}
+          {flag && <span className="text-xs text-destructive">{flag}</span>}
+        </span>
+      </span>
+      <span className="hidden md:block">
+        <span className="relative block h-2 rounded-full bg-muted">
+          <span
+            className={`absolute inset-y-0 left-0 rounded-full ${
+              low ? "bg-amber-600" : "bg-primary"
+            }`}
+            style={{ width: `${width}%` }}
+          />
+          <span
+            className="absolute -inset-y-1 w-0.5 bg-foreground/70"
+            style={{ left: `${TARGET_MARGIN_PCT}%` }}
+            title={`Seuil ${TARGET_MARGIN_PCT} %`}
+          />
+        </span>
+        <span className="mt-1 block text-xs text-muted-foreground tabular-nums">
+          {taux == null ? "—" : `${taux.toFixed(1).replace(".", ",")} %`}{" "}
+          {fin.tauxMargeAvecSst != null ? "après SST" : "avant SST"}
+        </span>
+      </span>
+      <span className="text-right font-medium tabular-nums">{eur(fin.pvHt)}</span>
+    </button>
+  );
+}
