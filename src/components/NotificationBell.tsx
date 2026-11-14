@@ -6,7 +6,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useRole } from "@/hooks/use-role";
 import {
+  deleteReadNotifications,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -29,6 +31,7 @@ const ICONS: Record<string, typeof Bell> = {
 
 export function NotificationBell() {
   const { user } = useAuth();
+  const { role } = useRole();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data: notifs } = useQuery({
@@ -70,6 +73,8 @@ export function NotificationBell() {
     onSuccess: inv,
   });
   const readAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: inv });
+  const clearRead = useMutation({ mutationFn: deleteReadNotifications, onSuccess: inv });
+  const readCount = (notifs ?? []).length - unread;
 
   return (
     <Popover>
@@ -94,16 +99,29 @@ export function NotificationBell() {
       >
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-semibold">Notifications</span>
-          {unread > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => readAll.mutate()}
-            >
-              <Check className="mr-1 h-3 w-3" /> Tout lire
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {unread > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => readAll.mutate()}
+              >
+                <Check className="mr-1 h-3 w-3" /> Tout lire
+              </Button>
+            )}
+            {readCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => clearRead.mutate()}
+                disabled={clearRead.isPending}
+              >
+                Supprimer les lues ({readCount})
+              </Button>
+            )}
+          </div>
         </div>
         {groups.length > 1 && (
           <div className="flex gap-1.5 overflow-x-auto border-b px-3 py-2">
@@ -137,7 +155,7 @@ export function NotificationBell() {
           ) : (
             shown.map((g) => (
               <section key={g.group}>
-                {(filter === "all" ? groups.length > 1 : false) && (
+                {filter === "all" && (
                   <h3 className="sticky top-0 z-10 bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {g.label}
                   </h3>
@@ -149,7 +167,7 @@ export function NotificationBell() {
                       key={n.id}
                       onClick={() => {
                         if (!n.is_read) readOne.mutate(n.id);
-                        const target = notificationTarget(n);
+                        const target = notificationTarget(n, role);
                         if (target) void navigate({ to: target as never });
                       }}
                       className={`flex w-full items-start gap-2.5 border-b px-3 py-3 text-left transition-colors hover:bg-accent/40 ${

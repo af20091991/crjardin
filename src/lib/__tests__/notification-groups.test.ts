@@ -31,3 +31,17 @@ describe("notification-groups", () => {
     expect(notificationTarget(n({}))).toBeNull();
   });
 });
+
+describe("notificationTarget par rôle", () => {
+  it("le prestataire n'est pas envoyé vers une fiche client", () => {
+    expect(notificationTarget(n({ client_id: "c1" }), "prestataire")).toBeNull();
+  });
+  it("le prestataire garde le calendrier SST et le CR chantier", () => {
+    expect(notificationTarget(n({ type: "sst_calendar" }), "prestataire")).toBe(
+      "/pilot/calendrier",
+    );
+    expect(notificationTarget(n({ intervention_id: "i1" }), "prestataire")).toBe(
+      "/interventions/i1",
+    );
+  });
+});

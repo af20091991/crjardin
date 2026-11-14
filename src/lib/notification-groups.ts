@@ -33,9 +33,15 @@ export function groupNotifications(list: AppNotification[]) {
   }));
 }
 
-/** Page à ouvrir pour une notification (null = rester sur place). */
-export function notificationTarget(n: AppNotification): string | null {
+/** Page à ouvrir pour une notification, selon le rôle (null = rester sur place).
+ * Le prestataire n'accède qu'aux écrans SST et CR chantier (voir prestataire-access). */
+export function notificationTarget(
+  n: AppNotification,
+  role: "admin" | "prestataire" | "observateur" = "admin",
+): string | null {
+  if (n.intervention_id) return `/interventions/${n.intervention_id}`;
   if (n.type.startsWith("sst")) return "/pilot/calendrier";
+  if (role === "prestataire") return null;
   if (n.client_id) return `/clients/${n.client_id}`;
   return null;
 }
