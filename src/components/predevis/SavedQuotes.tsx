@@ -24,7 +24,7 @@ import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { eur } from "@/components/predevis/predevis-format";
 import { ChantierRecap } from "@/components/predevis/ChantierRecap";
-import { chantierFinance, type PosteFinance } from "@/lib/predevis-finance";
+import { chantierFinance, TARGET_MARGIN_PCT, type PosteFinance } from "@/lib/predevis-finance";
 
 const num = (v: unknown) => (v == null ? null : Number(v));
 const showNum = (n: number | null | undefined) => (n == null ? "" : String(Number(n)));
@@ -433,7 +433,16 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
         );
       })}
 
-      {finsChantier.length > 0 && <ChantierRecap f={chantierFinance(finsChantier)} />}
+      {finsChantier.length > 0 && (
+        <ChantierRecap
+          f={chantierFinance(finsChantier)}
+          postesSousSeuil={
+            finsChantier.filter(
+              (f) => f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT,
+            ).length
+          }
+        />
+      )}
     </div>
   );
 }

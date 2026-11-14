@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { PosteFinance } from "@/lib/predevis-finance";
+import { prixCiblePourTaux, TARGET_MARGIN_PCT, type PosteFinance } from "@/lib/predevis-finance";
 import { amount, copyText, eur } from "@/components/predevis/predevis-format";
 
 /** Une ligne du tableau d'un poste. Le rattachement et l'achat sont déjà mis en forme par l'écran appelant. */
@@ -42,11 +42,18 @@ export function PosteSection({
   clientText: string;
   children?: ReactNode;
 }) {
+  const sousSeuil = fin.tauxMargeAvecSst != null && fin.tauxMargeAvecSst < TARGET_MARGIN_PCT;
+  const cibleHt = sst ? prixCiblePourTaux(fin.prixAchatHt, sst.value) : null;
   return (
     <section className="space-y-6 rounded-xl border bg-card p-6">
       <header className="flex flex-wrap items-center gap-3">
         <h3 className="font-display text-lg">
           Poste {index} — {title}
+          {sst && sousSeuil && (
+            <Badge variant="outline" className="ml-3 text-amber-700">
+              Sous le seuil de {TARGET_MARGIN_PCT} %
+            </Badge>
+          )}
         </h3>
         {meta}
       </header>
@@ -150,6 +157,13 @@ export function PosteSection({
                   ? "—"
                   : `${fin.tauxMargeAvecSst.toFixed(2).replace(".", ",")} %`
               }
+              strong
+            />
+          )}
+          {sst && sousSeuil && cibleHt != null && fin.pvHt != null && (
+            <RecapLine
+              label={`Prix de vente pour ${TARGET_MARGIN_PCT} % après SST`}
+              value={`${eur(cibleHt)} (+${eur(cibleHt - fin.pvHt)})`}
               strong
             />
           )}
