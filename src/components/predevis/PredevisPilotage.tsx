@@ -10,6 +10,7 @@ import { THEMES } from "@/lib/predevis-themes";
 import {
   listQuotes,
   loadThemeBenchmark,
+  markPosteWithoutPurchase,
   setPosteTheme,
   setQuoteFlags,
   supersedeOlderVersions,
@@ -32,32 +33,54 @@ export function ChantierTotalsBar({
 }) {
   const sousSeuil = f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT;
   return (
-    <div className="sticky top-0 z-20 flex flex-wrap items-center gap-x-8 gap-y-2 border-b bg-background/95 py-3 text-sm backdrop-blur">
-      <TotalItem label="PV HT" value={eur(f.pvHt)} />
-      <TotalItem label="Marge brute" value={`${eur(f.margeHt)} · ${pct(f.tauxMarge)}`} />
-      <TotalItem
-        label="Marge après SST"
-        value={`${eur(f.margeAvecSstHt)} · ${pct(f.tauxMargeAvecSst)}`}
-        warn={sousSeuil}
-      />
-      <TotalItem
-        label={`Seuil ${TARGET_MARGIN_PCT} %`}
-        value={
-          postesSousSeuil > 0
-            ? `${postesSousSeuil} poste${postesSousSeuil > 1 ? "s" : ""} sous le seuil`
-            : "tous les postes au-dessus"
-        }
-        warn={postesSousSeuil > 0}
-      />
+    <div className="sticky top-0 z-20 -mx-1 rounded-b-xl border bg-background/95 px-3 py-3 shadow-sm backdrop-blur">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <TotalItem label="PV HT" value={eur(f.pvHt)} />
+        <TotalItem label="Marge brute" value={`${eur(f.margeHt)}`} sub={pct(f.tauxMarge)} />
+        <TotalItem
+          label="Marge après SST"
+          value={eur(f.margeAvecSstHt)}
+          sub={pct(f.tauxMargeAvecSst)}
+          tone={sousSeuil ? "warn" : "good"}
+        />
+        <TotalItem
+          label={`Seuil ${TARGET_MARGIN_PCT} %`}
+          value={
+            postesSousSeuil > 0
+              ? `${postesSousSeuil} poste${postesSousSeuil > 1 ? "s" : ""} sous le seuil`
+              : "Tous au-dessus"
+          }
+          tone={postesSousSeuil > 0 ? "warn" : "good"}
+        />
+      </div>
     </div>
   );
 }
 
-function TotalItem({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
+function TotalItem({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "good" | "warn";
+}) {
   return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`font-semibold ${warn ? "text-amber-700" : ""}`}>{value}</p>
+    <div className="rounded-lg bg-muted/40 px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={`mt-0.5 font-display text-lg font-semibold tabular-nums ${
+          tone === "warn" ? "text-amber-700" : tone === "good" ? "text-primary" : ""
+        }`}
+      >
+        {value}
+        {sub && <span className="ml-2 text-sm font-medium text-muted-foreground">{sub}</span>}
+      </p>
     </div>
   );
 }
@@ -70,7 +93,7 @@ export function QuoteBlockers({
   onEditCosts,
 }: {
   quote: QuoteSummary;
-  incomplets: { position: number; issues: number }[];
+  incomplets: { position: number; posteId: string; issues: number }[];
   sansTheme: number;
   onEditCosts: () => void;
 }) {
@@ -164,12 +187,26 @@ export function QuoteBlockers({
         {incomplets.map((p) => (
           <li key={p.position} className="flex flex-wrap items-center justify-between gap-2">
             <span>
-              Poste {p.position} : {p.issues} information{p.issues > 1 ? "s" : ""} de coût à
-              compléter
+              Poste {p.position} : {p.issues} ligne{p.issues > 1 ? "s" : ""} sans prix d'achat
             </span>
-            <Button size="sm" variant="outline" onClick={onEditCosts}>
-              Compléter
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" disabled={busy} onClick={onEditCosts}>
+                Renseigner les prix
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() =>
+                  run(
+                    () => markPosteWithoutPurchase(p.posteId),
+                    "Poste marqué sans achat (prestation)",
+                  )
+                }
+              >
+                Sans achat (prestation)
+              </Button>
+            </div>
           </li>
         ))}
         {sansTheme > 0 && (
@@ -334,7 +371,7 @@ export function PosteRow({
       onClick={onOpen}
       aria-expanded={open}
       className={`grid w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-2 py-3 text-left text-sm transition-colors hover:bg-muted/50 md:grid-cols-[28px_minmax(0,1fr)_minmax(120px,180px)_auto] ${
-        open ? "bg-primary/5" : ""
+        open ? "bg-primary/5 ring-1 ring-primary/25" : ""
       }`}
     >
       <span className="text-muted-foreground tabular-nums">{index}</span>

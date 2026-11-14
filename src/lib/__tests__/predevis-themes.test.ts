@@ -6,9 +6,9 @@ describe("detectThemes", () => {
     expect(detectThemes("Terrassement et préparation", []).main).toBe("Travaux préparatoires");
     expect(detectThemes("Gazon alternatif, 2 espèces", []).main).toBe("Gazon alternatif");
   });
-  test("le broyat reste en travaux préparatoires même si le titre cite le massif", () => {
+  test("le broyat est une mise en place de paillage, même si le titre cite le massif", () => {
     expect(detectThemes("Broyat sur massif de fond de jardin", []).main).toBe(
-      "Travaux préparatoires",
+      "Mise en place de paillage",
     );
   });
   test("les désignations donnent les thèmes secondaires", () => {

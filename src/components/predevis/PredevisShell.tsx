@@ -24,8 +24,8 @@ export function PredevisShell({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-0">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 pb-1">
         <nav
           className="flex min-w-0 flex-wrap items-center gap-2 text-sm"
           aria-label="Fil d'Ariane"
@@ -39,29 +39,31 @@ export function PredevisShell({
       {totals}
 
       <div className="grid gap-5 pt-5 lg:grid-cols-[200px_minmax(0,1fr)_260px]">
-        <aside className="flex gap-2 overflow-x-auto lg:sticky lg:top-24 lg:flex-col lg:overflow-visible">
+        <aside className="flex gap-3 overflow-x-auto lg:sticky lg:top-24 lg:flex-col lg:overflow-visible">
           {steps.map((s, i) => (
             <div
               key={s.label}
-              className={`flex min-w-[170px] items-start gap-3 rounded-lg border p-3 lg:min-w-0 ${
-                s.state === "current" ? "bg-card" : "border-transparent"
-              } ${s.state === "locked" ? "opacity-60" : ""}`}
+              className={`relative flex min-w-[180px] items-start gap-3 rounded-xl p-3 transition-colors lg:min-w-0 ${
+                s.state === "current"
+                  ? "bg-card shadow-sm ring-1 ring-primary/30"
+                  : "hover:bg-muted/40"
+              } ${s.state === "locked" ? "opacity-50" : ""}`}
               aria-current={s.state === "current" ? "step" : undefined}
             >
               <span
-                className={`grid h-6 w-6 flex-none place-items-center rounded-full border text-xs font-semibold ${
+                className={`grid h-7 w-7 flex-none place-items-center rounded-full text-xs font-bold ${
                   s.state === "done"
-                    ? "border-primary bg-primary text-primary-foreground"
+                    ? "bg-primary text-primary-foreground"
                     : s.state === "current"
-                      ? "border-primary text-primary"
-                      : "text-muted-foreground"
+                      ? "bg-primary/15 text-primary ring-2 ring-primary"
+                      : "bg-muted text-muted-foreground"
                 }`}
               >
                 {s.state === "done" ? "✓" : i + 1}
               </span>
               <div className="min-w-0">
-                <p className="font-semibold">{s.label}</p>
-                <p className="text-xs text-muted-foreground">{s.hint}</p>
+                <p className="text-sm font-semibold leading-tight">{s.label}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{s.hint}</p>
               </div>
             </div>
           ))}

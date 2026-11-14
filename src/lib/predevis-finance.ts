@@ -72,6 +72,11 @@ export function posteFinance(
       continue;
     }
     const cost = lineCostHt(l);
+    // Prestation sans achat (SAV, remise) : coût 0 assumé, motif enregistré.
+    if (cost == null && l.zeroCostReason != null) {
+      costs.push(0);
+      continue;
+    }
     if (cost == null) {
       note(l.kind === "mo" ? "Coût de main-d'œuvre manquant." : "Prix d'achat manquant.");
     } else {

@@ -818,3 +818,15 @@ export async function loadThemeBenchmark(): Promise<Map<string, ThemeHistory>> {
   }
   return out;
 }
+
+/** Prestation sans achat (SAV, garantie) : les lignes de fourniture sans prix sont marquées « sans achat ». */
+export async function markPosteWithoutPurchase(posteId: string): Promise<void> {
+  const { error } = await db()
+    .from("predevis_lines")
+    .update({ zero_cost_reason: "sav" })
+    .eq("poste_id", posteId)
+    .eq("line_kind", "fourniture")
+    .is("pau_ht_applied", null)
+    .is("zero_cost_reason", null);
+  if (error) throw error;
+}
