@@ -90,10 +90,17 @@ function isPrestation(l: StoredQuoteLine): boolean {
 }
 
 function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
-  const { data, isLoading, error } = useQuery({
+  const [tab, setTab] = useState<"en_cours" | "archives">("en_cours");
+  const {
+    data: all,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["predevis", "quotes"],
     queryFn: listQuotes,
   });
+  const archivedCount = (all ?? []).filter((q) => q.archived_at).length;
+  const data = all?.filter((q) => (tab === "archives" ? !!q.archived_at : !q.archived_at));
 
   return (
     <section className="space-y-6 rounded-xl border bg-card p-6">
@@ -103,11 +110,36 @@ function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
           Les devis enregistrés depuis Nouveau devis, avec leurs postes, prix et marges.
         </p>
       </div>
+      <div role="tablist" aria-label="Devis" className="flex gap-1 border-b">
+        {(
+          [
+            ["en_cours", "En cours"],
+            ["archives", `Archivés (${archivedCount})`],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
+              tab === key
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       {isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
       {error && <p className="text-sm text-destructive">Lecture impossible : {String(error)}</p>}
       {data && data.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          Aucun devis importé. Importe un devis dans Nouveau devis.
+          {tab === "archives"
+            ? "Aucun devis archivé. Archive un devis depuis son détail."
+            : "Aucun devis importé. Importe un devis dans Nouveau devis."}
         </p>
       )}
       {data && data.length > 0 && (
@@ -447,7 +479,7 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
                 fin={finsByPoste.get(poste.id)!}
                 open={poste.id === openId}
                 onOpen={() => setOpenPosteId(poste.id)}
-                flag={poste.review_status === "valide" ? null : "à vérifier"}
+                flag={finsByPoste.get(poste.id)!.complete ? null : "à compléter"}
               />
             );
           })}
@@ -548,7 +580,14 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
       })}
 
       {finsChantier.length > 0 && (
-        <ChantierRecap f={chantierFinance(finsChantier)} postesSousSeuil={postesSousSeuil} />
+        <ChantierRecap
+          f={chantierFinance(finsChantier)}
+          postesSousSeuil={postesSousSeuil}
+          postes={data.postes.map((p) => ({
+            label: `${p.position}. ${p.title}`,
+            fin: finsByPoste.get(p.id)!,
+          }))}
+        />
       )}
       {finsChantier.length > 0 && (
         <ThemeBenchmark
