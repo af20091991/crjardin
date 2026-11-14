@@ -274,7 +274,11 @@ export function parseUserAgent(ua: string | null): {
 }
 /** Adresse de connexion de chaque compte (admins uniquement, via fonction SQL dédiée). */
 export async function listUserEmails(): Promise<Record<string, string>> {
-  const { data, error } = await supabase.rpc("admin_list_user_emails");
+  // Fonction hors types générés : même approche que le reste de l'Assistant AP.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- fonction hors types générés
+  const { data, error } = await (supabase.rpc as any)("admin_list_user_emails");
   if (error) throw error;
-  return Object.fromEntries((data ?? []).map((r) => [r.user_id, r.email]));
+  return Object.fromEntries(
+    ((data ?? []) as { user_id: string; email: string }[]).map((r) => [r.user_id, r.email]),
+  );
 }
