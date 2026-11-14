@@ -306,14 +306,14 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     data.postes.map((p) => [p.id, storedPosteRecap(linesOf(p.id).map(liveLine), sstOf(p.id))]),
   );
   const finsChantier: PosteFinance[] = data.postes.map((p) => finsByPoste.get(p.id)!);
+  // Lignes de fourniture sans prix d'achat, ni motif « sans achat » : elles bloquent l'archivage.
+  const manquantsOf = (posteId: string) =>
+    linesOf(posteId).filter(
+      (l) => l.line_kind === "fourniture" && l.zero_cost_reason == null && l.pau_ht_applied == null,
+    ).length;
   const incomplets = data.postes
-    .map((p) => ({
-      position: p.position,
-      issues: finsByPoste.get(p.id)?.issues.length ?? 0,
-      complete: finsByPoste.get(p.id)?.complete ?? true,
-    }))
-    .filter((p) => !p.complete)
-    .map((p) => ({ position: p.position, issues: p.issues }));
+    .map((p) => ({ position: p.position, posteId: p.id, issues: manquantsOf(p.id) }))
+    .filter((p) => p.issues > 0);
   const sansTheme = data.postes.filter((p) => p.theme == null).length;
   const postesSousSeuil = finsChantier.filter(
     (f) => f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT,

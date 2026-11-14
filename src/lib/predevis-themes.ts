@@ -4,6 +4,7 @@
 
 export const THEMES = [
   "Travaux préparatoires",
+  "Mise en place de paillage",
   "Plantation de massif",
   "Plantation de haie",
   "Plantation d'arbre",
@@ -18,10 +19,11 @@ export type Theme = (typeof THEMES)[number];
 const KEYWORDS: Array<{ theme: Theme; pattern: RegExp }> = [
   { theme: "Gazon alternatif", pattern: /gazon/i },
   { theme: "Goutte-à-goutte", pattern: /goutte|irrigation/i },
+  { theme: "Mise en place de paillage", pattern: /paillage|broyat|\bBRF\b/i },
   {
     theme: "Travaux préparatoires",
     pattern:
-      /terrassement|nivellement|broyat|\bBRF\b|terre v[ée]g[ée]tale|motoculage|amendement|\bterreau\b|livraison/i,
+      /terrassement|nivellement|terre v[ée]g[ée]tale|motoculage|amendement|\bterreau\b|livraison/i,
   },
   { theme: "Visites et garantie", pattern: /visite|garantie|\bSAV\b|fiche conseil|passage à/i },
   { theme: "Plantation de haie", pattern: /haie/i },
