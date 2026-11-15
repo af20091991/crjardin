@@ -5,9 +5,21 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  deleteQuotes,
+  listClientOptions,
   listQuotes,
   loadQuoteDetail,
+  renameQuote,
+  setQuoteClient,
   markLineSav,
   renamePoste,
   saveQuoteAmounts,
@@ -94,7 +106,10 @@ function isPrestation(l: StoredQuoteLine): boolean {
 }
 
 function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
+  const qc = useQueryClient();
   const [tab, setTab] = useState<"en_cours" | "archives">("en_cours");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
   const {
     data: all,
     isLoading,
@@ -103,16 +118,61 @@ function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
     queryKey: ["predevis", "quotes"],
     queryFn: listQuotes,
   });
+  const clients = useQuery({ queryKey: ["predevis", "clients"], queryFn: listClientOptions });
   const archivedCount = (all ?? []).filter((q) => q.archived_at).length;
   const data = all?.filter((q) => (tab === "archives" ? !!q.archived_at : !q.archived_at));
+  const clientName = new Map((clients.data ?? []).map((c) => [c.id, c.name]));
+  const visibleIds = (data ?? []).map((q) => q.id);
+  const allChecked = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+
+  const toggle = (id: string) =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  async function run(action: () => Promise<void>, ok: string) {
+    setBusy(true);
+    try {
+      await action();
+      await qc.invalidateQueries({ queryKey: ["predevis"] });
+      toast.success(ok);
+    } catch {
+      toast.error("Action non enregistrée, réessayez");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function removeSelected() {
+    const ids = [...selected];
+    if (!window.confirm(`Supprimer ${ids.length} devis ? Leurs postes et lignes seront supprimés.`))
+      return;
+    void run(
+      async () => {
+        await deleteQuotes(ids);
+        setSelected(new Set());
+      },
+      `${ids.length} devis supprimé${ids.length > 1 ? "s" : ""}`,
+    );
+  }
 
   return (
     <section className="space-y-6 rounded-xl border bg-card p-6">
-      <div>
-        <h2 className="font-display text-lg">Devis importés</h2>
-        <p className="text-sm text-muted-foreground">
-          Les devis enregistrés depuis Nouveau devis, avec leurs postes, prix et marges.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-lg">Devis importés</h2>
+          <p className="text-sm text-muted-foreground">
+            Les devis enregistrés depuis Nouveau devis, avec leurs postes, prix et marges.
+          </p>
+        </div>
+        {selected.size > 0 && (
+          <Button variant="destructive" size="sm" disabled={busy} onClick={removeSelected}>
+            Supprimer la sélection ({selected.size})
+          </Button>
+        )}
       </div>
       <div role="tablist" aria-label="Devis" className="flex gap-1 border-b">
         {(
@@ -126,7 +186,10 @@ function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
             type="button"
             role="tab"
             aria-selected={tab === key}
-            onClick={() => setTab(key)}
+            onClick={() => {
+              setTab(key);
+              setSelected(new Set());
+            }}
             className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
               tab === key
                 ? "border-primary text-primary"
@@ -151,7 +214,17 @@ function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="w-8 py-2 pr-2 text-left font-medium">
+                  <Checkbox
+                    aria-label="Tout sélectionner"
+                    checked={allChecked}
+                    onCheckedChange={(v) =>
+                      setSelected(v === true ? new Set(visibleIds) : new Set())
+                    }
+                  />
+                </th>
                 <th className="py-2 pr-4 text-left font-medium">Devis</th>
+                <th className="py-2 pr-4 text-left font-medium">Client</th>
                 <th className="py-2 pr-4 text-right font-medium">Total HT déclaré</th>
                 <th className="py-2 pr-4 text-left font-medium">Enregistré le</th>
                 <th className="py-2 text-right font-medium" />
@@ -160,7 +233,48 @@ function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
             <tbody>
               {data.map((q) => (
                 <tr key={q.id} className="border-b last:border-0 hover:bg-muted/40">
-                  <td className="py-3 pr-4 font-medium">{q.title}</td>
+                  <td className="py-3 pr-2">
+                    <Checkbox
+                      aria-label={`Sélectionner ${q.title}`}
+                      checked={selected.has(q.id)}
+                      onCheckedChange={() => toggle(q.id)}
+                    />
+                  </td>
+                  <td className="py-3 pr-4 font-medium">
+                    <PosteTitleEdit
+                      value={q.title}
+                      onSave={(title) =>
+                        run(() => renameQuote(q.id, title), "Nom du devis enregistré")
+                      }
+                    />
+                  </td>
+                  <td className="py-3 pr-4">
+                    <Select
+                      value={q.client_id ?? NO_CLIENT}
+                      disabled={busy || clients.isLoading}
+                      onValueChange={(v) =>
+                        run(
+                          () => setQuoteClient(q.id, v === NO_CLIENT ? null : v),
+                          "Client enregistré",
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-9 min-w-[200px]" aria-label="Client du devis">
+                        <SelectValue placeholder="Choisir un client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_CLIENT}>Aucun client</SelectItem>
+                        {q.client_id && !clientName.has(q.client_id) && (
+                          <SelectItem value={q.client_id}>Client supprimé</SelectItem>
+                        )}
+                        {(clients.data ?? []).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
                   <td className="py-3 pr-4 text-right">{eur(num(q.total_ht_declared))}</td>
                   <td className="py-3 pr-4">
                     {new Date(q.created_at).toLocaleDateString("fr-FR")}
@@ -179,6 +293,8 @@ function QuoteList({ onOpen }: { onOpen: (id: string) => void }) {
     </section>
   );
 }
+
+const NO_CLIENT = "__aucun__";
 
 function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => void }) {
   const qc = useQueryClient();
