@@ -17,6 +17,7 @@ export interface ClientPremium {
   google_review_url: string | null;
   commercial_note: string | null;
   cover_photo_id: string | null;
+  cover_document_id: string | null;
 }
 
 export type PremiumDocumentUploader = "gardener" | "client";
@@ -132,6 +133,7 @@ export async function updateClientPremium(
       | "google_review_url"
       | "commercial_note"
       | "cover_photo_id"
+      | "cover_document_id"
     >
   >,
 ): Promise<void> {
@@ -183,6 +185,13 @@ export async function uploadPremiumDocument(
     throw new Error(`Impossible d'enregistrer le document : ${error.message}`);
   }
   return data as PremiumDocument;
+}
+
+const IMAGE_EXT_RE = /\.(jpe?g|png|webp|gif|heic|heif)$/i;
+
+/** Documents du client qui sont des photos (utilisables comme couverture). */
+export function imageDocuments(documents: PremiumDocument[]): PremiumDocument[] {
+  return documents.filter((d) => IMAGE_EXT_RE.test(d.filename));
 }
 
 export async function updatePremiumDocumentVisibility(id: string, visible: boolean): Promise<void> {
