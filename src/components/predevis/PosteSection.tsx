@@ -33,7 +33,7 @@ export function PosteSection({
   children,
 }: {
   index: number;
-  title: string;
+  title: ReactNode;
   meta?: ReactNode;
   rows: ViewRow[];
   fin: PosteFinance;
