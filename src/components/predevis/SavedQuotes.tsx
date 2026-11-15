@@ -25,6 +25,7 @@ import {
 } from "@/lib/predevis-recap";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
 import { PosteTitleEdit } from "@/components/predevis/PosteTitleEdit";
+import { buildQuoteExportHtml, type ExportPoste } from "@/lib/predevis-export";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { eur } from "@/components/predevis/predevis-format";
 import { ChantierRecap } from "@/components/predevis/ChantierRecap";
@@ -377,6 +378,65 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     );
   }
 
+  /** Export copiable : même contenu que l'écran (postes, lignes, totaux, texte client). */
+  function exportQuote() {
+    const exportPostes: ExportPoste[] = data!.postes.map((p) => {
+      const lines = linesOf(p.id);
+      return {
+        index: p.position,
+        title: p.title ?? "",
+        themes: [p.theme, ...(p.secondary_themes ?? [])].filter((t): t is string => !!t),
+        fin: finsByPoste.get(p.id)!,
+        sst: sstOf(p.id) || null,
+        clientText: p.client_block ?? "",
+        rows: lines.map((l) => {
+          const fourniture = l.line_kind === "fourniture";
+          const prestation = fourniture && isPrestation(l);
+          const pau = fourniture && !prestation ? num(l.pau_ht_applied) : null;
+          return {
+            ref: l.source_ref,
+            designation: l.designation,
+            kind: l.line_kind,
+            continued: l.continued,
+            quantity: num(l.quantity),
+            pau,
+            pauLabel: !fourniture ? "—" : prestation ? "sans achat" : "prix manquant",
+            pu: num(l.pu_ht),
+            ht: num(l.ht),
+            ttc: num(l.ttc),
+            rattachement: !fourniture
+              ? "—"
+              : l.catalogue_product_id
+                ? (productCode.get(l.catalogue_product_id) ?? "rattaché")
+                : prestation
+                  ? "prestation"
+                  : "absent du catalogue",
+          };
+        }),
+      };
+    });
+    const html = buildQuoteExportHtml({
+      title: data!.quote.title,
+      devisNumber: data!.quote.devis_number,
+      createdAt: data!.quote.created_at,
+      archived: !!data!.quote.archived_at,
+      totalHtDeclared: num(data!.quote.total_ht_declared),
+      chantier: chantierFinance(finsChantier),
+      postes: exportPostes,
+    });
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const slug = data!.quote.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    a.href = url;
+    a.download = `pre-devis-${slug || "devis"}.html`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   /** Ligne SAV en un clic : prix de revient 0 €, sans achat. */
   async function setLineSav(lineId: string) {
     try {
@@ -448,9 +508,14 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
       status={data.quote.archived_at ? "Archivé" : "Brouillon"}
       actions={
         !editing ? (
-          <Button variant="outline" size="sm" onClick={startEdit}>
-            <Pencil className="mr-1 h-3.5 w-3.5" /> Modifier les montants
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={exportQuote}>
+              Exporter pour copier
+            </Button>
+            <Button variant="outline" size="sm" onClick={startEdit}>
+              <Pencil className="mr-1 h-3.5 w-3.5" /> Modifier les montants
+            </Button>
+          </>
         ) : (
           <>
             <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
