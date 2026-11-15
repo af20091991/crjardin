@@ -386,17 +386,52 @@ export type QuoteSummary = {
   created_at: string;
   archived_at?: string | null;
   superseded_at?: string | null;
+  /** Client rattaché (table clients), optionnel. */
+  client_id?: string | null;
 };
 
 export async function listQuotes(): Promise<QuoteSummary[]> {
   const { data, error } = await db()
     .from("predevis_quotes")
     .select(
-      "id, title, devis_number, total_ht_declared, status, created_at, archived_at, superseded_at",
+      "id, title, devis_number, total_ht_declared, status, created_at, archived_at, superseded_at, client_id",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+/** Clients actifs (non fusionnés) pour la liste déroulante du pré-devis. */
+export async function listClientOptions(): Promise<Array<{ id: string; name: string }>> {
+  const { data, error } = await db()
+    .from("clients")
+    .select("id, name")
+    .is("merged_into_client_id", null)
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string }>;
+}
+
+/** Rattache un devis à un client (null = aucun). */
+export async function setQuoteClient(quoteId: string, clientId: string | null): Promise<void> {
+  const { error } = await db()
+    .from("predevis_quotes")
+    .update({ client_id: clientId })
+    .eq("id", quoteId);
+  if (error) throw error;
+}
+
+/** Renomme un devis. */
+export async function renameQuote(quoteId: string, title: string): Promise<void> {
+  const { error } = await db().from("predevis_quotes").update({ title }).eq("id", quoteId);
+  if (error) throw error;
+}
+
+/** Supprime des devis (leurs postes et lignes partent avec eux). */
+export async function deleteQuotes(quoteIds: string[]): Promise<void> {
+  if (quoteIds.length === 0) return;
+  const { error } = await db().from("predevis_quotes").delete().in("id", quoteIds);
+  if (error) throw error;
 }
 
 export type StoredPoste = {
