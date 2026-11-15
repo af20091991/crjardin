@@ -820,6 +820,16 @@ export async function loadThemeBenchmark(): Promise<Map<string, ThemeHistory>> {
 }
 
 /** Prestation sans achat (SAV, garantie) : les lignes de fourniture sans prix sont marquées « sans achat ». */
+/** Ligne SAV : prix de revient 0 €, sans achat. Ne touche pas une ligne qui a déjà un PAU. */
+export async function markLineSav(lineId: string): Promise<void> {
+  const { error } = await db()
+    .from("predevis_lines")
+    .update({ zero_cost_reason: "sav" })
+    .eq("id", lineId)
+    .is("pau_ht_applied", null);
+  if (error) throw error;
+}
+
 export async function markPosteWithoutPurchase(posteId: string): Promise<void> {
   const { error } = await db()
     .from("predevis_lines")

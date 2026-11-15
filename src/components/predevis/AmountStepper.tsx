@@ -20,6 +20,7 @@ export function AmountStepper({
   value,
   step,
   onChange,
+  onCommit,
   placeholder,
   label,
   width = "w-32",
@@ -28,6 +29,8 @@ export function AmountStepper({
   value: number | null | undefined;
   step: number;
   onChange: (v: number | undefined) => void;
+  /** Appelé à la validation (sortie du champ, Entrée, curseur) avec la valeur saisie : enregistrement immédiat. */
+  onCommit?: (v: number | undefined) => void;
   placeholder?: string;
   /** Nom lisible pour les lecteurs d'écran. */
   label: string;
@@ -46,6 +49,7 @@ export function AmountStepper({
     const next = Math.max(0, Math.round((current + delta) * 100) / 100);
     setText(String(next));
     onChange(next);
+    onCommit?.(next);
   }
 
   return (
@@ -70,6 +74,10 @@ export function AmountStepper({
         onChange={(e) => {
           setText(e.target.value);
           onChange(parseText(e.target.value));
+        }}
+        onBlur={() => onCommit?.(parseText(text))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onCommit?.(parseText(text));
         }}
       />
       <Button
