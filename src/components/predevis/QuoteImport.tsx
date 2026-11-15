@@ -227,15 +227,24 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
     if (manualPau == null && detected != null) return eur(detected);
     // Prix non détecté (ou saisi à la main) : saisie directe dans la ligne.
     return (
-      <AmountStepper
-        label={`PAU HT, ${designation}`}
-        step={0.01}
-        width="w-40"
-        placeholder="À saisir"
-        invalid={manualPau == null}
-        value={manualPau}
-        onChange={(v) => setManual((cur) => ({ ...cur, [key]: { ...(cur[key] ?? {}), pau: v } }))}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <AmountStepper
+          label={`PAU HT, ${designation}`}
+          step={0.01}
+          width="w-40"
+          placeholder="À saisir"
+          invalid={manualPau == null}
+          value={manualPau}
+          onChange={(v) => setManual((cur) => ({ ...cur, [key]: { ...(cur[key] ?? {}), pau: v } }))}
+        />
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => setManual((cur) => ({ ...cur, [key]: { ...(cur[key] ?? {}), pau: 0 } }))}
+        >
+          SAV = 0 €
+        </Button>
+      </div>
     );
   }
 
@@ -305,7 +314,20 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
     const missing = missingFields(recapRows, manual).map((m) => ({ ...m, poste: p.index }));
     const noQuantity = recapRows
       .filter((r) => r.quantity == null)
-      .map((r) => ({ key: r.key, poste: p.index, designation: r.designation }));
+      .map((r) => {
+        const parsed = p.rows.find((x) => quoteRowKey(p.index, x.position) === r.key);
+        return {
+          key: r.key,
+          poste: p.index,
+          designation: r.designation,
+          base: {
+            quantity: parsed?.quantity ?? null,
+            pu: parsed?.pu ?? null,
+            ht: parsed?.ht ?? null,
+            ttc: parsed?.ttc ?? null,
+          },
+        };
+      });
     return { missing, noQuantity };
   });
   const missingAll = blockers.flatMap((b) => b.missing);
@@ -491,9 +513,19 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                 </div>
               ))}
               {noQuantityAll.map((r) => (
-                <p key={r.key} className="border-t pt-3 text-sm text-destructive">
-                  Poste {r.poste} · quantité absente du devis : {r.designation}
-                </p>
+                <div key={r.key} className="flex flex-wrap items-center gap-3 border-t pt-3">
+                  <span className="min-w-0 flex-1 text-sm">
+                    <span className="text-muted-foreground">Poste {r.poste} · </span>
+                    quantité absente du devis : {r.designation}
+                  </span>
+                  <span className="text-sm text-muted-foreground">Quantité</span>
+                  <AmountStepper
+                    label={`Quantité, ${r.designation}`}
+                    step={1}
+                    value={manual[r.key]?.quantity}
+                    onChange={(v) => editAmount(r.key, r.base, "quantity", v)}
+                  />
+                </div>
               ))}
             </section>
           )}

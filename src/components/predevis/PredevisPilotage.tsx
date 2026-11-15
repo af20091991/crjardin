@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { Button } from "@/components/ui/button";
 import { eur } from "@/components/predevis/predevis-format";
 import { chantierFinance, TARGET_MARGIN_PCT, type PosteFinance } from "@/lib/predevis-finance";
@@ -10,6 +11,7 @@ import { THEMES } from "@/lib/predevis-themes";
 import {
   listQuotes,
   loadThemeBenchmark,
+  markLineSav,
   markPosteWithoutPurchase,
   setPosteTheme,
   setQuoteFlags,
@@ -90,15 +92,24 @@ export function QuoteBlockers({
   quote,
   incomplets,
   sansTheme,
-  onEditCosts,
+  onOpenPoste,
+  onCommitPau,
 }: {
   quote: QuoteSummary;
-  incomplets: { position: number; posteId: string; issues: number }[];
+  incomplets: {
+    position: number;
+    posteId: string;
+    issues: number;
+    lines: { id: string; designation: string }[];
+  }[];
   sansTheme: number;
-  onEditCosts: () => void;
+  onOpenPoste: (posteId: string) => void;
+  /** Enregistre le PAU d'une ligne, saisi directement dans le bloc. */
+  onCommitPau: (lineId: string, value: number) => Promise<void>;
 }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [pauDrafts, setPauDrafts] = useState<Record<string, number | undefined>>({});
   const versions = useQuery({ queryKey: ["predevis", "quotes"], queryFn: listQuotes });
   const older = (versions.data ?? []).filter(
     (v) =>
@@ -185,28 +196,59 @@ export function QuoteBlockers({
           </li>
         )}
         {incomplets.map((p) => (
-          <li key={p.position} className="flex flex-wrap items-center justify-between gap-2">
-            <span>
-              Poste {p.position} : {p.issues} ligne{p.issues > 1 ? "s" : ""} sans prix d'achat
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" disabled={busy} onClick={onEditCosts}>
-                Renseigner les prix
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() =>
-                  run(
-                    () => markPosteWithoutPurchase(p.posteId),
-                    "Poste marqué sans achat (prestation)",
-                  )
-                }
-              >
-                Sans achat (prestation)
-              </Button>
+          <li key={p.posteId} className="space-y-2 rounded-lg border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">
+                Poste {p.position} : {p.issues} ligne{p.issues > 1 ? "s" : ""} sans prix d'achat
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => onOpenPoste(p.posteId)}>
+                  Ouvrir le poste
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() =>
+                    run(
+                      () => markPosteWithoutPurchase(p.posteId),
+                      "Poste en SAV : prix de revient 0 €",
+                    )
+                  }
+                >
+                  Tout le poste en SAV (0 €)
+                </Button>
+              </div>
             </div>
+            {p.lines.map((l) => (
+              <div
+                key={l.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-t pt-2"
+              >
+                <span className="min-w-0 flex-1 truncate">{l.designation}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <AmountStepper
+                    label={`PAU HT, ${l.designation}`}
+                    step={0.01}
+                    width="w-40"
+                    placeholder="PAU HT €"
+                    value={pauDrafts[l.id]}
+                    onChange={(v) => setPauDrafts((d) => ({ ...d, [l.id]: v }))}
+                    onCommit={(v) => {
+                      if (v != null) run(() => onCommitPau(l.id, v), "Prix enregistré");
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => run(() => markLineSav(l.id), "Ligne SAV : 0 €")}
+                  >
+                    SAV = 0 €
+                  </Button>
+                </div>
+              </div>
+            ))}
           </li>
         ))}
         {sansTheme > 0 && (

@@ -349,8 +349,44 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
       (l) => l.line_kind === "fourniture" && l.zero_cost_reason == null && l.pau_ht_applied == null,
     ).length;
   const incomplets = data.postes
-    .map((p) => ({ position: p.position, posteId: p.id, issues: manquantsOf(p.id) }))
+    .map((p) => ({
+      position: p.position,
+      posteId: p.id,
+      issues: manquantsOf(p.id),
+      lines: linesOf(p.id)
+        .filter(
+          (l) =>
+            l.line_kind === "fourniture" && l.zero_cost_reason == null && l.pau_ht_applied == null,
+        )
+        .map((l) => ({ id: l.id, designation: l.designation })),
+    }))
     .filter((p) => p.issues > 0);
+
+  /** Ouvre le poste désigné par le raccourci (et non le premier), puis le fait défiler. */
+  function openPosteFromBlocker(posteId: string) {
+    setOpenPosteId(posteId);
+    setTimeout(
+      () =>
+        document
+          .getElementById(`poste-${posteId}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      0,
+    );
+  }
+
+  /** PAU saisi dans un bloc : enregistré aussitôt, sans passer par « Modifier les montants ». */
+  async function commitPau(lineId: string, value: number) {
+    const line = data!.lines.find((l) => l.id === lineId);
+    await saveQuoteAmounts({
+      quoteId,
+      lines: {
+        [lineId]: { pau_ht_applied: value, ...pauCompletionFields(num(line?.unit_multiplier)) },
+      },
+      postes: {},
+      sst: {},
+    });
+    await qc.invalidateQueries({ queryKey: ["predevis"] });
+  }
   const sansTheme = data.postes.filter((p) => p.theme == null).length;
   const postesSousSeuil = finsChantier.filter(
     (f) => f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT,
@@ -456,7 +492,8 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
         quote={data.quote}
         incomplets={incomplets}
         sansTheme={sansTheme}
-        onEditCosts={startEdit}
+        onOpenPoste={openPosteFromBlocker}
+        onCommitPau={commitPau}
       />
 
       <section className="space-y-2 rounded-xl border bg-card p-5">
@@ -553,29 +590,30 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
           };
         });
         return (
-          <PosteSection
-            key={poste.id}
-            index={poste.position}
-            title={poste.title}
-            meta={
-              <span className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                {lines.length} lignes · Sous-total{" "}
-                {editing
-                  ? stepper(`p:${poste.id}`, 0.01, `Sous-total poste ${poste.position}`)
-                  : eur(num(poste.subtotal_ht))}
-                <ThemePicker poste={poste} lines={linesOf(poste.id)} />
-              </span>
-            }
-            rows={rows}
-            fin={fin}
-            sst={{
-              value: sstValue,
-              editor: editing
-                ? stepper(`s:${poste.id}`, 0.01, `Coût SST poste ${poste.position}`)
-                : undefined,
-            }}
-            clientText={poste.client_block ?? ""}
-          />
+          <div key={poste.id} id={`poste-${poste.id}`} className="scroll-mt-24">
+            <PosteSection
+              index={poste.position}
+              title={poste.title}
+              meta={
+                <span className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                  {lines.length} lignes · Sous-total{" "}
+                  {editing
+                    ? stepper(`p:${poste.id}`, 0.01, `Sous-total poste ${poste.position}`)
+                    : eur(num(poste.subtotal_ht))}
+                  <ThemePicker poste={poste} lines={linesOf(poste.id)} />
+                </span>
+              }
+              rows={rows}
+              fin={fin}
+              sst={{
+                value: sstValue,
+                editor: editing
+                  ? stepper(`s:${poste.id}`, 0.01, `Coût SST poste ${poste.position}`)
+                  : undefined,
+              }}
+              clientText={poste.client_block ?? ""}
+            />
+          </div>
         );
       })}
 
