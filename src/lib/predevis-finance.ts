@@ -94,7 +94,8 @@ export function posteFinance(
   const tauxMarge =
     margeHt != null && pvHt != null && pvHt > 0 ? round2((margeHt / pvHt) * 100) : null;
 
-  const sstCostHt = opts.sstCostHt ?? null;
+  // Un SST à 0 € équivaut à « pas de SST » : il n'est jamais compté comme saisi.
+  const sstCostHt = opts.sstCostHt ? opts.sstCostHt : null;
   const margeAvecSstHt = margeHt != null && sstCostHt != null ? round2(margeHt - sstCostHt) : null;
   const tauxMargeAvecSst =
     margeAvecSstHt != null && pvHt != null && pvHt > 0
@@ -122,12 +123,8 @@ export function posteFinance(
     partMo,
     partFournitures,
     issues,
-    complete:
-      issues.length === 0 &&
-      prixAchatHt != null &&
-      tauxMarge != null &&
-      partMo != null &&
-      partFournitures != null,
+    // Complet : rien à signaler et un prix de revient connu. Un poste sans main-d'œuvre n'est pas incomplet.
+    complete: issues.length === 0 && prixAchatHt != null && tauxMarge != null,
   };
 }
 
@@ -168,7 +165,7 @@ export function chantierFinance(list: PosteFinance[]): ChantierFinance {
   return {
     postes: list.length,
     postesComplets: list.filter((f) => f.complete).length,
-    postesAvecSst: list.filter((f) => f.sstCostHt != null).length,
+    postesAvecSst: list.filter((f) => f.sstCostHt != null && f.sstCostHt > 0).length,
     pvHt,
     achatFournituresHt,
     moCoutHt,

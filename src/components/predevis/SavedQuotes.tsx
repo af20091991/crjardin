@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
   listQuotes,
   loadQuoteDetail,
+  markLineSav,
   renamePoste,
   saveQuoteAmounts,
   toStoredLine,
@@ -269,7 +270,7 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
       } else if (key.startsWith("p:")) {
         postes[key.slice(2)] = value;
       } else if (key.startsWith("s:")) {
-        sst[key.slice(2)] = value;
+        sst[key.slice(2)] = value ? value : null; // 0 = pas de SST
       } else {
         const [, lineId, field] = key.split(":");
         if (!lineId || !LINE_FIELDS.includes(field as LineField)) continue;
@@ -376,6 +377,17 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     );
   }
 
+  /** Ligne SAV en un clic : prix de revient 0 €, sans achat. */
+  async function setLineSav(lineId: string) {
+    try {
+      await markLineSav(lineId);
+      await qc.invalidateQueries({ queryKey: ["predevis"] });
+      toast.success("Ligne SAV : 0 €");
+    } catch {
+      toast.error("Action non enregistrée, réessayez");
+    }
+  }
+
   /** PAU saisi dans un bloc : enregistré aussitôt, sans passer par « Modifier les montants ». */
   async function commitPau(lineId: string, value: number) {
     const line = data!.lines.find((l) => l.id === lineId);
@@ -389,7 +401,6 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
     });
     await qc.invalidateQueries({ queryKey: ["predevis"] });
   }
-  const sansTheme = data.postes.filter((p) => p.theme == null).length;
   const postesSousSeuil = finsChantier.filter(
     (f) => f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT,
   ).length;
@@ -404,7 +415,7 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
       !v.superseded_at &&
       v.created_at < data.quote.created_at,
   ).length;
-  const blockingCount = incomplets.length + sansTheme + (olderVersions > 0 ? 1 : 0);
+  const blockingCount = incomplets.length + (olderVersions > 0 ? 1 : 0);
   const steps: PredevisStep[] = [
     {
       label: "Éléments bloquants",
@@ -493,7 +504,6 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
       <QuoteBlockers
         quote={data.quote}
         incomplets={incomplets}
-        sansTheme={sansTheme}
         onOpenPoste={openPosteFromBlocker}
         onCommitPau={commitPau}
       />
@@ -545,7 +555,12 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
           ) : l.pau_ht_applied != null ? (
             eur(num(l.pau_ht_applied))
           ) : (
-            <span className="text-destructive">prix manquant</span>
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <span className="text-destructive">prix manquant</span>
+              <Button size="sm" variant="secondary" onClick={() => setLineSav(l.id)}>
+                SAV = 0 €
+              </Button>
+            </span>
           );
           return {
             key: l.id,
