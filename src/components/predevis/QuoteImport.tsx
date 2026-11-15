@@ -42,6 +42,7 @@ import { ChantierRecap } from "@/components/predevis/ChantierRecap";
 import { chantierFinance, type PosteFinance } from "@/lib/predevis-finance";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { FilePicker } from "@/components/FilePicker";
+import { PosteTitleEdit } from "@/components/predevis/PosteTitleEdit";
 import { eur } from "@/components/predevis/predevis-format";
 
 const FIELD_LABEL: Record<keyof ManualFields, string> = {
@@ -608,7 +609,23 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
                   <PosteSection
                     key={p.index}
                     index={p.index}
-                    title={p.title ?? "sans titre (à nommer)"}
+                    title={
+                      <PosteTitleEdit
+                        value={p.title}
+                        onSave={(title) =>
+                          setQuote((q) =>
+                            q
+                              ? {
+                                  ...q,
+                                  postes: q.postes.map((x) =>
+                                    x.index === p.index ? { ...x, title } : x,
+                                  ),
+                                }
+                              : q,
+                          )
+                        }
+                      />
+                    }
                     meta={
                       <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         {p.rows.length} lignes · Sous-total
