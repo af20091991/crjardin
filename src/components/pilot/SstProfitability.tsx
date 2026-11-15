@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { SstInfoTip, PRIX_CLIENT_TIP } from "@/components/pilot/SstInfoTip";
 import {
   Dialog,
   DialogContent,
@@ -593,7 +594,10 @@ export function SstProfitabilityTab() {
                       <TableHead>Chantier parallèle</TableHead>
                       <TableHead className="text-right">Temps</TableHead>
                       <TableHead className="text-right">Prix SST</TableHead>
-                      <TableHead className="text-right">Prix HT vente</TableHead>
+                      <TableHead className="text-right">
+                        Prix HT vente
+                        <SstInfoTip text={PRIX_CLIENT_TIP} />
+                      </TableHead>
                       <TableHead className="text-right">Marge nette HT</TableHead>
                       <TableHead className="text-right">%</TableHead>
                       <TableHead className="text-center">Rentabilité</TableHead>
@@ -747,7 +751,10 @@ export function SstProfitabilityTab() {
                         <p>{formatEuro(r.cost)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Prix HT vente</p>
+                        <p className="flex items-center text-xs text-muted-foreground">
+                          Prix HT vente
+                          <SstInfoTip text={PRIX_CLIENT_TIP} />
+                        </p>
                         <p>{formatEuro(r.revenue)}</p>
                       </div>
                       <div>
