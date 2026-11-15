@@ -845,6 +845,7 @@ export type Database = {
           client_id: string;
           commercial_note: string | null;
           cover_photo_id: string | null;
+          cover_document_id: string | null;
           created_at: string;
           deactivated_at: string | null;
           enabled: boolean;
@@ -860,6 +861,7 @@ export type Database = {
           client_id: string;
           commercial_note?: string | null;
           cover_photo_id?: string | null;
+          cover_document_id?: string | null;
           created_at?: string;
           deactivated_at?: string | null;
           enabled?: boolean;
@@ -875,6 +877,7 @@ export type Database = {
           client_id?: string;
           commercial_note?: string | null;
           cover_photo_id?: string | null;
+          cover_document_id?: string | null;
           created_at?: string;
           deactivated_at?: string | null;
           enabled?: boolean;

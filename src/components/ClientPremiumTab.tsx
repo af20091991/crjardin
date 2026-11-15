@@ -31,6 +31,7 @@ import {
   deletePremiumDocument,
   signedPremiumDocumentUrl,
   listClientPhotosForCover,
+  imageDocuments,
   listPremiumWorkCalendar,
   replacePremiumWorkCalendar,
   type PremiumDocument,
@@ -428,6 +429,8 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
         clientId={clientId}
         canEdit={canEdit}
         currentPhotoId={premium?.cover_photo_id ?? null}
+        currentDocumentId={premium?.cover_document_id ?? null}
+        documents={documents ?? []}
         onSelected={invalidate}
       />
 
@@ -449,14 +452,22 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
 function CoverPhotoPicker({
   clientId,
   currentPhotoId,
+  currentDocumentId,
+  documents,
   canEdit,
   onSelected,
 }: {
   clientId: string;
   currentPhotoId: string | null;
+  currentDocumentId: string | null;
+  documents: PremiumDocument[];
   canEdit: boolean;
   onSelected: () => void;
 }) {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const images = imageDocuments(documents);
+
   const { data: photos } = useQuery({
     queryKey: ["client-premium-cover-options", clientId],
     queryFn: () => listClientPhotosForCover(clientId),
@@ -471,47 +482,136 @@ function CoverPhotoPicker({
     },
     enabled: (photos?.length ?? 0) > 0,
   });
-
-  const select = useMutation({
-    mutationFn: (photoId: string) => updateClientPremium(clientId, { cover_photo_id: photoId }),
-    onSuccess: () => {
-      toast.success("Photo de couverture mise à jour");
-      onSelected();
+  const { data: docUrls } = useQuery({
+    queryKey: ["client-premium-cover-doc-urls", clientId, images.map((d) => d.id).join(",")],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        images.map(async (d) => [d.id, await signedPremiumDocumentUrl(d.storage_path)] as const),
+      );
+      return Object.fromEntries(entries);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+    enabled: images.length > 0,
   });
+
+  const done = () => {
+    toast.success("Photo de couverture mise à jour");
+    qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+    onSelected();
+  };
+  const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Erreur");
+
+  const selectPhoto = useMutation({
+    mutationFn: (photoId: string) =>
+      updateClientPremium(clientId, { cover_photo_id: photoId, cover_document_id: null }),
+    onSuccess: done,
+    onError,
+  });
+  const selectDocument = useMutation({
+    mutationFn: (docId: string) =>
+      updateClientPremium(clientId, { cover_document_id: docId, cover_photo_id: null }),
+    onSuccess: done,
+    onError,
+  });
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const doc = await uploadPremiumDocument(clientId, file, "Photo de couverture");
+      await updateClientPremium(clientId, { cover_document_id: doc.id, cover_photo_id: null });
+    },
+    onSuccess: done,
+    onError,
+  });
+
+  const busy = selectPhoto.isPending || selectDocument.isPending || upload.isPending;
+
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez choisir une image");
+      return;
+    }
+    upload.mutate(file);
+  };
+
+  const tile = (key: string, src: string | undefined, selected: boolean, onClick: () => void) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onClick}
+      disabled={!canEdit || busy}
+      className={`aspect-square overflow-hidden rounded-lg border-2 ${
+        selected ? "border-primary" : "border-transparent"
+      }`}
+    >
+      {src ? (
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div className="h-full w-full animate-pulse bg-muted" />
+      )}
+    </button>
+  );
+
+  const photoList = photos ?? [];
+  const hasAny = images.length > 0 || photoList.length > 0;
 
   return (
     <Card>
-      <CardContent className="pt-6">
-        <div className="mb-3 flex items-center gap-2">
-          <ImageIcon className="h-4 w-4 text-muted-foreground" />
-          <p className="font-medium">Photo de couverture</p>
-        </div>
-        {(photos?.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Aucune photo d'intervention disponible pour ce client.
-          </p>
-        ) : (
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {photos!.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => select.mutate(p.id)}
-                disabled={!canEdit || select.isPending}
-                className={`aspect-square overflow-hidden rounded-lg border-2 ${
-                  currentPhotoId === p.id ? "border-primary" : "border-transparent"
-                }`}
-              >
-                {urls?.[p.id] ? (
-                  <img src={urls[p.id]} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full animate-pulse bg-muted" />
-                )}
-              </button>
-            ))}
+      <CardContent className="space-y-4 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <p className="font-medium">Photo de couverture</p>
           </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!canEdit || busy}
+            onClick={() => fileRef.current?.click()}
+          >
+            {upload.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            Importer depuis mon PC
+          </Button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+        </div>
+
+        {images.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Documents et photos
+            </p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {images.map((d) =>
+                tile(d.id, docUrls?.[d.id], currentDocumentId === d.id, () =>
+                  selectDocument.mutate(d.id),
+                ),
+              )}
+            </div>
+          </div>
+        )}
+
+        {photoList.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              CR chantier
+            </p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {photoList.map((p) =>
+                tile(p.id, urls?.[p.id], currentPhotoId === p.id, () => selectPhoto.mutate(p.id)),
+              )}
+            </div>
+          </div>
+        )}
+
+        {!hasAny && (
+          <p className="text-sm text-muted-foreground">
+            Aucune photo disponible. Importez une photo depuis votre PC.
+          </p>
         )}
       </CardContent>
     </Card>

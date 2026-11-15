@@ -535,6 +535,28 @@ export const getSharedPremium = createServerFn({ method: "GET" })
         coverPhotoUrl = signed?.signedUrl ?? null;
       }
     }
+    if (!coverPhotoUrl) {
+      const { data: coverDoc } = await supabaseAdmin
+        .from("client_premium")
+        .select("cover_document_id")
+        .eq("client_id", client.id)
+        .maybeSingle();
+      const coverDocumentId = (coverDoc as { cover_document_id?: string | null } | null)
+        ?.cover_document_id;
+      if (coverDocumentId) {
+        const { data: doc } = await supabaseAdmin
+          .from("client_premium_documents")
+          .select("storage_path")
+          .eq("id", coverDocumentId)
+          .maybeSingle();
+        if (doc?.storage_path) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from(PREMIUM_BUCKET)
+            .createSignedUrl(doc.storage_path, 60 * 60 * 24 * 7);
+          coverPhotoUrl = signed?.signedUrl ?? null;
+        }
+      }
+    }
 
     const premiumCalendarDb = supabaseAdmin as unknown as PremiumPlanningDb;
     const { data: workCalendarRows, error: workCalendarError } = await premiumCalendarDb
