@@ -47,6 +47,8 @@ export function AmountStepper({
   function bump(delta: number) {
     const current = parseText(text) ?? value ?? 0;
     const next = Math.max(0, Math.round((current + delta) * 100) / 100);
+    // Un curseur « − » sur un champ vide ne crée pas un 0 (qui serait enregistré comme une valeur).
+    if (next === 0 && current === 0 && delta < 0) return;
     setText(String(next));
     onChange(next);
     onCommit?.(next);

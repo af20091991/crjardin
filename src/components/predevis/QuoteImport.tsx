@@ -272,7 +272,10 @@ export function QuoteImport({ onSaved }: { onSaved: (quoteId: string) => void })
       return;
     }
     const sst: Record<number, number | null> = {};
-    for (const p of quote.postes) sst[p.index] = parseAmountDraft(sstDrafts[p.index] ?? "") ?? null;
+    for (const p of quote.postes) {
+      const v = parseAmountDraft(sstDrafts[p.index] ?? "");
+      sst[p.index] = v ? v : null; // 0 = pas de SST
+    }
     const header: ManualHeader = { title: title.trim(), totalHtDeclared, subtotals, sst };
     setBusy(true);
     try {

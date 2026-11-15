@@ -91,7 +91,6 @@ function TotalItem({
 export function QuoteBlockers({
   quote,
   incomplets,
-  sansTheme,
   onOpenPoste,
   onCommitPau,
 }: {
@@ -102,7 +101,6 @@ export function QuoteBlockers({
     issues: number;
     lines: { id: string; designation: string }[];
   }[];
-  sansTheme: number;
   onOpenPoste: (posteId: string) => void;
   /** Enregistre le PAU d'une ligne, saisi directement dans le bloc. */
   onCommitPau: (lineId: string, value: number) => Promise<void>;
@@ -119,7 +117,8 @@ export function QuoteBlockers({
       !v.superseded_at &&
       v.created_at < quote.created_at,
   );
-  const count = (older.length > 0 ? 1 : 0) + incomplets.length + (sansTheme > 0 ? 1 : 0);
+  // Le thème n'est jamais bloquant : il se confirme dans chaque poste.
+  const count = (older.length > 0 ? 1 : 0) + incomplets.length;
 
   if (quote.archived_at) {
     return (
@@ -264,12 +263,6 @@ export function QuoteBlockers({
             ))}
           </li>
         ))}
-        {sansTheme > 0 && (
-          <li>
-            {sansTheme} poste{sansTheme > 1 ? "s" : ""} sans thème : confirmez le thème dans chaque
-            poste.
-          </li>
-        )}
       </ul>
     </section>
   );
