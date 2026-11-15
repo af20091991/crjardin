@@ -24,6 +24,7 @@ import {
   type SubcontractorMission,
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
+import { SstInfoTip, PRIX_CLIENT_TIP } from "@/components/pilot/SstInfoTip";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { sendSstMissionAssignedEmail } from "@/lib/sst-mission-email.functions";
@@ -130,11 +131,18 @@ export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onC
     }
   }
 
-  const field = (label: string, key: keyof typeof form, type = "text", required = false) => (
+  const field = (
+    label: string,
+    key: keyof typeof form,
+    type = "text",
+    required = false,
+    tip?: string,
+  ) => (
     <div className="space-y-1.5">
-      <Label>
+      <Label className="flex items-center">
         {label}
         {required && " *"}
+        {tip && <SstInfoTip text={tip} />}
       </Label>
       <Input
         type={type}
@@ -217,7 +225,7 @@ export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onC
           </div>
           {field("Heures SST", "hours_spent", "number")}
           {field("Facturé par le SST (€)", "invoiced_amount", "number")}
-          {field("Prix client (€)", "client_price", "number")}
+          {field("Prix client (€)", "client_price", "number", false, PRIX_CLIENT_TIP)}
           {field("Autonomie", "autonomy")}
           {field("Chantier parallèle", "parallel_worksite")}
           {field("Difficulté (/5)", "internal_rating", "number")}
