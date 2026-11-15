@@ -130,6 +130,19 @@ export function QuoteBlockers({
         <span className="text-sm text-muted-foreground">
           Ce devis compte dans l'historique par thème.
         </span>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() =>
+            run(
+              () => setQuoteFlags(quote.id, { archived_at: null }),
+              "Devis désarchivé : modifiable à nouveau",
+            )
+          }
+        >
+          Désarchiver
+        </Button>
       </div>
     );
   }
