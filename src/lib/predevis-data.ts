@@ -820,6 +820,12 @@ export async function loadThemeBenchmark(): Promise<Map<string, ThemeHistory>> {
 }
 
 /** Prestation sans achat (SAV, garantie) : les lignes de fourniture sans prix sont marquées « sans achat ». */
+/** Nom du poste, saisi à la main (remplace le titre détecté). */
+export async function renamePoste(posteId: string, title: string): Promise<void> {
+  const { error } = await db().from("predevis_postes").update({ title }).eq("id", posteId);
+  if (error) throw error;
+}
+
 /** Ligne SAV : prix de revient 0 €, sans achat. Ne touche pas une ligne qui a déjà un PAU. */
 export async function markLineSav(lineId: string): Promise<void> {
   const { error } = await db()

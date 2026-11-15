@@ -192,6 +192,33 @@ export function quoteTitle(words: PdfWord[]): string | null {
   return text || null;
 }
 
+/** Phrases d'information (intro, renvois, mentions) : jamais un intitulé de poste. */
+const INFO_TEXT_RE =
+  /^(ce devis|le pr[ée]sent|voir\b|annexe|remarque|note\b|conditions|bon pour|cordialement|merci|nous |votre )|\(voir|en annexe|plan\b/i;
+
+/**
+ * Intitulé d'un poste : parmi les blocs en gras lus avant ses lignes, le dernier qui n'est pas une
+ * phrase d'information. Dans un bloc, l'intitulé s'arrête à la première ligne qui se termine par « : ».
+ */
+export function pickTitle(groups: string[][]): string | null {
+  const candidates = groups
+    .map((g) => {
+      const cut = g.findIndex((t) => t.trim().endsWith(":"));
+      return (cut >= 0 ? g.slice(0, cut + 1) : g).join(" ").replace(/\s+/g, " ").trim();
+    })
+    .filter(
+      (t) =>
+        t.length > 0 &&
+        t.length <= 120 &&
+        !INFO_TEXT_RE.test(t) &&
+        !/[.!?]$/.test(t.replace(/:$/, "")),
+    );
+  // Un intitulé se termine par « : » ; sinon le premier bloc court en gras (le plus proche des lignes).
+  const heading = candidates.filter((t) => t.endsWith(":"));
+  if (heading.length > 0) return heading[heading.length - 1];
+  return candidates.length > 0 ? candidates[0] : null;
+}
+
 export function parseQuote(words: PdfWord[]): QuoteParse {
   const firstLines = groupLines(words);
   let cols = findColumns(firstLines);
@@ -221,9 +248,9 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
 
   const postes: QuotePoste[] = [];
   let pending: string[] = [];
-  let pendingBold: string[] = [];
-  let titleDone = false;
-  let lastWasBold = false;
+  /** Blocs de lignes en gras, dans l'ordre de lecture, depuis le dernier Sous Total. Candidats au titre. */
+  let boldGroups: string[][] = [];
+  let inBold = false;
   let current: QuotePoste | null = null;
   let lastRow: QuoteRow | null = null;
   let inClause = false;
@@ -231,7 +258,7 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
   let stop = false;
 
   const openPoste = () => {
-    const title = pendingBold.length > 0 ? pendingBold.join(" ") : null;
+    const title = pickTitle(boldGroups);
     current = {
       index: postes.length + 1,
       title,
@@ -246,9 +273,8 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
     };
     postes.push(current);
     pending = [];
-    pendingBold = [];
-    titleDone = false;
-    lastWasBold = false;
+    boldGroups = [];
+    inBold = false;
   };
 
   for (const line of lines) {
@@ -301,9 +327,8 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
       current = null;
       lastRow = null;
       pending = [];
-      pendingBold = [];
-      titleDone = false;
-      lastWasBold = false;
+      boldGroups = [];
+      inBold = false;
       continue;
     }
 
@@ -347,12 +372,12 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
     }
     pending.push(text);
     const isBold = line.words.every((w) => w.bold);
-    if (isBold && !titleDone) {
-      pendingBold.push(text);
-      lastWasBold = true;
+    if (isBold) {
+      if (!inBold) boldGroups.push([]);
+      boldGroups[boldGroups.length - 1].push(text);
+      inBold = true;
     } else {
-      if (pendingBold.length > 0) titleDone = true;
-      lastWasBold = false;
+      inBold = false;
     }
   }
 

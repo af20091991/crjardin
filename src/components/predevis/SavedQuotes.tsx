@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
   listQuotes,
   loadQuoteDetail,
+  renamePoste,
   saveQuoteAmounts,
   toStoredLine,
   type LineAmountPatch,
@@ -22,6 +23,7 @@ import {
   type AmountField,
 } from "@/lib/predevis-recap";
 import { PosteSection, type ViewRow } from "@/components/predevis/PosteSection";
+import { PosteTitleEdit } from "@/components/predevis/PosteTitleEdit";
 import { AmountStepper } from "@/components/predevis/AmountStepper";
 import { eur } from "@/components/predevis/predevis-format";
 import { ChantierRecap } from "@/components/predevis/ChantierRecap";
@@ -593,7 +595,15 @@ function QuoteDetailView({ quoteId, onBack }: { quoteId: string; onBack: () => v
           <div key={poste.id} id={`poste-${poste.id}`} className="scroll-mt-24">
             <PosteSection
               index={poste.position}
-              title={poste.title}
+              title={
+                <PosteTitleEdit
+                  value={poste.title}
+                  onSave={async (title) => {
+                    await renamePoste(poste.id, title);
+                    await qc.invalidateQueries({ queryKey: ["predevis"] });
+                  }}
+                />
+              }
               meta={
                 <span className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                   {lines.length} lignes · Sous-total{" "}
