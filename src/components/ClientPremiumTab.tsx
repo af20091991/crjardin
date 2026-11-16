@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { FilePicker } from "@/components/FilePicker";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { ViewDocumentButton } from "@/components/PdfViewerDialog";
 import { Label } from "@/components/ui/label";
 import {
   getClientPremium,
@@ -854,6 +855,10 @@ function PremiumDocumentsCard({
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
+                  <ViewDocumentButton
+                    title={doc.title}
+                    getUrl={() => signedPremiumDocumentUrl(doc.storage_path)}
+                  />
                   <Button
                     type="button"
                     variant="ghost"

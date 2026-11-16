@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-11-16",
+    version: "2.8.10",
+    theme: "Clients",
+    title: "Fiche client : planning PDF en un clic et rubriques en liste",
+    details: [
+      "Fiche client : raccourci « Planning d'entretien annuel (PDF) » ouvert directement dans l'appli ou le navigateur.",
+      "Documents Premium : bouton « Voir » pour consulter chaque document sans le télécharger.",
+      "Fiche client : rubriques de gestion regroupées dans une liste déroulante, plus lisible.",
+    ],
+  },
+  {
+    date: "2026-11-16",
     version: "2.8.9",
     theme: "Clients",
     title: "Notifications Premium validées par le gérant",
