@@ -1,99 +1,33 @@
-import { useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import type { ComponentType } from "react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  Home,
+  Images,
+  Leaf,
+  MessageCircle,
+  Sprout,
+} from "lucide-react";
 import type { PremiumSection } from "@/components/share/PremiumHome";
 
-type NavEntry =
-  | { id: PremiumSection; label: string }
-  | { label: string; children: { id: PremiumSection; label: string }[] };
-
-export const PREMIUM_NAV: NavEntry[] = [
-  { id: "home", label: "Accueil" },
-  { id: "garden", label: "Le jardin" },
-  { id: "reports", label: "Les interventions" },
-  { id: "recommendations", label: "Préconisations" },
-  {
-    label: "Photos et Documents",
-    children: [
-      { id: "photos", label: "Photos" },
-      { id: "documents", label: "Documents" },
-      { id: "calendar", label: "Calendrier travaux" },
-    ],
-  },
-  { id: "exchange", label: "Échanger" },
-];
-
-const itemClass = (active: boolean) =>
-  `h-16 shrink-0 rounded-none border-b-2 px-0 text-base font-medium sm:h-[4.5rem] sm:text-lg hover:bg-transparent ${
-    active
-      ? "border-primary text-primary"
-      : "border-transparent text-muted-foreground hover:text-foreground"
-  }`;
-
-function HoverMenu({
-  label,
-  children,
-  section,
-  onNavigate,
-}: {
+interface NavItem {
+  id: PremiumSection;
   label: string;
-  children: { id: PremiumSection; label: string }[];
-  section: PremiumSection;
-  onNavigate: (section: PremiumSection) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const show = () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    setOpen(true);
-  };
-  const hide = () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setOpen(false), 120);
-  };
-  const active = children.some((child) => child.id === section);
-
-  return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          aria-current={active ? "page" : undefined}
-          className={`${itemClass(active)} gap-1`}
-          onPointerEnter={(event) => event.pointerType === "mouse" && show()}
-          onPointerLeave={(event) => event.pointerType === "mouse" && hide()}
-        >
-          {label}
-          <ChevronDown className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        sideOffset={0}
-        onPointerEnter={show}
-        onPointerLeave={hide}
-        className="min-w-[13rem]"
-      >
-        {children.map((child) => (
-          <DropdownMenuItem
-            key={child.id}
-            onSelect={() => onNavigate(child.id)}
-            className={`cursor-pointer text-base ${section === child.id ? "text-primary" : ""}`}
-          >
-            {child.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
 }
+
+/** Navigation à plat : chaque rubrique est une page directe, sans sous-menu. */
+export const PREMIUM_NAV: NavItem[] = [
+  { id: "home", label: "Accueil", icon: Home },
+  { id: "garden", label: "Le jardin", icon: Leaf },
+  { id: "reports", label: "Interventions", icon: ClipboardList },
+  { id: "recommendations", label: "Préconisations", icon: Sprout },
+  { id: "calendar", label: "Calendrier travaux", icon: CalendarDays },
+  { id: "photos", label: "Photos", icon: Images },
+  { id: "documents", label: "Documents", icon: FileText },
+  { id: "exchange", label: "Échanger", icon: MessageCircle },
+];
 
 export function PremiumNav({
   section,
@@ -104,7 +38,7 @@ export function PremiumNav({
   section: PremiumSection;
   onNavigate: (section: PremiumSection) => void;
   className?: string;
-  /** Préconisations encore sans réponse du client : affichées en « +N » à côté de l'onglet. */
+  /** Préconisations encore sans réponse du client : affichées en pastille à côté de l'onglet. */
   pendingRecommendations?: number;
 }) {
   return (
@@ -112,39 +46,37 @@ export function PremiumNav({
       className={`premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur ${className}`}
     >
       <nav
-        className="mx-auto flex w-full max-w-[1320px] items-center gap-6 overflow-x-auto px-5 sm:gap-10 sm:px-10 lg:px-16"
+        className="mx-auto flex w-full max-w-[1320px] items-stretch gap-1 overflow-x-auto px-3 sm:gap-2 sm:px-10 lg:px-16"
         aria-label="Navigation Premium"
       >
-        {PREMIUM_NAV.map((entry) =>
-          "children" in entry ? (
-            <HoverMenu
-              key={entry.label}
-              label={entry.label}
-              children={entry.children}
-              section={section}
-              onNavigate={onNavigate}
-            />
-          ) : (
-            <Button
-              key={entry.id}
+        {PREMIUM_NAV.map(({ id, label, icon: Icon }) => {
+          const active = section === id;
+          const pending = id === "recommendations" ? pendingRecommendations : 0;
+          return (
+            <button
+              key={id}
               type="button"
-              variant="ghost"
-              onClick={() => onNavigate(entry.id)}
-              aria-current={section === entry.id ? "page" : undefined}
-              className={itemClass(section === entry.id)}
+              onClick={() => onNavigate(id)}
+              aria-current={active ? "page" : undefined}
+              className={`relative flex min-h-16 shrink-0 flex-col items-center justify-center gap-1 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors sm:min-h-[4.5rem] sm:px-4 ${
+                active
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
-              {entry.label}
-              {entry.id === "recommendations" && pendingRecommendations > 0 && (
+              <Icon className="size-5" strokeWidth={active ? 2 : 1.5} />
+              <span>{label}</span>
+              {pending > 0 && (
                 <span
-                  className="ml-2 inline-flex items-center rounded-full bg-primary px-2.5 py-0.5 text-sm font-semibold leading-5 text-primary-foreground"
-                  aria-label={`${pendingRecommendations} préconisation${pendingRecommendations > 1 ? "s" : ""} en attente de décision`}
+                  className="absolute right-1 top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold leading-5 text-primary-foreground"
+                  aria-label={`${pending} préconisation${pending > 1 ? "s" : ""} en attente de décision`}
                 >
-                  +{pendingRecommendations}
+                  {pending}
                 </span>
               )}
-            </Button>
-          ),
-        )}
+            </button>
+          );
+        })}
       </nav>
     </div>
   );

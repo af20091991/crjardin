@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-16",
+    version: "2.8.8",
+    theme: "Clients",
+    title: "Espace Premium : navigation simplifiée et installation visible",
+    details: [
+      "Espace Premium : navigation à plat, sans sous-menu ; toutes les rubriques restent accessibles en un clic.",
+      "Espace Premium : bouton d'installation bien visible sur l'accueil (Android : application ; iPhone : étapes pour l'écran d'accueil).",
+    ],
+  },
+  {
     date: "2026-11-12",
     version: "2.8.7",
     theme: "Général",
