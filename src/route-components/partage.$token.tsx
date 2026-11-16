@@ -84,6 +84,7 @@ import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/share/PremiumHome";
 import { PremiumNav } from "@/components/share/PremiumNav";
 import { PremiumInstall } from "@/components/share/PremiumInstall";
+import { PremiumNews } from "@/components/share/PremiumNews";
 import { PremiumPhotos } from "@/components/share/PremiumPhotos";
 import { PremiumRecommendations } from "@/components/share/PremiumRecommendations";
 import { PremiumWorkCalendar } from "@/components/share/PremiumWorkCalendar";
@@ -448,6 +449,7 @@ function PremiumExperience({
             <PremiumInstall variant="card" />
           </div>
         )}
+        {section === "home" && <PremiumNews token={token} />}
         {section === "home" && (
           <PremiumHome
             client={client}

@@ -27,6 +27,7 @@ import {
 } from "@/components/premium-admin/EditableFields";
 import { createRecommendationForPremium, updateClientPremium } from "@/lib/client-premium";
 import { AdminStat, fmtDate, fmtDateTime } from "@/components/premium-admin/shared";
+import { NotificationQueue } from "@/components/premium-admin/NotificationQueue";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { getClient } from "@/lib/clients";
 import {
@@ -164,6 +165,7 @@ function PremiumClientDashboard() {
             </Button>
           </div>
         </header>
+        <NotificationQueue clientId={clientId} />
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <AdminStat
