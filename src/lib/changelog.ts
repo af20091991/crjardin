@@ -24,6 +24,13 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-11-16",
+    version: "2.8.11",
+    theme: "Clients",
+    title: "Lien client régénérable",
+    details: ["Fiche client : « Régénérer le lien » crée un nouveau lien et désactive l'ancien."],
+  },
+  {
+    date: "2026-11-16",
     version: "2.8.10",
     theme: "Clients",
     title: "Fiche client : planning PDF en un clic et rubriques en liste",
