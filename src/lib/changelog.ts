@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-11-16",
+    version: "2.8.9",
+    theme: "Clients",
+    title: "Notifications Premium validées par le gérant",
+    details: [
+      "Chaque évènement utile au client (compte-rendu, préconisation, document, photos, calendrier, suivi du jardin, message) crée une notification en attente.",
+      "Gérant : rien n'est envoyé sans votre choix « Envoyer » ou « Ne pas envoyer », depuis la fiche Premium du client.",
+      "Envoi par e-mail et affichage dans la rubrique « Nouveautés » de l'espace client.",
+    ],
+  },
+  {
+    date: "2026-11-16",
     version: "2.8.8",
     theme: "Clients",
     title: "Espace Premium : navigation simplifiée et installation visible",

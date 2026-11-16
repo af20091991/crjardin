@@ -32,6 +32,7 @@ import { template as premiumDocumentTemplate } from "./premium-document";
 import { template as sstCalendarChangeTemplate } from "./sst-calendar-change";
 import { template as sstMissionAssignedTemplate } from "./sst-mission-assigned";
 import { template as radarMonthlyTemplate } from "./radar-monthly";
+import { template as premiumNotificationTemplate } from "./premium-notification";
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   "new-report": newReportTemplate,
@@ -46,4 +47,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   "sst-calendar-change": sstCalendarChangeTemplate,
   "sst-mission-assigned": sstMissionAssignedTemplate,
   "radar-monthly": radarMonthlyTemplate,
+  "premium-notification": premiumNotificationTemplate,
 };
