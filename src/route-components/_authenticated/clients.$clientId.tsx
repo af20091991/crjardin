@@ -33,7 +33,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ClientPlanningShortcut } from "@/components/ClientPlanningShortcut";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -91,6 +99,7 @@ function ClientDetail() {
   const { canEdit } = useRole();
   const [copied, setCopied] = useState(false);
   const [group, setGroup] = useState<"gestion" | "pilotage">("gestion");
+  const [gestionTab, setGestionTab] = useState<string>(initialTab ?? "interventions");
   const [editOpen, setEditOpen] = useState(false);
   useEffect(() => {
     if (edit && canEdit) setEditOpen(true);
@@ -287,6 +296,10 @@ function ClientDetail() {
           Exporter la fiche (PDF)
         </Button>
 
+        {client.ceev_enabled && client.ceev_planning_path && (
+          <ClientPlanningShortcut clientId={client.id} filename={client.ceev_planning_filename} />
+        )}
+
         <div className="flex gap-2">
           <Button
             variant={group === "gestion" ? "default" : "outline"}
@@ -309,33 +322,20 @@ function ClientDetail() {
         </div>
 
         {group === "gestion" && (
-          <Tabs defaultValue={initialTab ?? "interventions"}>
-            <TabsList className="w-full">
-              <TabsTrigger value="interventions" className="flex-1">
-                <Calendar className="mr-1.5 h-4 w-4" />
-                Interventions
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="flex-1">
-                <CalendarDaysIcon />
-                <span>Calendrier</span>
-              </TabsTrigger>
-              <TabsTrigger value="health" className="flex-1">
-                <Leaf className="mr-1.5 h-4 w-4" />
-                Santé
-              </TabsTrigger>
-              <TabsTrigger value="reco" className="flex-1">
-                <Sparkles className="mr-1.5 h-4 w-4" />
-                Préconisations
-              </TabsTrigger>
-              <TabsTrigger value="opps" className="flex-1">
-                <TrendingUp className="mr-1.5 h-4 w-4" />
-                Opportunités
-              </TabsTrigger>
-              <TabsTrigger value="premium" className="flex-1">
-                <Crown className="mr-1.5 h-4 w-4" />
-                Premium
-              </TabsTrigger>
-            </TabsList>
+          <Tabs value={gestionTab} onValueChange={setGestionTab}>
+            <Select value={gestionTab} onValueChange={setGestionTab}>
+              <SelectTrigger className="w-full" aria-label="Rubrique de gestion">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="interventions">Interventions</SelectItem>
+                <SelectItem value="calendar">Calendrier</SelectItem>
+                <SelectItem value="health">Santé</SelectItem>
+                <SelectItem value="reco">Préconisations</SelectItem>
+                <SelectItem value="opps">Opportunités</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+              </SelectContent>
+            </Select>
             <TabsContent value="interventions">
               {(interventions?.length ?? 0) === 0 ? (
                 <HistoryPlaceholder
