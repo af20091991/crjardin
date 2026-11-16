@@ -185,12 +185,26 @@ function hideSplash() {
   const w = window as unknown as { __ppSplashStart?: number };
   // L'écran ne se retire qu'à partir du début réel de l'animation (image SVG chargée),
   // jamais avant qu'elle soit terminée : 4,5 s après son départ, logo complet maintenu.
+  const fadeOut = () => {
+    el.classList.add("pp-out");
+    window.setTimeout(() => el.remove(), 300);
+  };
+  // L'écran ne se retire qu'une fois l'appli montée : jamais d'écran blanc entre les deux.
+  const whenAppReady = () => {
+    const w2 = window as unknown as { __ppAppReady?: boolean };
+    if (w2.__ppAppReady) return fadeOut();
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      fadeOut();
+    };
+    window.addEventListener("pp-app-ready", finish, { once: true });
+    window.setTimeout(finish, 9000);
+  };
   const schedule = (start: number) => {
     const wait = Math.max(0, start + 4500 - performance.now());
-    window.setTimeout(() => {
-      el.classList.add("pp-out");
-      window.setTimeout(() => el.remove(), 300);
-    }, wait);
+    window.setTimeout(whenAppReady, wait);
   };
   if (w.__ppSplashStart !== undefined) {
     schedule(w.__ppSplashStart);
@@ -277,6 +291,9 @@ function RootComponent() {
   useEffect(() => {
     registerPwa();
     hideSplash();
+    // Signale à l'écran de démarrage que l'appli est montée.
+    (window as unknown as { __ppAppReady?: boolean }).__ppAppReady = true;
+    window.dispatchEvent(new Event("pp-app-ready"));
   }, []);
 
   return (
