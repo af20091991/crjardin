@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-11-16",
+    version: "2.8.13",
+    theme: "Général",
+    title: "Démarrage de l'appli : splash complet, plus d'écran blanc",
+    details: [
+      "Le logo s'affiche jusqu'à la fin de l'animation, puis l'appli apparaît sans écran blanc.",
+    ],
+  },
+  {
+    date: "2026-11-16",
     version: "2.8.12",
     theme: "Général",
     title: "Test des notifications depuis les paramètres",
