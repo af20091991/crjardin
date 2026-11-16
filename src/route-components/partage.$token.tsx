@@ -440,6 +440,15 @@ function PremiumExperience({
       </header>
       <main className="mx-auto w-full max-w-[1320px] px-5 py-10 sm:px-10 sm:py-14 lg:px-16">
         {section === "home" && (
+          <div className="mb-10 flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <p className="font-premium-serif text-xl font-medium">Retrouvez votre espace à tout moment</p>
+              <p className="mt-1 text-sm text-muted-foreground">Ajoutez Mon jardin à votre téléphone pour y accéder en un geste.</p>
+            </div>
+            <PremiumInstall variant="card" />
+          </div>
+        )}
+        {section === "home" && (
           <PremiumHome
             client={client}
             interventions={interventions}
