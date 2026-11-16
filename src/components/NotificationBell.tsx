@@ -1,6 +1,17 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Bell, MessageSquare, HelpCircle, Eye, Check, CalendarDays } from "lucide-react";
+import {
+  Bell,
+  MessageSquare,
+  HelpCircle,
+  Eye,
+  Check,
+  CalendarDays,
+  BellRing,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { sendTestPush } from "@/lib/test-push.functions";
 import { useNavigate } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -30,6 +41,7 @@ const ICONS: Record<string, typeof Bell> = {
 };
 
 export function NotificationBell() {
+  const [testing, setTesting] = useState(false);
   const { user } = useAuth();
   const { role } = useRole();
   const qc = useQueryClient();
@@ -200,6 +212,32 @@ export function NotificationBell() {
               </section>
             ))
           )}
+        </div>
+        <div className="flex justify-end border-t px-3 py-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground"
+            disabled={testing}
+            onClick={async () => {
+              setTesting(true);
+              try {
+                await sendTestPush();
+                toast.success("Notification de test envoyée à vos téléphones enregistrés.");
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Envoi impossible");
+              } finally {
+                setTesting(false);
+              }
+            }}
+          >
+            {testing ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <BellRing className="mr-1 h-3 w-3" />
+            )}
+            Tester les notifications push
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

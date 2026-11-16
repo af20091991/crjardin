@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-11-16",
+    version: "2.8.12",
+    theme: "Général",
+    title: "Test des notifications depuis les paramètres",
+    details: [
+      "Cloche : « Tester les notifications push » envoie une notification à votre seul compte.",
+    ],
+  },
+  {
+    date: "2026-11-16",
     version: "2.8.11",
     theme: "Clients",
     title: "Lien client régénérable",
