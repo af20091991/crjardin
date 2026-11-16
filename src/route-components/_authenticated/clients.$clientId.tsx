@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ClientPlanningShortcut } from "@/components/ClientPlanningShortcut";
+import { regenerateClientShareToken } from "@/lib/share-link.functions";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -282,7 +283,12 @@ function ClientDetail() {
           </CardContent>
         </Card>
 
-        <ShareLinkCard token={client.share_token} copied={copied} setCopied={setCopied} />
+        <ShareLinkCard
+          clientId={client.id}
+          token={client.share_token}
+          copied={copied}
+          setCopied={setCopied}
+        />
 
         <Button
           variant="outline"
@@ -489,14 +495,31 @@ function Info({
 }
 
 function ShareLinkCard({
+  clientId,
   token,
   copied,
   setCopied,
 }: {
+  clientId: string;
   token: string;
   copied: boolean;
   setCopied: (v: boolean) => void;
 }) {
+  const qc = useQueryClient();
+  const [regenerating, setRegenerating] = useState(false);
+  const regenerate = async () => {
+    if (!window.confirm("L'ancien lien ne fonctionnera plus. Créer un nouveau lien ?")) return;
+    setRegenerating(true);
+    try {
+      await regenerateClientShareToken({ data: { clientId } });
+      await qc.invalidateQueries({ queryKey: ["client"] });
+      toast.success("Nouveau lien créé. Pensez à le transmettre au client.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible de créer le lien");
+    } finally {
+      setRegenerating(false);
+    }
+  };
   const url =
     typeof window !== "undefined"
       ? `${window.location.origin}/partage/${token}`
@@ -553,6 +576,16 @@ function ShareLinkCard({
           <a href={url} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="mr-1.5 h-4 w-4" /> Ouvrir la vue client
           </a>
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mt-1 w-full text-destructive"
+          disabled={regenerating}
+          onClick={regenerate}
+        >
+          Régénérer le lien (l'ancien sera désactivé)
         </Button>
       </CardContent>
     </Card>
