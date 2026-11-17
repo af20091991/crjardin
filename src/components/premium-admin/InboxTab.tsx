@@ -70,8 +70,14 @@ function MessageBubble({ message }: { message: PremiumMessage }) {
         />
       )}
       <p className="mt-1 text-[11px] text-muted-foreground">
-        {mine ? GARDENER_AUTHOR_NAME : message.kind === "question" ? "Question" : "Client"} ·{" "}
-        {fmtDateTime(message.created_at)}
+        {mine
+          ? GARDENER_AUTHOR_NAME
+          : message.kind === "question"
+            ? "Question"
+            : message.kind === "demande"
+              ? "Demande d'intervention"
+              : "Client"}{" "}
+        · {fmtDateTime(message.created_at)}
         {mine && (
           <span className="ml-1 font-medium text-primary">
             {message.client_read_at ? `· Vu ${fmtDateTime(message.client_read_at)}` : "· Non lu"}

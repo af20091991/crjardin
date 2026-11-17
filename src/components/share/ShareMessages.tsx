@@ -6,6 +6,7 @@ import {
   createSharedPremiumDocumentUpload,
   finalizeSharedPremiumDocumentUpload,
   type ClientMessage,
+  type SharedMessageAttachmentInput,
 } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,18 +109,58 @@ export function MessageThread({
   }, [token]);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<"annotation" | "question">("annotation");
+  const [kind, setKind] = useState<"annotation" | "question" | "demande">("annotation");
   const [content, setContent] = useState("");
   const [name, setName] = useState("");
+  const [attachment, setAttachment] = useState<SharedMessageAttachmentInput | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const pickPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const target = await createSharedPremiumDocumentUpload({
+        data: { token, filename: file.name, size: file.size },
+      });
+      const { error: uploadError } = await supabase.storage
+        .from("client-premium")
+        .uploadToSignedUrl(target.path, target.token, file);
+      if (uploadError) throw new Error(`Envoi impossible : ${uploadError.message}`);
+      setAttachment({
+        path: target.path,
+        filename: file.name,
+        size: file.size,
+        type: file.type || "application/octet-stream",
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Échec de l'envoi");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const send = useMutation({
     mutationFn: () =>
       addClientMessage({
-        data: { token, interventionId, kind, content, authorName: name || null },
+        data: {
+          token,
+          interventionId,
+          kind,
+          content,
+          authorName: name || null,
+          attachment: kind === "demande" ? attachment : null,
+        },
       }),
     onSuccess: () => {
-      toast.success("Message envoyé. Votre jardinier a été notifié.");
+      toast.success(
+        kind === "demande"
+          ? "Demande envoyée. Votre jardinier a été notifié."
+          : "Message envoyé. Votre jardinier a été notifié.",
+      );
       setContent("");
+      setAttachment(null);
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["shared-messages", token] });
     },
@@ -149,7 +190,9 @@ export function MessageThread({
                     ? "Réponse d'Anthony"
                     : m.kind === "question"
                       ? "Votre question"
-                      : "Votre annotation"}
+                      : m.kind === "demande"
+                        ? "Votre demande d'intervention"
+                        : "Votre annotation"}
                   {m.author_name ? ` · ${m.author_name}` : ""}
                 </p>
                 <p className="mt-0.5 whitespace-pre-wrap">{m.content}</p>
@@ -182,7 +225,33 @@ export function MessageThread({
             >
               <HelpCircle className="mr-1.5 h-4 w-4" /> Question
             </Button>
+            {interventionId === null && (
+              <Button
+                type="button"
+                size="sm"
+                variant={kind === "demande" ? "default" : "outline"}
+                onClick={() => setKind("demande")}
+              >
+                <Send className="mr-1.5 h-4 w-4" /> Demander une intervention
+              </Button>
+            )}
           </div>
+          {kind === "demande" && (
+            <div className="space-y-2 rounded-lg border border-dashed p-3 text-sm">
+              <label className="flex cursor-pointer items-center gap-2 text-muted-foreground hover:text-foreground">
+                <Upload className="h-4 w-4" />
+                {attachment ? attachment.filename : "Joindre une photo (facultatif)"}
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={pickPhoto}
+                  disabled={uploading}
+                />
+              </label>
+              {uploading && <p className="text-xs text-muted-foreground">Envoi de la photo…</p>}
+            </div>
+          )}
           <Input
             placeholder="Votre nom (facultatif)"
             value={name}
@@ -190,7 +259,11 @@ export function MessageThread({
           />
           <Textarea
             placeholder={
-              kind === "question" ? "Posez votre question…" : "Votre remarque sur ce compte-rendu…"
+              kind === "question"
+                ? "Posez votre question…"
+                : kind === "demande"
+                  ? "Décrivez ce qui doit être fait au jardin…"
+                  : "Votre remarque sur ce compte-rendu…"
             }
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -199,7 +272,11 @@ export function MessageThread({
           <div className="flex gap-2">
             <Button
               size="sm"
-              disabled={!content.trim() || send.isPending}
+              disabled={
+                (!content.trim() && !(kind === "demande" && attachment)) ||
+                send.isPending ||
+                uploading
+              }
               onClick={() => send.mutate()}
             >
               {send.isPending ? (
