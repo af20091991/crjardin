@@ -17,7 +17,7 @@ export const sendTestPush = createServerFn({ method: "POST" })
       .insert({
         user_id: context.userId,
         type: "test",
-        title: "Test de notification",
+        title: "Test de notification APK PUSH",
         body: "Si vous voyez ceci sur votre téléphone, les notifications fonctionnent.",
       })
       .select("id")
