@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { ClientPlanningShortcut } from "@/components/ClientPlanningShortcut";
 import { regenerateClientShareToken } from "@/lib/share-link.functions";
+import { sendClientAccessLink } from "@/lib/premium-email.functions";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -520,6 +521,20 @@ function ShareLinkCard({
       setRegenerating(false);
     }
   };
+  const [sendingLink, setSendingLink] = useState(false);
+  const emailLink = async () => {
+    setSendingLink(true);
+    try {
+      const { results } = await sendClientAccessLink({ data: { clientId } });
+      const sent = results.filter((r) => r.status === "sent").length;
+      if (sent === 0) toast.error("Aucun e-mail envoyé. Vérifiez l'adresse du client.");
+      else toast.success(`Lien envoyé à ${sent} adresse(s).`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Envoi impossible");
+    } finally {
+      setSendingLink(false);
+    }
+  };
   const url =
     typeof window !== "undefined"
       ? `${window.location.origin}/partage/${token}`
@@ -576,6 +591,16 @@ function ShareLinkCard({
           <a href={url} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="mr-1.5 h-4 w-4" /> Ouvrir la vue client
           </a>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full"
+          disabled={sendingLink}
+          onClick={emailLink}
+        >
+          <Mail className="mr-1.5 h-4 w-4" /> Envoyer le lien par e-mail
         </Button>
         <Button
           type="button"
