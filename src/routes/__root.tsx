@@ -160,70 +160,43 @@ html.pp-seen #pp-splash{display:none!important}
 #pp-splash img{width:min(86vmin,886px);height:auto}
 `;
 
-/** Écran de démarrage PilotPro : animation SVG de 4 s, seule chose affichée avant l'appli. */
+/** Écran de démarrage PilotPro : animation SVG (4,0 s), jouée en entier avant l'appli.
+ * Tout le calendrier est géré ici, dans un seul script, à partir du début réel de l'animation. */
 function SplashOverlay() {
+  const script = `(function(){
+var el=document.getElementById('pp-splash'),img=el&&el.querySelector('img');
+function nat(){try{return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());}catch(e){return false;}}
+function hideNative(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}
+var seen=false;try{seen=sessionStorage.getItem('pp-splash-seen')==='1';}catch(e){}
+if(seen&&!nat()){document.documentElement.classList.add('pp-seen');return;}
+hideNative();
+if(!el)return;
+var animDone=false,begun=false;
+function remove(){el.classList.add('pp-out');setTimeout(function(){el.remove();},300);}
+function check(){if(animDone&&window.__ppAppReady)remove();}
+window.__ppSplashCheck=check;
+function begin(){
+  if(begun)return;begun=true;
+  try{sessionStorage.setItem('pp-splash-seen','1');}catch(e){}
+  setTimeout(function(){animDone=true;check();},4600);
+  setTimeout(function(){
+    if(window.__ppAppReady)return;
+    try{if(sessionStorage.getItem('pp-boot-retry'))return;sessionStorage.setItem('pp-boot-retry','1');}catch(e){}
+    location.reload();
+  },24600);
+  setTimeout(function(){animDone=true;if(!window.__ppAppReady)window.__ppAppReady=true;check();},30000);
+}
+if(img){if(img.complete&&img.naturalWidth)begin();else{img.addEventListener('load',begin);img.addEventListener('error',begin);}}
+else begin();
+})();`;
   return (
     <>
       <div id="pp-splash" aria-hidden="true">
         <img src="/pilotpro-splash.svg" alt="" />
       </div>
-      {/* Relance automatique une seule fois si l'appli ne s'est pas montée (premier lancement
-          à froid sur téléphone) : évite l'écran blanc qu'on ne peut lever qu'en redémarrant. */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html:
-            "(function(){try{var K='pp-boot-retry';setTimeout(function(){if(window.__ppAppReady)return;if(sessionStorage.getItem(K))return;sessionStorage.setItem(K,'1');location.reload();},14000);}catch(e){}})();",
-        }}
-      />
-      {/* Filet de sécurité : si l'appli ne démarre pas, l'écran disparaît tout de même. */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html:
-            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}var seen=false,nat=false;try{seen=sessionStorage.getItem('pp-splash-seen')==='1';}catch(e){}try{nat=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());}catch(e){}if(seen&&!nat){document.documentElement.classList.add('pp-seen');h();return;}function s(){window.__ppSplashStart=performance.now();try{sessionStorage.setItem('pp-splash-seen','1');}catch(e){}window.dispatchEvent(new Event('pp-splash-start'));h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
-        }}
-      />
+      <script dangerouslySetInnerHTML={{ __html: script }} />
     </>
   );
-}
-
-/** Masque l'écran une fois l'animation complète (4 s à partir de son affichage), appli prête. */
-function hideSplash() {
-  const el = document.getElementById("pp-splash");
-  if (!el) return;
-  const w = window as unknown as { __ppSplashStart?: number };
-  // L'écran ne se retire qu'à partir du début réel de l'animation (image SVG chargée),
-  // jamais avant qu'elle soit terminée : 4,5 s après son départ, logo complet maintenu.
-  const fadeOut = () => {
-    el.classList.add("pp-out");
-    window.setTimeout(() => el.remove(), 300);
-  };
-  // L'écran ne se retire qu'une fois l'appli montée : jamais d'écran blanc entre les deux.
-  const whenAppReady = () => {
-    const w2 = window as unknown as { __ppAppReady?: boolean };
-    if (w2.__ppAppReady) return fadeOut();
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      fadeOut();
-    };
-    // Pas de délai de repli : l'écran reste jusqu'à la fin de l'animation ET de l'appli.
-    // Plafond global de 14 s dans le script de SplashOverlay (et relance automatique).
-    window.addEventListener("pp-app-ready", finish, { once: true });
-  };
-  const schedule = (start: number) => {
-    const wait = Math.max(0, start + 4500 - performance.now());
-    window.setTimeout(whenAppReady, wait);
-  };
-  if (w.__ppSplashStart !== undefined) {
-    schedule(w.__ppSplashStart);
-  } else {
-    window.addEventListener(
-      "pp-splash-start",
-      () => schedule(w.__ppSplashStart ?? performance.now()),
-      { once: true },
-    );
-  }
 }
 
 function RootShell({ children }: { children: ReactNode }) {
@@ -299,15 +272,15 @@ function RootComponent() {
 
   useEffect(() => {
     registerPwa();
-    hideSplash();
+    // L'appli est montée : l'écran de démarrage se retire dès que son animation est finie.
+    const w = window as unknown as { __ppAppReady?: boolean; __ppSplashCheck?: () => void };
+    w.__ppAppReady = true;
     try {
       sessionStorage.removeItem("pp-boot-retry");
     } catch {
       /* stockage indisponible : pas de relance automatique */
     }
-    // Signale à l'écran de démarrage que l'appli est montée.
-    (window as unknown as { __ppAppReady?: boolean }).__ppAppReady = true;
-    window.dispatchEvent(new Event("pp-app-ready"));
+    w.__ppSplashCheck?.();
   }, []);
 
   return (
