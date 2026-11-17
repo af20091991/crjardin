@@ -179,7 +179,7 @@ function SplashOverlay() {
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}var seen=false;try{seen=sessionStorage.getItem('pp-splash-seen')==='1';}catch(e){}if(seen){document.documentElement.classList.add('pp-seen');h();return;}function s(){window.__ppSplashStart=performance.now();try{sessionStorage.setItem('pp-splash-seen','1');}catch(e){}window.dispatchEvent(new Event('pp-splash-start'));h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
+            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}var seen=false,nat=false;try{seen=sessionStorage.getItem('pp-splash-seen')==='1';}catch(e){}try{nat=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());}catch(e){}if(seen&&!nat){document.documentElement.classList.add('pp-seen');h();return;}function s(){window.__ppSplashStart=performance.now();try{sessionStorage.setItem('pp-splash-seen','1');}catch(e){}window.dispatchEvent(new Event('pp-splash-start'));h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
         }}
       />
     </>
@@ -207,8 +207,9 @@ function hideSplash() {
       done = true;
       fadeOut();
     };
+    // Pas de délai de repli : l'écran reste jusqu'à la fin de l'animation ET de l'appli.
+    // Plafond global de 14 s dans le script de SplashOverlay (et relance automatique).
     window.addEventListener("pp-app-ready", finish, { once: true });
-    window.setTimeout(finish, 9000);
   };
   const schedule = (start: number) => {
     const wait = Math.max(0, start + 4500 - performance.now());
