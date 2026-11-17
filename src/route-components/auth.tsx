@@ -15,7 +15,6 @@ import {
   readBiometricLogin,
   saveBiometricLogin,
 } from "@/lib/biometric-login";
-import logo from "@/assets/logo.png";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -135,7 +134,11 @@ function AuthPage() {
     <div className="flex min-h-dvh items-center justify-center bg-secondary/40 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src={logo} alt="De la graine au jardin" className="mb-3 h-28 w-28 object-contain" />
+          <img
+            src="/pilotpro-splash.svg"
+            alt="Pilot Pro"
+            className="mb-3 h-40 w-40 object-contain"
+          />
           <h1 className="font-serif text-3xl font-semibold text-primary">De la graine au jardin</h1>
           <p className="mt-1 text-sm font-medium text-accent">
             paysagiste · au rythme de la nature
