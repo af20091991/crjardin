@@ -42,6 +42,7 @@ const ICONS: Record<string, typeof Bell> = {
 
 export function NotificationBell() {
   const [testing, setTesting] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
   const { user } = useAuth();
   const { role } = useRole();
   const qc = useQueryClient();
@@ -213,7 +214,12 @@ export function NotificationBell() {
             ))
           )}
         </div>
-        <div className="flex justify-end border-t px-3 py-1.5">
+        <div className="flex items-center justify-between gap-2 border-t px-3 py-1.5">
+          {pushStatus && (
+            <p role="status" className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {pushStatus}
+            </p>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -221,11 +227,16 @@ export function NotificationBell() {
             disabled={testing}
             onClick={async () => {
               setTesting(true);
+              setPushStatus("Envoi en cours…");
               try {
                 const r = await sendTestPush();
-                toast.success(`Notification push envoyée à ${r.sent} téléphone(s).`);
+                const msg = `Notification push envoyée à ${r.sent} téléphone(s).`;
+                setPushStatus(msg);
+                toast.success(msg);
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Envoi impossible");
+                const msg = err instanceof Error ? err.message : "Envoi impossible";
+                setPushStatus(`Échec : ${msg}`);
+                toast.error(msg);
               } finally {
                 setTesting(false);
               }
