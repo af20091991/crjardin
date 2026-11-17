@@ -39,6 +39,7 @@ export function notificationTarget(
   n: AppNotification,
   role: "admin" | "prestataire" | "observateur" = "admin",
 ): string | null {
+  if (n.type === "app_update") return "/personnalisation";
   if (n.intervention_id) return `/interventions/${n.intervention_id}`;
   if (n.type.startsWith("sst")) return "/pilot/calendrier";
   if (role === "prestataire") return null;

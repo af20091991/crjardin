@@ -104,6 +104,7 @@ export async function sendPush(
 /** Page à ouvrir au toucher de la notification. */
 export function notificationUrl(n: { type: string; client_id: string | null }): string {
   if (n.type === "sst_calendar") return "/pilot/calendrier";
+  if (n.type === "app_update") return "/personnalisation";
   if (n.client_id) return `/clients/${n.client_id}`;
   return "/";
 }
