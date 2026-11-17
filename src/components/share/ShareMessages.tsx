@@ -1,6 +1,6 @@
 // Messagerie et dépôt de documents de l'espace client (partage).
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import {
   addClientMessage,
   createSharedPremiumDocumentUpload,
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageSquarePlus, HelpCircle, Send, Loader2, Reply, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { markGardenerMessagesRead } from "@/lib/share.functions";
 
 export function PremiumDocumentUpload({
   token,
@@ -101,6 +102,10 @@ export function MessageThread({
   interventionId: string | null;
   messages: ClientMessage[];
 }) {
+  useEffect(() => {
+    // Le client a ouvert ses messages : le gérant voit « Vu ».
+    void markGardenerMessagesRead({ data: { token } }).catch(() => undefined);
+  }, [token]);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"annotation" | "question">("annotation");

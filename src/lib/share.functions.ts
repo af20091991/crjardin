@@ -193,6 +193,25 @@ export const markRecommendationsViewed = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// prettier-ignore
+export const markGardenerMessagesRead = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    return { token: data.token };
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    // Fonction absente des types générés (migration 20261117140000)
+    const untyped = publicClient() as unknown as {
+      rpc: (fn: string, args: object) => Promise<{ error: unknown }>;
+    };
+    const { error } = await untyped.rpc("mark_gardener_messages_read", {
+      p_token: data.token,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
+
 export const getSharedMessages = createServerFn({ method: "GET" })
   .inputValidator((data: { token: string }) => {
     if (!data?.token) throw new Error("Lien invalide");
