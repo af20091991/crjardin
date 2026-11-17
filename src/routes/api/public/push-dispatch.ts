@@ -32,7 +32,7 @@ export const Route = createFileRoute("/api/public/push-dispatch")({
           .eq("id", id)
           .is("push_sent_at", null)
           .gte("created_at", since)
-          .select("user_id,type,title,body,client_id")
+          .select("user_id,type,title,body,client_id,intervention_id")
           .maybeSingle();
         if (!claimed) return new Response("ok", { status: 200 });
 
@@ -46,7 +46,9 @@ export const Route = createFileRoute("/api/public/push-dispatch")({
         const { invalid } = await sendPush(sa, tokens, {
           title: claimed.title as string,
           body: claimed.body as string | null,
-          url: notificationUrl(claimed as { type: string; client_id: string | null }),
+          url: notificationUrl(
+            claimed as { type: string; client_id: string | null; intervention_id: string | null },
+          ),
         });
         if (invalid.length > 0) {
           await supabaseAdmin.from("push_tokens").delete().in("token", invalid);

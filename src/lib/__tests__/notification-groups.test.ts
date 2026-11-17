@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { groupNotifications, notificationTarget } from "@/lib/notification-groups";
+import { notificationUrl } from "@/lib/push-fcm.server";
 import type { AppNotification } from "@/lib/notifications";
 
 const n = (over: Partial<AppNotification>): AppNotification => ({
@@ -42,6 +43,31 @@ describe("notificationTarget par rôle", () => {
     );
     expect(notificationTarget(n({ intervention_id: "i1" }), "prestataire")).toBe(
       "/interventions/i1",
+    );
+  });
+});
+
+describe("cible de chaque notification (cloche et push)", () => {
+  it("mise à jour de l'appli -> Personnalisation", () => {
+    expect(notificationTarget(n({ type: "app_update" }))).toBe("/personnalisation");
+    expect(notificationUrl({ type: "app_update", client_id: null, intervention_id: null })).toBe(
+      "/personnalisation",
+    );
+  });
+  it("alerte Radar -> Site web", () => {
+    expect(notificationTarget(n({ type: "system_alert" }))).toBe("/pilot/site-web");
+  });
+  it("intervention -> fiche intervention, y compris en push", () => {
+    expect(notificationUrl({ type: "info", client_id: null, intervention_id: "i1" })).toBe(
+      "/interventions/i1",
+    );
+  });
+  it("SST -> calendrier, client -> fiche client, en push comme en cloche", () => {
+    expect(notificationUrl({ type: "sst_worksite", client_id: null, intervention_id: null })).toBe(
+      "/pilot/calendrier",
+    );
+    expect(notificationUrl({ type: "read", client_id: "c1", intervention_id: null })).toBe(
+      "/clients/c1",
     );
   });
 });
