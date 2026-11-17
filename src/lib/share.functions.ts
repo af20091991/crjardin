@@ -252,7 +252,7 @@ export const addClientMessage = createServerFn({ method: "POST" })
       return {
         token: data.token,
         interventionId: data.interventionId ?? null,
-        kind: data.kind === "question" ? "question" : "annotation",
+        kind: data.kind === "question" || data.kind === "demande" ? data.kind : "annotation",
         content: (data.content ?? "").trim().slice(0, 2000),
         authorName: data.authorName ?? null,
         attachment,
