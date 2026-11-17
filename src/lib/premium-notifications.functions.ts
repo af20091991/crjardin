@@ -112,6 +112,32 @@ export const decideClientNotification = createServerFn({ method: "POST" })
       throw new Error("Aucun e-mail n'a pu être envoyé. La notification reste en attente.");
     }
 
+    // Push vers les téléphones du compte client (si l'APK PP y est installée). Sans bloquer l'envoi.
+    try {
+      const { data: owner } = await db
+        .from("clients")
+        .select("user_id")
+        .eq("id", row.client_id)
+        .maybeSingle();
+      const userId = (owner as { user_id?: string | null } | null)?.user_id;
+      if (userId) {
+        const { data: tokenRows } = await db.from("push_tokens").select("token").eq("user_id", userId);
+        const tokens = ((tokenRows ?? []) as Array<{ token: string }>).map((t) => t.token);
+        const { readServiceAccount, sendPush } = await import("@/lib/push-fcm.server");
+        const sa = readServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
+        if (sa && tokens.length > 0) {
+          const { invalid } = await sendPush(sa, tokens, {
+            title: row.title,
+            body: row.body ?? null,
+            url: "/",
+          });
+          if (invalid.length > 0) await db.from("push_tokens").delete().in("token", invalid);
+        }
+      }
+    } catch (err) {
+      console.error("[client-push] push non envoyé", err);
+    }
+
     const { error } = await db
       .from("client_notifications")
       .update({ status: "sent", sent_at: decidedAt, decided_at: decidedAt, decided_by: context.userId })
