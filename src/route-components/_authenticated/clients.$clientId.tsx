@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { ClientPlanningShortcut } from "@/components/ClientPlanningShortcut";
 import { regenerateClientShareToken } from "@/lib/share-link.functions";
+import { ClientChangeLog } from "@/components/ClientChangeLog";
 import { sendClientAccessLink } from "@/lib/premium-email.functions";
 import { Input } from "@/components/ui/input";
 import {
@@ -290,6 +291,8 @@ function ClientDetail() {
           copied={copied}
           setCopied={setCopied}
         />
+
+        <ClientChangeLog clientId={client.id} />
 
         <Button
           variant="outline"
