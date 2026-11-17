@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Check, ImageIcon, Loader2 } from "lucide-react";
+import { ThumbImg } from "@/components/share/ThumbImg";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -82,10 +83,9 @@ export function PremiumPhotos({
                     alt={photo.caption ?? "Photo libre"}
                     caption={photo.caption}
                   >
-                    <img
+                    <ThumbImg
                       src={photo.url!}
                       alt={photo.caption ?? "Photo libre"}
-                      loading="lazy"
                       className="aspect-[4/3] w-full object-cover"
                     />
                   </ImageLightbox>
@@ -120,10 +120,9 @@ export function PremiumPhotos({
                       alt={photo.caption ?? "Photo d'intervention"}
                       caption={photo.caption}
                     >
-                      <img
+                      <ThumbImg
                         src={photo.url!}
                         alt={photo.caption ?? "Photo d'intervention"}
-                        loading="lazy"
                         className="aspect-[4/3] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                       />
                     </ImageLightbox>
