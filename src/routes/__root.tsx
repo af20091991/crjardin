@@ -167,6 +167,14 @@ function SplashOverlay() {
       <div id="pp-splash" aria-hidden="true">
         <img src="/pilotpro-splash.svg" alt="" />
       </div>
+      {/* Relance automatique une seule fois si l'appli ne s'est pas montée (premier lancement
+          à froid sur téléphone) : évite l'écran blanc qu'on ne peut lever qu'en redémarrant. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            "(function(){try{var K='pp-boot-retry';setTimeout(function(){if(window.__ppAppReady)return;if(sessionStorage.getItem(K))return;sessionStorage.setItem(K,'1');location.reload();},14000);}catch(e){}})();",
+        }}
+      />
       {/* Filet de sécurité : si l'appli ne démarre pas, l'écran disparaît tout de même. */}
       <script
         dangerouslySetInnerHTML={{
@@ -291,6 +299,11 @@ function RootComponent() {
   useEffect(() => {
     registerPwa();
     hideSplash();
+    try {
+      sessionStorage.removeItem("pp-boot-retry");
+    } catch {
+      /* stockage indisponible : pas de relance automatique */
+    }
     // Signale à l'écran de démarrage que l'appli est montée.
     (window as unknown as { __ppAppReady?: boolean }).__ppAppReady = true;
     window.dispatchEvent(new Event("pp-app-ready"));
