@@ -34,12 +34,14 @@ export function groupNotifications(list: AppNotification[]) {
 }
 
 /** Page à ouvrir pour une notification, selon le rôle (null = rester sur place).
+ * Source unique pour la cloche in-app ET la notification push (voir push-fcm.server.ts).
  * Le prestataire n'accède qu'aux écrans SST et CR chantier (voir prestataire-access). */
 export function notificationTarget(
-  n: AppNotification,
+  n: Pick<AppNotification, "type" | "client_id" | "intervention_id">,
   role: "admin" | "prestataire" | "observateur" = "admin",
 ): string | null {
   if (n.type === "app_update") return "/personnalisation";
+  if (n.type === "system_alert") return "/pilot/site-web";
   if (n.intervention_id) return `/interventions/${n.intervention_id}`;
   if (n.type.startsWith("sst")) return "/pilot/calendrier";
   if (role === "prestataire") return null;
