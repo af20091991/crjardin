@@ -135,7 +135,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <img
-            src="/pilotpro-splash.svg"
+            src="/pilotpro-logo.svg"
             alt="Pilot Pro"
             className="mb-3 h-40 w-40 object-contain"
           />
