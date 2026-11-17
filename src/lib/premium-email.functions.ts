@@ -4,6 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // prettier-ignore
 import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premium-welcome";
+import { template as clientAccessLinkTemplate } from "@/lib/email-templates/client-access-link";
 import { template as premiumReplyTemplate } from "@/lib/email-templates/premium-reply";
 import { template as premiumMessageTemplate } from "@/lib/email-templates/premium-message";
 import { template as premiumDocumentTemplate } from "@/lib/email-templates/premium-document";
@@ -195,6 +196,40 @@ export const sendPremiumDocumentNotification = createServerFn({ method: "POST" }
       skipAlreadySent: false,
       section: "documents",
       extraProps: { documentTitle: data.documentTitle.slice(0, 200) },
+    });
+    return { results };
+  });
+
+/** Envoie au client le lien privé de son espace (sans mot de passe) à toutes les adresses de la fiche. */
+// prettier-ignore
+export const sendClientAccessLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string }) => input)
+  .handler(async ({ context, data }) => {
+    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleError) throw roleError;
+    assertAdmin(isAdmin);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: client, error: clientError } = await supabaseAdmin
+      .from("clients")
+      .select("id, name, civility, email, emails, share_token, contract_type, default_contact_id")
+      .eq("id", data.clientId)
+      .is("merged_into_client_id", null)
+      .single();
+    if (clientError) throw clientError;
+
+    const { sendPremiumMailToAll } = await import("@/lib/premium-mailer.server");
+    const results = await sendPremiumMailToAll({
+      supabaseAdmin,
+      client,
+      templateName: "client-access-link",
+      subject: "Votre espace client — De la graine au jardin",
+      component: clientAccessLinkTemplate.component,
+      skipAlreadySent: false,
     });
     return { results };
   });
