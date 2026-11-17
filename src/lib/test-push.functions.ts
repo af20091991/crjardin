@@ -4,24 +4,47 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
- * Crée une notification de test adressée uniquement à l'utilisateur connecté.
- * L'insertion déclenche le push vers ses téléphones enregistrés.
+ * Envoie une vraie notification push (FCM) aux téléphones enregistrés de l'utilisateur connecté.
+ * Aucune ligne n'est créée dans la cloche : la notification s'affiche sur le téléphone,
+ * appli fermée ou ouverte.
  */
 // prettier-ignore
 export const sendTestPush = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
-      .from("notifications")
-      .insert({
-        user_id: context.userId,
-        type: "test",
-        title: "Test de notification APK PUSH",
-        body: "Si vous voyez ceci sur votre téléphone, les notifications fonctionnent.",
-      })
-      .select("id")
-      .single();
+    const { readServiceAccount, sendPush } = await import("@/lib/push-fcm.server");
+
+    const sa = readServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
+    if (!sa) throw new Error("Push non configuré (secret FIREBASE_SERVICE_ACCOUNT absent).");
+
+    // Table push_tokens absente des types générés
+    type LooseDb = {
+      from: (table: string) => {
+        select: (cols: string) => {
+          eq: (col: string, val: string) => Promise<{ data: unknown; error: unknown }>;
+        };
+        delete: () => { in: (col: string, vals: string[]) => Promise<unknown> };
+      };
+    };
+    const db = supabaseAdmin as unknown as LooseDb;
+    const { data: rows, error } = await db
+      .from("push_tokens")
+      .select("token")
+      .eq("user_id", context.userId);
     if (error) throw error;
-    return { id: data.id as string };
+    const tokens = ((rows ?? []) as Array<{ token: string }>).map((r) => r.token);
+    if (tokens.length === 0) {
+      throw new Error("Aucun téléphone enregistré pour ce compte. Ouvrez l'APK en étant connecté.");
+    }
+
+    const { sent, invalid } = await sendPush(sa, tokens, {
+      title: "Test de notification APK PUSH",
+      body: "Si vous voyez ceci sur votre téléphone, les notifications fonctionnent.",
+      url: "/",
+    });
+    if (invalid.length > 0) {
+      await db.from("push_tokens").delete().in("token", invalid);
+    }
+    return { sent, invalid: invalid.length };
   });

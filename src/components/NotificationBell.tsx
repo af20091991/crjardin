@@ -222,8 +222,8 @@ export function NotificationBell() {
             onClick={async () => {
               setTesting(true);
               try {
-                await sendTestPush();
-                toast.success("Notification de test envoyée à vos téléphones enregistrés.");
+                const r = await sendTestPush();
+                toast.success(`Notification push envoyée à ${r.sent} téléphone(s).`);
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Envoi impossible");
               } finally {
