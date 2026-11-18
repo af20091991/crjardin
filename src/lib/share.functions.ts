@@ -439,6 +439,10 @@ export const getSharedClient = createServerFn({ method: "GET" })
 
     const result = payload as unknown as SharedClientData;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Même liste que l'espace Premium : une seule règle de visibilité (voir loadSharedRecommendationRows).
+    result.recommendations = (await loadSharedRecommendationRows(result.client.id)).map(
+      ({ intervention_id: _iv, ...reco }) => reco,
+    );
 
     // The public RPC historically did not expose civility. Read it from the
     // authoritative client record so Premium can always display the title
@@ -499,6 +503,26 @@ export const getSharedClient = createServerFn({ method: "GET" })
   });
 
 const PREMIUM_BUCKET = "client-premium";
+
+/**
+ * Source unique des préconisations vues par le client (vue classique ET Premium).
+ * Règle : celles qui figurent dans le CR (include_in_report) et non refusées.
+ * Même critère que le texte du CR (trigger recommendations_text), donc aucun écart.
+ */
+export async function loadSharedRecommendationRows(clientId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("recommendations")
+    .select(
+      "id, title, description, category, status, estimated_hours, unit_price, client_interest, client_viewed_at, intervention_id",
+    )
+    .eq("client_id", clientId)
+    .eq("include_in_report", true)
+    .neq("status", "refusee")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
 
 export const getSharedPremium = createServerFn({ method: "GET" })
   .inputValidator((data: { token: string }) => {
@@ -644,14 +668,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       .maybeSingle();
 
     // Préconisations rédigées dans les comptes-rendus de chantier, regroupées par intervention.
-    const { data: recoRows } = await supabaseAdmin
-      .from("recommendations")
-      .select(
-        "id, title, description, category, status, estimated_hours, unit_price, client_interest, client_viewed_at, intervention_id",
-      )
-      .eq("client_id", client.id)
-      .in("status", ["en_attente", "acceptee", "proposee"])
-      .order("created_at", { ascending: false });
+    const recoRows = await loadSharedRecommendationRows(client.id);
     const recoInterventionIds = Array.from(
       new Set((recoRows ?? []).map((row) => row.intervention_id).filter(Boolean)),
     ) as string[];
@@ -890,9 +907,22 @@ export const setSharedPremiumCover = createServerFn({ method: "POST" })
     ) {
       throw new Error("Cette photo n'appartient pas à ce client");
     }
-    const { error } = await supabaseAdmin
+    // Colonnes cover_set_* absentes de types.ts (régénération à faire).
+    const loose = supabaseAdmin as unknown as {
+      from: (table: string) => {
+        update: (values: unknown) => {
+          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+        };
+      };
+    };
+    const { error } = await loose
       .from("client_premium")
-      .update({ cover_photo_id: photo.id })
+      .update({
+        cover_photo_id: photo.id,
+        cover_document_id: null,
+        cover_set_by: "client",
+        cover_set_at: new Date().toISOString(),
+      })
       .eq("client_id", client.id);
     if (error) throw new Error(`Couverture non enregistrée : ${error.message}`);
     return { ok: true };

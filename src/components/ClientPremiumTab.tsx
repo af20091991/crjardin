@@ -431,6 +431,8 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
         canEdit={canEdit}
         currentPhotoId={premium?.cover_photo_id ?? null}
         currentDocumentId={premium?.cover_document_id ?? null}
+        coverSetBy={premium?.cover_set_by ?? null}
+        coverSetAt={premium?.cover_set_at ?? null}
         documents={documents ?? []}
         onSelected={invalidate}
       />
@@ -454,6 +456,8 @@ function CoverPhotoPicker({
   clientId,
   currentPhotoId,
   currentDocumentId,
+  coverSetBy,
+  coverSetAt,
   documents,
   canEdit,
   onSelected,
@@ -461,6 +465,8 @@ function CoverPhotoPicker({
   clientId: string;
   currentPhotoId: string | null;
   currentDocumentId: string | null;
+  coverSetBy: "client" | "gardener" | null;
+  coverSetAt: string | null;
   documents: PremiumDocument[];
   canEdit: boolean;
   onSelected: () => void;
@@ -468,6 +474,16 @@ function CoverPhotoPicker({
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const images = imageDocuments(documents);
+  const hasCover = Boolean(currentPhotoId || currentDocumentId);
+  const chosenByClient = hasCover && coverSetBy === "client";
+  // Si le client a choisi sa couverture, on ne la remplace qu'après confirmation.
+  const confirmReplace = () => {
+    if (!chosenByClient) return true;
+    const when = coverSetAt ? ` le ${new Date(coverSetAt).toLocaleDateString("fr-FR")}` : "";
+    return window.confirm(
+      `Le client a choisi cette photo de couverture${when}. La remplacer par la vôtre ?`,
+    );
+  };
 
   const { data: photos } = useQuery({
     queryKey: ["client-premium-cover-options", clientId],
@@ -497,26 +513,42 @@ function CoverPhotoPicker({
   const done = () => {
     toast.success("Photo de couverture mise à jour");
     qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+    qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
     onSelected();
   };
   const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Erreur");
 
   const selectPhoto = useMutation({
     mutationFn: (photoId: string) =>
-      updateClientPremium(clientId, { cover_photo_id: photoId, cover_document_id: null }),
+      updateClientPremium(clientId, {
+        cover_photo_id: photoId,
+        cover_document_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      }),
     onSuccess: done,
     onError,
   });
   const selectDocument = useMutation({
     mutationFn: (docId: string) =>
-      updateClientPremium(clientId, { cover_document_id: docId, cover_photo_id: null }),
+      updateClientPremium(clientId, {
+        cover_document_id: docId,
+        cover_photo_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      }),
     onSuccess: done,
     onError,
   });
   const upload = useMutation({
     mutationFn: async (file: File) => {
       const doc = await uploadPremiumDocument(clientId, file, "Photo de couverture");
-      await updateClientPremium(clientId, { cover_document_id: doc.id, cover_photo_id: null });
+      await updateClientPremium(clientId, {
+        cover_document_id: doc.id,
+        cover_photo_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      });
     },
     onSuccess: done,
     onError,
@@ -532,6 +564,7 @@ function CoverPhotoPicker({
       toast.error("Veuillez choisir une image");
       return;
     }
+    if (!confirmReplace()) return;
     upload.mutate(file);
   };
 
@@ -564,6 +597,13 @@ function CoverPhotoPicker({
             <ImageIcon className="h-4 w-4 text-muted-foreground" />
             <p className="font-medium">Photo de couverture</p>
           </div>
+          {hasCover && (
+            <p className="text-xs text-muted-foreground">
+              {chosenByClient
+                ? `Choisie par le client${coverSetAt ? ` le ${new Date(coverSetAt).toLocaleDateString("fr-FR")}` : ""}`
+                : "Choisie par vous"}
+            </p>
+          )}
           <Button
             type="button"
             size="sm"
@@ -588,9 +628,9 @@ function CoverPhotoPicker({
             </p>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
               {images.map((d) =>
-                tile(d.id, docUrls?.[d.id], currentDocumentId === d.id, () =>
-                  selectDocument.mutate(d.id),
-                ),
+                tile(d.id, docUrls?.[d.id], currentDocumentId === d.id, () => {
+                  if (confirmReplace()) selectDocument.mutate(d.id);
+                }),
               )}
             </div>
           </div>
@@ -603,7 +643,9 @@ function CoverPhotoPicker({
             </p>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
               {photoList.map((p) =>
-                tile(p.id, urls?.[p.id], currentPhotoId === p.id, () => selectPhoto.mutate(p.id)),
+                tile(p.id, urls?.[p.id], currentPhotoId === p.id, () => {
+                  if (confirmReplace()) selectPhoto.mutate(p.id);
+                }),
               )}
             </div>
           </div>

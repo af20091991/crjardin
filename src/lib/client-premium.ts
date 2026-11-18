@@ -18,6 +18,9 @@ export interface ClientPremium {
   commercial_note: string | null;
   cover_photo_id: string | null;
   cover_document_id: string | null;
+  /** Qui a choisi la couverture : le client (son choix est protégé) ou le jardinier. */
+  cover_set_by: "client" | "gardener" | null;
+  cover_set_at: string | null;
 }
 
 export type PremiumDocumentUploader = "gardener" | "client";
@@ -67,7 +70,7 @@ export async function getClientPremium(clientId: string): Promise<ClientPremium 
     .maybeSingle();
 
   return {
-    ...(data as ClientPremium),
+    ...(data as unknown as ClientPremium),
     garden_state: latestReport?.garden_state ?? (data.garden_state as string | null),
   };
 }
@@ -134,11 +137,19 @@ export async function updateClientPremium(
       | "commercial_note"
       | "cover_photo_id"
       | "cover_document_id"
+      | "cover_set_by"
+      | "cover_set_at"
     >
   >,
 ): Promise<void> {
   const user_id = await uid();
-  const { error } = await supabase
+  // Colonnes cover_set_* absentes de types.ts (régénération à faire) : écriture typée à la main.
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      upsert: (values: unknown, options: unknown) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+  const { error } = await loose
     .from("client_premium")
     .upsert({ client_id: clientId, user_id, ...patch }, { onConflict: "client_id" });
   if (error) throw new Error(`Impossible d'enregistrer les modifications : ${error.message}`);
