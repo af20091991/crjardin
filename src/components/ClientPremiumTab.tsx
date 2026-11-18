@@ -497,6 +497,7 @@ function CoverPhotoPicker({
   const done = () => {
     toast.success("Photo de couverture mise à jour");
     qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+    qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
     onSelected();
   };
   const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Erreur");
