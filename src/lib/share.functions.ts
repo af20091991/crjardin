@@ -907,9 +907,22 @@ export const setSharedPremiumCover = createServerFn({ method: "POST" })
     ) {
       throw new Error("Cette photo n'appartient pas à ce client");
     }
-    const { error } = await supabaseAdmin
+    // Colonnes cover_set_* absentes de types.ts (régénération à faire).
+    const loose = supabaseAdmin as unknown as {
+      from: (table: string) => {
+        update: (values: unknown) => {
+          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+        };
+      };
+    };
+    const { error } = await loose
       .from("client_premium")
-      .update({ cover_photo_id: photo.id })
+      .update({
+        cover_photo_id: photo.id,
+        cover_document_id: null,
+        cover_set_by: "client",
+        cover_set_at: new Date().toISOString(),
+      })
       .eq("client_id", client.id);
     if (error) throw new Error(`Couverture non enregistrée : ${error.message}`);
     return { ok: true };
