@@ -42,10 +42,17 @@ jobs:
             echo "::error::Configure repository variable SUPABASE_PROJECT_REF and secret SUPABASE_DB_URL."
             exit 1
           fi
-          if [[ "${SUPABASE_PROJECT_REF}" != "mgkeqwwzhcodntkakqaz" ]]; then
-            echo "::error::The configured project reference is not the expected Pilot Pro production project."
+          # Source de vérité : l'URL Supabase de l'application (fichier .env, généré par Lovable).
+          APP_REF="$(sed -n 's#^VITE_SUPABASE_URL="https://\([a-z0-9]*\)\.supabase\.co".*#\1#p' .env | head -1)"
+          if [[ -z "${APP_REF}" ]]; then
+            echo "::error::Impossible de lire la référence du projet dans .env (VITE_SUPABASE_URL)."
             exit 1
           fi
+          if [[ "${SUPABASE_PROJECT_REF}" != "${APP_REF}" ]]; then
+            echo "::error::La variable SUPABASE_PROJECT_REF (${SUPABASE_PROJECT_REF}) ne correspond pas au projet de l'application (${APP_REF})."
+            exit 1
+          fi
+          echo "Projet cible confirmé : ${APP_REF}"
           python3 - <<'PY'
           import os
           from urllib.parse import urlsplit
@@ -53,7 +60,7 @@ jobs:
           ref = os.environ["SUPABASE_PROJECT_REF"]
           parsed = urlsplit(os.environ["SUPABASE_DB_URL"])
           if parsed.scheme not in ("postgres", "postgresql") or parsed.hostname != f"db.{ref}.supabase.co":
-              raise SystemExit("::error::Use the direct PostgreSQL connection URI for the expected Pilot Pro project. The URI value is never printed.")
+              raise SystemExit("::error::SUPABASE_DB_URL doit être l'URI de connexion directe (hôte db.<référence>.supabase.co) du projet de l'application. La valeur n'est jamais affichée.")
           PY
           for f in ${MIGRATION_FILES}; do
             if [[ ! "$f" =~ ^supabase/migrations/[0-9]{14}_[a-z0-9_]+\.sql$ ]]; then
