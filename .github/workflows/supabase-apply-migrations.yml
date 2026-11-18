@@ -1,0 +1,88 @@
+name: Supabase apply migrations (manual)
+
+# Déclenchement manuel uniquement. Applique des fichiers de supabase/migrations/
+# sur la base de production Pilot Pro, dans une seule transaction, avec arrêt à la première erreur.
+
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: "Fichiers de migration à appliquer, séparés par des espaces (ex: supabase/migrations/20261117140000_messages_read_receipts.sql)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-apply-migrations
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply migrations to Pilot Pro production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      MIGRATION_FILES: ${{ inputs.files }}
+      PGSSLMODE: require
+      PGCONNECT_TIMEOUT: "15"
+      PGOPTIONS: "-c statement_timeout=120000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate target and files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_PROJECT_REF}" || -z "${SUPABASE_DB_URL}" ]]; then
+            echo "::error::Configure repository variable SUPABASE_PROJECT_REF and secret SUPABASE_DB_URL."
+            exit 1
+          fi
+          if [[ "${SUPABASE_PROJECT_REF}" != "mgkeqwwzhcodntkakqaz" ]]; then
+            echo "::error::The configured project reference is not the expected Pilot Pro production project."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlsplit
+
+          ref = os.environ["SUPABASE_PROJECT_REF"]
+          parsed = urlsplit(os.environ["SUPABASE_DB_URL"])
+          if parsed.scheme not in ("postgres", "postgresql") or parsed.hostname != f"db.{ref}.supabase.co":
+              raise SystemExit("::error::Use the direct PostgreSQL connection URI for the expected Pilot Pro project. The URI value is never printed.")
+          PY
+          for f in ${MIGRATION_FILES}; do
+            if [[ ! "$f" =~ ^supabase/migrations/[0-9]{14}_[a-z0-9_]+\.sql$ ]]; then
+              echo "::error::Invalid migration path: $f"
+              exit 1
+            fi
+            if [[ ! -f "$f" ]]; then
+              echo "::error::Migration file not found: $f"
+              exit 1
+            fi
+          done
+          echo "Target validated. Files:"
+          printf '  %s\n' ${MIGRATION_FILES}
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Apply migrations in order (single transaction per file)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in $(printf '%s\n' ${MIGRATION_FILES} | sort); do
+            echo "Applying $f"
+            psql "${SUPABASE_DB_URL}" \
+              --no-psqlrc \
+              --set=ON_ERROR_STOP=1 \
+              --single-transaction \
+              --file="$f"
+          done
+          echo "All migrations applied."
