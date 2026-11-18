@@ -1221,12 +1221,18 @@ function InterventionDetail() {
               iv={iv}
               onSave={(v) => saveSynthese.mutate({ upcoming_works: v })}
             />
-            <SyntheseField
-              label="Préconisations / conseils"
-              field="recommendations_text"
-              iv={iv}
-              onSave={(v) => saveSynthese.mutate({ recommendations_text: v })}
-            />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Préconisations / conseils</p>
+              {iv.recommendations_text?.trim() ? (
+                <p className="whitespace-pre-wrap text-sm">{iv.recommendations_text}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Aucune préconisation.</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Préconisations gérées dans la liste ci-dessous : ce texte se met à jour
+                automatiquement, et le client voit la même liste.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -1403,7 +1409,6 @@ function SyntheseField({
     | "summary"
     | "garden_state"
     | "upcoming_works"
-    | "recommendations_text"
     | "positive_points"
     | "attention_points"
     | "garden_evolution";
