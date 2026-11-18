@@ -26,6 +26,7 @@ import {
   getClientPremium,
   setClientPremiumEnabled,
   updateClientPremium,
+  releaseCoverDocument,
   listPremiumDocuments,
   uploadPremiumDocument,
   updatePremiumDocumentVisibility,
@@ -518,37 +519,50 @@ function CoverPhotoPicker({
   };
   const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Erreur");
 
+  // Ancien fichier de couverture (envoyé depuis PP) supprimé quand il est remplacé.
+  const releasePrevious = (newDocId: string | null) =>
+    currentDocumentId && currentDocumentId !== newDocId
+      ? releaseCoverDocument(currentDocumentId)
+      : Promise.resolve();
+
   const selectPhoto = useMutation({
-    mutationFn: (photoId: string) =>
-      updateClientPremium(clientId, {
+    mutationFn: async (photoId: string) => {
+      await updateClientPremium(clientId, {
         cover_photo_id: photoId,
         cover_document_id: null,
         cover_set_by: "gardener",
         cover_set_at: new Date().toISOString(),
-      }),
+      });
+      await releasePrevious(null);
+    },
     onSuccess: done,
     onError,
   });
   const selectDocument = useMutation({
-    mutationFn: (docId: string) =>
-      updateClientPremium(clientId, {
+    mutationFn: async (docId: string) => {
+      await updateClientPremium(clientId, {
         cover_document_id: docId,
         cover_photo_id: null,
         cover_set_by: "gardener",
         cover_set_at: new Date().toISOString(),
-      }),
+      });
+      await releasePrevious(docId);
+    },
     onSuccess: done,
     onError,
   });
   const upload = useMutation({
     mutationFn: async (file: File) => {
-      const doc = await uploadPremiumDocument(clientId, file, "Photo de couverture");
+      const doc = await uploadPremiumDocument(clientId, file, "Photo de couverture", {
+        coverOnly: true,
+      });
       await updateClientPremium(clientId, {
         cover_document_id: doc.id,
         cover_photo_id: null,
         cover_set_by: "gardener",
         cover_set_at: new Date().toISOString(),
       });
+      await releasePrevious(doc.id);
     },
     onSuccess: done,
     onError,

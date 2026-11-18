@@ -162,13 +162,43 @@ export async function listPremiumDocuments(clientId: string): Promise<PremiumDoc
     .eq("client_id", clientId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`Impossible de charger les documents : ${error.message}`);
-  return data as PremiumDocument[];
+  // Les fichiers de couverture ne sont listés nulle part ailleurs : ils n'apparaissent que comme couverture.
+  return (data as PremiumDocument[]).filter(
+    (d) => !(d as PremiumDocument & { cover_only?: boolean }).cover_only,
+  );
+}
+
+/** Supprime le fichier de couverture précédent (envoyé depuis PP) une fois remplacé. */
+export async function releaseCoverDocument(docId: string): Promise<void> {
+  // Colonne cover_only absente de types.ts (régénération à faire).
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: string,
+        ) => {
+          maybeSingle: () => Promise<{
+            data: { storage_path: string; cover_only: boolean } | null;
+          }>;
+        };
+      };
+    };
+  };
+  const { data } = await loose
+    .from("client_premium_documents")
+    .select("storage_path, cover_only")
+    .eq("id", docId)
+    .maybeSingle();
+  if (!data?.cover_only) return;
+  await deletePremiumDocument(docId, data.storage_path);
 }
 
 export async function uploadPremiumDocument(
   clientId: string,
   file: File,
   title: string,
+  options: { coverOnly?: boolean } = {},
 ): Promise<PremiumDocument> {
   const user_id = await uid();
   const ext = file.name.split(".").pop() || "pdf";
@@ -178,7 +208,17 @@ export async function uploadPremiumDocument(
     upsert: false,
   });
   if (uploadError) throw new Error(`Échec de l'envoi du document : ${uploadError.message}`);
-  const { data, error } = await supabase
+  // Colonne cover_only absente de types.ts (régénération à faire).
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      insert: (values: unknown) => {
+        select: () => {
+          single: () => Promise<{ data: unknown; error: { message: string } | null }>;
+        };
+      };
+    };
+  };
+  const { data, error } = await loose
     .from("client_premium_documents")
     .insert({
       client_id: clientId,
@@ -188,6 +228,7 @@ export async function uploadPremiumDocument(
       storage_path: path,
       size_bytes: file.size,
       uploaded_by: "gardener",
+      cover_only: options.coverOnly ?? false,
     })
     .select()
     .single();

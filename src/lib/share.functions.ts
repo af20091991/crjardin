@@ -376,6 +376,13 @@ export const getSharedMessageAttachmentUrl = createServerFn({ method: "POST" })
       .eq("share_token", data.token)
       .maybeSingle();
     if (!client) throw new Error("Lien invalide");
+    // Les pièces jointes sont des fichiers Premium : elles ne sont plus accessibles une fois Premium désactivé.
+    const { data: premiumState } = await supabaseAdmin
+      .from("client_premium")
+      .select("enabled")
+      .eq("client_id", client.id)
+      .maybeSingle();
+    if (!premiumState?.enabled) throw new Error("Espace Premium non actif");
     const { data: row } = await supabaseAdmin
       .from("client_messages")
       .select("attachment_path, attachment_name" as never)
@@ -503,6 +510,30 @@ export const getSharedClient = createServerFn({ method: "GET" })
   });
 
 const PREMIUM_BUCKET = "client-premium";
+
+/** Identifiants des documents qui ne servent qu'à la photo de couverture. */
+async function coverOnlyDocumentIds(clientId: string): Promise<Set<string>> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // Colonne cover_only absente de types.ts (régénération à faire).
+  const loose = supabaseAdmin as unknown as {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: string | boolean,
+        ) => {
+          eq: (col: string, val: string | boolean) => Promise<{ data: { id: string }[] | null }>;
+        };
+      };
+    };
+  };
+  const { data } = await loose
+    .from("client_premium_documents")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("cover_only", true);
+  return new Set((data ?? []).map((row) => row.id));
+}
 
 /**
  * Source unique des préconisations vues par le client (vue classique ET Premium).
@@ -646,6 +677,9 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       }
     }
 
+    // Fichiers de couverture (envoyés depuis PP) : affichés uniquement comme couverture.
+    const coverOnly = await coverOnlyDocumentIds(client.id);
+    syncedDocuments = syncedDocuments.filter((d) => !coverOnly.has(d.id));
     const docPaths = syncedDocuments.map((d) => d.storage_path);
     const docUrlMap = new Map<string, string>();
     if (docPaths.length > 0) {
