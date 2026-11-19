@@ -823,6 +823,17 @@ export const getSharedInterventionPdfUrl = createServerFn({ method: "POST" })
 
 const PREMIUM_DOC_MAX_BYTES = 15 * 1024 * 1024;
 
+async function requireSharedClientByToken(token: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("id, name, user_id")
+    .eq("share_token", token)
+    .maybeSingle();
+  if (!client) throw new Error("Lien invalide");
+  return { supabaseAdmin, client };
+}
+
 async function requireEnabledPremiumClient(token: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: client } = await supabaseAdmin
@@ -856,7 +867,7 @@ export const createSharedPremiumPhotoAlbum = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     assertNotApercu();
-    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const { supabaseAdmin, client } = await requireSharedClientByToken(data.token);
     const { data: album, error } = await supabaseAdmin
       .from("client_photo_albums")
       .insert({
@@ -892,7 +903,7 @@ export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     assertNotApercu();
-    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const { supabaseAdmin, client } = await requireSharedClientByToken(data.token);
     const rawExt = data.filename.split(".").pop()?.toLowerCase() || "img";
     const ext = /^[a-z0-9]{2,8}$/.test(rawExt) ? rawExt : "img";
     const path = `${client.id}/client-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
@@ -928,7 +939,7 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
   )
   .handler(async ({ data }) => {
     assertNotApercu();
-    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const { supabaseAdmin, client } = await requireSharedClientByToken(data.token);
     if (!data.path.startsWith(`${client.id}/client-`)) {
       throw new Error("Chemin de fichier invalide");
     }
