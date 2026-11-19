@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { recoResponseState, RECO_RESPONSE_TONE } from "@/lib/reco-response";
 import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
@@ -765,6 +766,14 @@ function RecoCard({
       {reco.description && (
         <p className="mt-1.5 text-sm text-muted-foreground">{reco.description}</p>
       )}
+      {(() => {
+        const state = recoResponseState(reco);
+        return (
+          <p className={`mt-2 text-xs font-medium ${RECO_RESPONSE_TONE[state.tone]}`}>
+            {state.label}
+          </p>
+        );
+      })()}
       <RecoInterest reco={reco} onCleared={onChanged} />
 
       {canEdit && (
@@ -787,10 +796,15 @@ function RecoCard({
                 disabled={refuse.isPending}
                 onClick={() => refuse.mutate()}
               >
-                <ThumbsDown className="mr-1.5 h-3.5 w-3.5" /> Refusée
+                <ThumbsDown className="mr-1.5 h-3.5 w-3.5" /> Marquer refusée
               </Button>
-              <Button size="sm" disabled={accept.isPending} onClick={() => accept.mutate()}>
-                <ThumbsUp className="mr-1.5 h-3.5 w-3.5" /> Acceptée
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={accept.isPending}
+                onClick={() => accept.mutate()}
+              >
+                <ThumbsUp className="mr-1.5 h-3.5 w-3.5" /> Marquer acceptée
               </Button>
             </>
           )}
