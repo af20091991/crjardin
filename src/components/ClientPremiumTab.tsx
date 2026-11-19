@@ -11,6 +11,8 @@ import {
   EyeOff,
   ImageIcon,
   Loader2,
+  Pencil,
+  RefreshCw,
   User,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +29,8 @@ import {
   setClientPremiumEnabled,
   updateClientPremium,
   releaseCoverDocument,
+  renamePremiumDocument,
+  replacePremiumDocumentFile,
   listPremiumDocuments,
   uploadPremiumDocument,
   updatePremiumDocumentVisibility,
@@ -839,6 +843,41 @@ function PremiumDocumentsCard({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replacingDocId, setReplacingDocId] = useState<string | null>(null);
+
+  const rename = useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => renamePremiumDocument(id, title),
+    onSuccess: () => {
+      setEditingDocId(null);
+      toast.success("Document renommé");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const replace = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) =>
+      replacePremiumDocumentFile(id, clientId, file),
+    onSuccess: () => {
+      toast.success("Fichier remplacé");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+    onSettled: () => setReplacingDocId(null),
+  });
+
+  const saveRename = (doc: PremiumDocument) => {
+    const title = draftTitle.trim();
+    if (!title || title === doc.title) {
+      setEditingDocId(null);
+      return;
+    }
+    rename.mutate({ id: doc.id, title });
+  };
+
   const remove = useMutation({
     mutationFn: ({ id, storagePath }: { id: string; storagePath: string }) =>
       deletePremiumDocument(id, storagePath),
@@ -877,6 +916,17 @@ function PremiumDocumentsCard({
           </Button>
         </div>
 
+        <input
+          ref={replaceInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file && replacingDocId) replace.mutate({ id: replacingDocId, file });
+            else setReplacingDocId(null);
+          }}
+        />
         {documents.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun document pour le moment.</p>
         ) : (
@@ -887,7 +937,23 @@ function PremiumDocumentsCard({
                 className="flex items-center justify-between gap-2 rounded-lg border p-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{doc.title}</p>
+                  {editingDocId === doc.id ? (
+                    <Input
+                      autoFocus
+                      value={draftTitle}
+                      aria-label="Titre du document"
+                      disabled={rename.isPending}
+                      onChange={(e) => setDraftTitle(e.target.value)}
+                      onBlur={() => saveRename(doc)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setEditingDocId(null);
+                      }}
+                      className="h-8 text-sm"
+                    />
+                  ) : (
+                    <p className="truncate text-sm font-medium">{doc.title}</p>
+                  )}
                   <div className="mt-0.5 flex items-center gap-1.5">
                     <Badge variant="outline" className="gap-1 text-[10px]">
                       <User className="h-3 w-3" /> {UPLOADER_LABEL[doc.uploaded_by]}
@@ -895,6 +961,36 @@ function PremiumDocumentsCard({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Renommer"
+                    disabled={!canEdit || rename.isPending}
+                    onClick={() => {
+                      setDraftTitle(doc.title);
+                      setEditingDocId(doc.id);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remplacer le fichier"
+                    disabled={!canEdit || replace.isPending}
+                    onClick={() => {
+                      setReplacingDocId(doc.id);
+                      replaceInputRef.current?.click();
+                    }}
+                  >
+                    {replacingDocId === doc.id && replace.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
