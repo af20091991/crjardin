@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ClientCompletenessCard } from "@/components/clients/ClientCompletenessCard";
+import { ClientPhotosPanel } from "@/components/clients/ClientPhotosPanel";
 import { recoResponseState, RECO_RESPONSE_TONE } from "@/lib/reco-response";
 import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -346,6 +347,7 @@ function ClientDetail() {
                 <SelectItem value="health">Santé</SelectItem>
                 <SelectItem value="reco">Préconisations</SelectItem>
                 <SelectItem value="opps">Opportunités</SelectItem>
+                <SelectItem value="photos">Photos et albums</SelectItem>
               </SelectContent>
             </Select>
             <TabsContent value="interventions">
@@ -478,6 +480,17 @@ function ClientDetail() {
             </TabsContent>
             <TabsContent value="opps">
               <ClientOpportunitiesWidget clientId={clientId} />
+            </TabsContent>
+            <TabsContent value="photos">
+              <ClientPhotosPanel
+                clientId={clientId}
+                interventions={(interventions ?? []).map((iv) => ({
+                  id: iv.id,
+                  title: iv.title ?? null,
+                  intervention_type: iv.intervention_type ?? null,
+                  intervention_date: iv.intervention_date,
+                }))}
+              />
             </TabsContent>
           </Tabs>
         )}
