@@ -54,7 +54,7 @@ function RecommendationRow({ reco, token }: { reco: SharedRecommendation; token:
           className={`inline-flex items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-base font-semibold transition-colors disabled:opacity-60 ${
             interested
               ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
-              : "border-emerald-600 bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "border-border bg-background text-foreground hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
           }`}
         >
           <Check className="size-5" />
@@ -68,7 +68,7 @@ function RecommendationRow({ reco, token }: { reco: SharedRecommendation; token:
           className={`inline-flex items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-base font-semibold transition-colors disabled:opacity-60 ${
             answered && !interested
               ? "border-red-600 bg-red-600 text-white shadow-sm"
-              : "border-red-600 bg-red-50 text-red-800 hover:bg-red-600 hover:text-white dark:bg-red-950/40 dark:text-red-300"
+              : "border-border bg-background text-foreground hover:border-red-600 hover:bg-red-50 hover:text-red-800 dark:hover:bg-red-950/40 dark:hover:text-red-300"
           }`}
         >
           <X className="size-5" />
