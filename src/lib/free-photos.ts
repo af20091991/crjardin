@@ -8,6 +8,7 @@ export interface FreePhoto {
   caption: string | null;
   position: number;
   created_at: string;
+  album_id?: string | null;
 }
 
 async function uid(): Promise<string> {
@@ -32,6 +33,7 @@ export async function addFreePhoto(
   clientId: string,
   storagePath: string,
   position: number,
+  albumId?: string | null,
 ): Promise<FreePhoto> {
   const user_id = await uid();
   const { data, error } = await supabase
@@ -39,11 +41,12 @@ export async function addFreePhoto(
     .insert({
       client_id: clientId,
       intervention_id: null,
+      album_id: albumId ?? null,
       user_id,
       storage_path: storagePath,
       position,
       include_in_report: false,
-    })
+    } as never)
     .select()
     .single();
   if (error) throw error;
