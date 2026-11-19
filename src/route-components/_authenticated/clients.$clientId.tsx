@@ -289,31 +289,6 @@ function ClientDetail() {
           </CardContent>
         </Card>
 
-        <ShareLinkCard
-          clientId={client.id}
-          token={client.share_token}
-          copied={copied}
-          setCopied={setCopied}
-        />
-
-        <ClientChangeLog clientId={client.id} />
-
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={() => {
-            exportClientFichePdf(client).catch(() => toast.error("Échec de l'export PDF"));
-          }}
-        >
-          <FileDown className="mr-1.5 h-4 w-4" />
-          Exporter la fiche (PDF)
-        </Button>
-
-        {client.ceev_planning_path && (
-          <ClientPlanningShortcut clientId={client.id} filename={client.ceev_planning_filename} />
-        )}
-
         <ClientCompletenessCard
           client={client}
           scope="fiche"
@@ -495,6 +470,33 @@ function ClientDetail() {
 
         {group === "premium" && <ClientPremiumTab clientId={clientId} canEdit={canEdit} />}
         {group === "pilotage" && <ClientPilotageTabs clientId={clientId} />}
+
+        <div className="space-y-4 border-t pt-4">
+          <ShareLinkCard
+            clientId={client.id}
+            token={client.share_token}
+            copied={copied}
+            setCopied={setCopied}
+          />
+
+          <ClientChangeLog clientId={client.id} />
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              exportClientFichePdf(client).catch(() => toast.error("Échec de l'export PDF"));
+            }}
+          >
+            <FileDown className="mr-1.5 h-4 w-4" />
+            Exporter la fiche (PDF)
+          </Button>
+
+          {client.ceev_planning_path && (
+            <ClientPlanningShortcut clientId={client.id} filename={client.ceev_planning_filename} />
+          )}
+        </div>
       </div>
     </AppShell>
   );
