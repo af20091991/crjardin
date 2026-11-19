@@ -18,7 +18,7 @@ const PHOTO_TARGET_BYTES = 4 * 1024 * 1024;
 
 /** Compression progressive : 4 Mo est une cible, jamais une limite d'acceptation. */
 async function prepareClientPhoto(file: File): Promise<File> {
-  if (file.type && !file.type.startsWith("image/")) throw new Error("Sélectionnez un fichier image.");
+  if (file.type && !file.type.startsWith("image/")) {\n    throw new Error("Sélectionnez un fichier image.");\n  }
   if (file.size <= PHOTO_TARGET_BYTES) return file;
 
   const bitmap = await createImageBitmap(file).catch(() => null);
@@ -96,7 +96,7 @@ export function PremiumPhotos({
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(\n    null,\n  );
   const setCover = useMutation({
     mutationFn: (photoId: string) => setSharedPremiumCover({ data: { token, photoId } }),
     onMutate: (photoId) => setPendingId(photoId),
@@ -138,16 +138,16 @@ export function PremiumPhotos({
         added += 1;
       } catch (error) {
         if (target?.path) {
-          await supabase.storage.from("chantier-photos").remove([target.path]).catch(() => undefined);
+          await supabase.storage\n            .from("chantier-photos")\n            .remove([target.path])\n            .catch(() => undefined);
         }
-        toast.error(`« ${original.name} » : ${error instanceof Error ? error.message : "ajout impossible"}`);
+        toast.error(\n          `« ${original.name} » : ${error instanceof Error ? error.message : "ajout impossible"}`,\n        );
       }
       setUploadProgress((progress) =>
         progress ? { ...progress, done: progress.done + 1 } : progress,
       );
     }
     if (added > 0) {
-      toast.success(`${added} photo${added > 1 ? "s" : ""} ajoutée${added > 1 ? "s" : ""} à votre galerie.`);
+      toast.success(\n        `${added} photo${added > 1 ? "s" : ""} ajoutée${added > 1 ? "s" : ""} à votre galerie.`,\n      );
       onPhotosAdded();
     }
     setUploading(false);
@@ -164,39 +164,40 @@ export function PremiumPhotos({
   if (groups.length === 0 && visibleFree.length === 0) {
     return (
       <div className="mt-8 space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          Ajoutez vos propres photos pour les partager avec votre jardinier.
-        </p>
-        <Button type="button" variant="outline" disabled={uploading} asChild>
-          <label className="cursor-pointer">
-            {uploading ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : (
-              <Upload className="mr-2 size-4" />
-            )}
-            {uploading && uploadProgress
-              ? `Import ${uploadProgress.done}/${uploadProgress.total}…`
-              : "Ajouter des photos"}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              disabled={uploading}
-              onChange={(event) => {
-                void uploadPhotos(event.target.files);
-                event.target.value = "";
-              }}
-            />
-          </label>
-        </Button>
-      </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Ajoutez vos propres photos pour les partager avec votre jardinier.
+          </p>
+          <Button type="button" variant="outline" disabled={uploading} asChild>
+            <label className="cursor-pointer">
+              {uploading ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 size-4" />
+              )}
+              {uploading && uploadProgress
+                ? `Import ${uploadProgress.done}/${uploadProgress.total}…`
+                : "Ajouter des photos"}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={uploading}
+                onChange={(event) => {
+                  void uploadPhotos(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+          </Button>
+        </div>
         <div className="rounded-2xl border border-dashed bg-muted/20 p-8 text-center">
           <ImageIcon className="mx-auto size-8 text-primary/60" strokeWidth={1.4} />
           <p className="mt-3 font-premium-serif text-2xl">Vos photos</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Ajoutez vos photos ici. Les photos de vos interventions apparaîtront également dans cette rubrique.
+            Ajoutez vos photos ici. Les photos de vos interventions apparaîtront également dans
+            cette rubrique.
           </p>
         </div>
       </div>
@@ -259,7 +260,7 @@ export function PremiumPhotos({
                   </ImageLightbox>
                 </div>
                 {photo.caption && (
-                  <figcaption className="text-xs text-muted-foreground">{photo.caption}</figcaption>
+                  <figcaption className="text-xs text-muted-foreground">\n                    {photo.caption}\n                  </figcaption>
                 )}
               </figure>
             ))}
