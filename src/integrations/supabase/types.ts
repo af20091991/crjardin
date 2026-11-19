@@ -1177,6 +1177,41 @@ export type Database = {
           },
         ];
       };
+      client_photo_albums: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          id: string;
+          name: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          id?: string;
+          name: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "client_photo_albums_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       contacts: {
         Row: {
           civility: string | null;
@@ -1938,6 +1973,7 @@ export type Database = {
       };
       intervention_photos: {
         Row: {
+          album_id: string | null;
           caption: string | null;
           created_at: string;
           id: string;
@@ -1951,6 +1987,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          album_id?: string | null;
           caption?: string | null;
           created_at?: string;
           id?: string;
@@ -1964,6 +2001,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          album_id?: string | null;
           caption?: string | null;
           created_at?: string;
           id?: string;
@@ -1976,6 +2014,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "intervention_photos_album_id_fkey";
+            columns: ["album_id"];
+            isOneToOne: false;
+            referencedRelation: "client_photo_albums";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "intervention_photos_intervention_id_fkey";
             columns: ["intervention_id"];
