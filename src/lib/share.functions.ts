@@ -844,6 +844,7 @@ async function requireEnabledPremiumClient(token: string) {
 }
 
 /** Crée un album de photos libres depuis le lien client sécurisé. */
+// prettier-ignore
 export const createSharedPremiumPhotoAlbum = createServerFn({ method: "POST" })
   .inputValidator((data: { token: string; name: string }) => {
     if (!data?.token) throw new Error("Lien invalide");
@@ -879,6 +880,7 @@ export const createSharedPremiumPhotoAlbum = createServerFn({ method: "POST" })
   });
 
 /** Prépare un dépôt de photo dans la galerie du client Premium. */
+// prettier-ignore
 export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
   .inputValidator((data: { token: string; filename: string; contentType: string }) => {
     if (!data?.token) throw new Error("Lien invalide");
@@ -906,6 +908,7 @@ export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
   });
 
 /** Vérifie le dépôt puis l'ajoute aux photos libres du client, visibles des deux côtés. */
+// prettier-ignore
 export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
