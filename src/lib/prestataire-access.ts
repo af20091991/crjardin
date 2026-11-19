@@ -8,7 +8,6 @@ export const PRESTATAIRE_ALLOWED_PATHS = [
   "/pilot/calendrier", // Calendrier SST
   "/interventions", // CR Chantier
   "/personnalisation", // Personnalisation
-  "/pilot/mapping", // Mapping (lecture seule)
 ] as const;
 
 /** Création de fiche : réservée au gérant, jamais ouverte au prestataire. */
