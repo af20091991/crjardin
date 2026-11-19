@@ -1,4 +1,5 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import type { MouseEvent } from "react";
 import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { ChevronRight, Mail, MapPin, MoreHorizontal, Phone, Search, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,17 @@ export function ClientDirectoryView({
   );
 }
 
+/** Toute la carte ouvre la fiche, sauf les boutons et liens qu'elle contient (favori, téléphone, adresse). */
+function useOpenClientOnCardClick(clientId: string) {
+  const navigate = useNavigate();
+  return (e: MouseEvent<HTMLElement>) => {
+    if ((e.target as HTMLElement).closest("a, button, input, select, textarea, [data-no-open]")) {
+      return;
+    }
+    navigate({ to: "/clients/$clientId", params: { clientId } });
+  };
+}
+
 function DirectoryRow({
   row,
   onToggleFavorite,
@@ -82,10 +94,12 @@ function DirectoryRow({
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
 }) {
+  const openClient = useOpenClientOnCardClick(row.id);
   return (
     <div
       data-list-row
-      className="group grid grid-cols-[minmax(260px,2fr)_minmax(160px,1fr)_minmax(150px,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/20"
+      onClick={openClient}
+      className="group grid cursor-pointer grid-cols-[minmax(260px,2fr)_minmax(160px,1fr)_minmax(150px,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/20"
     >
       <div className="flex min-w-0 items-center gap-3">
         <button
@@ -142,8 +156,13 @@ function MobileDirectoryRow({
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
 }) {
+  const openClient = useOpenClientOnCardClick(row.id);
   return (
-    <Card data-list-row className="p-3">
+    <Card
+      data-list-row
+      onClick={openClient}
+      className="cursor-pointer p-3 transition-colors active:bg-muted/30"
+    >
       <div className="flex items-start gap-3">
         <button
           type="button"
