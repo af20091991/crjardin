@@ -10,6 +10,8 @@ import {
   setSharedPremiumCover,
   createSharedPremiumPhotoUpload,
   finalizeSharedPremiumPhotoUpload,
+  createSharedPremiumPhotoAlbum,
+  type SharedPhotoAlbum,
   type SharedIntervention,
   type SharedPhoto,
 } from "@/lib/share.functions";
@@ -86,6 +88,7 @@ function formatDate(value: string) {
 export function PremiumPhotos({
   interventions,
   freePhotos = [],
+  albums = [],
   coverPhotoId,
   token,
   onCoverChanged,
@@ -93,6 +96,7 @@ export function PremiumPhotos({
 }: {
   interventions: SharedIntervention[];
   freePhotos?: SharedPhoto[];
+  albums?: SharedPhotoAlbum[];
   coverPhotoId: string | null;
   token: string;
   onCoverChanged: () => void;
@@ -100,6 +104,9 @@ export function PremiumPhotos({
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [selectedAlbumId, setSelectedAlbumId] = useState("");
+  const [newAlbumName, setNewAlbumName] = useState("");
+  const [creatingAlbum, setCreatingAlbum] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(
     null,
   );
@@ -139,7 +146,7 @@ export function PremiumPhotos({
           });
         if (uploadError) throw new Error(`Envoi impossible : ${uploadError.message}`);
         await finalizeSharedPremiumPhotoUpload({
-          data: { token, path: target.path, filename: original.name, size: file.size },
+          data: { token, path: target.path, filename: original.name, size: file.size, albumId: selectedAlbumId || null },
         });
         added += 1;
       } catch (error) {
@@ -167,14 +174,30 @@ export function PremiumPhotos({
     setUploadProgress(null);
   };
 
+  const createAlbum = async () => {
+    const name = newAlbumName.trim();
+    if (!name || creatingAlbum) return;
+    setCreatingAlbum(true);
+    try {
+      await createSharedPremiumPhotoAlbum({ data: { token, name } });
+      setNewAlbumName("");
+      toast.success("Album créé.");
+      onPhotosAdded();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Création de l'album impossible.");
+    } finally {
+      setCreatingAlbum(false);
+    }
+  };
+
   const groups = [...interventions]
     .map((iv) => ({ iv, photos: iv.photos.filter((photo) => photo.url) }))
     .filter((group) => group.photos.length > 0)
     .sort((a, b) => b.iv.intervention_date.localeCompare(a.iv.intervention_date));
 
-  const visibleFree = freePhotos.filter((photo) => photo.url);
+  const visibleFree = freePhotos.filter((photo) => photo.url);\n  const albumPhotos = albums.map((album) => ({ album, photos: visibleFree.filter((photo) => photo.album_id === album.id) }));\n  const unassignedPhotos = visibleFree.filter((photo) => !photo.album_id);
 
-  if (groups.length === 0 && visibleFree.length === 0) {
+  if (groups.length === 0 && visibleFree.length === 0 && albums.length === 0) {
     return (
       <div className="mt-8 space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -248,7 +271,58 @@ export function PremiumPhotos({
         </Button>
       </div>
 
-      {visibleFree.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/20 p-3">
+          <label className="text-sm font-medium" htmlFor="premium-photo-album">Album de destination</label>
+          <select id="premium-photo-album" className="h-9 rounded-md border bg-background px-3 text-sm" value={selectedAlbumId} onChange={(e) => setSelectedAlbumId(e.target.value)}>
+            <option value="">Sans album</option>
+            {albums.map((album) => <option key={album.id} value={album.id}>{album.name}</option>)}
+          </select>
+          <input className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm" maxLength={100} placeholder="Nom du nouvel album" value={newAlbumName} onChange={(e) => setNewAlbumName(e.target.value)} />
+          <Button type="button" variant="outline" size="sm" disabled={!newAlbumName.trim() || creatingAlbum} onClick={() => void createAlbum()}>
+            {creatingAlbum ? <Loader2 className="mr-1 size-3 animate-spin" /> : null}Créer l'album
+          </Button>
+        </div>
+
+      {albumPhotos.filter(({photos}) => photos.length > 0 || albums.length > 0).map(({ album, photos }) => (
+        <section key={album.id}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
+            <h3 className="font-premium-serif text-2xl font-medium sm:text-3xl">{album.name}</h3>
+            <p className="text-sm text-muted-foreground">{photos.length} photo{photos.length > 1 ? "s" : ""}</p>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {photos.map((photo) => (
+              <figure key={photo.id} className="space-y-2">
+                <div className="overflow-hidden rounded-xl border bg-muted">
+                  <ImageLightbox src={photo.url!} alt={photo.caption ?? "Photo"} caption={photo.caption}>
+                    <ThumbImg src={photo.url!} alt={photo.caption ?? "Photo"} className="aspect-[4/3] w-full object-cover" />
+                  </ImageLightbox>
+                </div>
+                {photo.caption && <figcaption className="text-xs text-muted-foreground">{photo.caption}</figcaption>}
+              </figure>
+            ))}
+          </div>
+        </section>
+      ))}
+      {unassignedPhotos.length > 0 && (
+        <section>
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
+            <h3 className="font-premium-serif text-2xl font-medium sm:text-3xl">Photos à classer</h3>
+            <p className="text-sm text-muted-foreground">{unassignedPhotos.length} photo{unassignedPhotos.length > 1 ? "s" : ""}</p>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {unassignedPhotos.map((photo) => (
+              <figure key={photo.id} className="space-y-2">
+                <div className="overflow-hidden rounded-xl border bg-muted">
+                  <ImageLightbox src={photo.url!} alt={photo.caption ?? "Photo"} caption={photo.caption}>
+                    <ThumbImg src={photo.url!} alt={photo.caption ?? "Photo"} className="aspect-[4/3] w-full object-cover" />
+                  </ImageLightbox>
+                </div>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
+      {false && visibleFree.length > 0 && (
         <section>
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
             <h3 className="font-premium-serif text-2xl font-medium sm:text-3xl">Photos libres</h3>
