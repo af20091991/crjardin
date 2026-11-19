@@ -16,6 +16,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { NativeAppLayer } from "@/components/NativeAppLayer";
 import { MobileUpdatePrompt } from "@/components/MobileUpdatePrompt";
+import { MobileQuickBar } from "@/components/MobileQuickBar";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
 import {
   LayoutDashboard,
@@ -900,6 +901,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
         <NativeAppLayer />
         <MobileUpdatePrompt />
+        <MobileQuickBar />
 
         <main
           data-shell="main"
