@@ -18,7 +18,9 @@ const PHOTO_TARGET_BYTES = 4 * 1024 * 1024;
 
 /** Compression progressive : 4 Mo est une cible, jamais une limite d'acceptation. */
 async function prepareClientPhoto(file: File): Promise<File> {
-  if (file.type && !file.type.startsWith("image/")) {\n    throw new Error("Sélectionnez un fichier image.");\n  }
+  if (file.type && !file.type.startsWith("image/")) {
+    throw new Error("Sélectionnez un fichier image.");
+  }
   if (file.size <= PHOTO_TARGET_BYTES) return file;
 
   const bitmap = await createImageBitmap(file).catch(() => null);
@@ -96,7 +98,9 @@ export function PremiumPhotos({
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(\n    null,\n  );
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
   const setCover = useMutation({
     mutationFn: (photoId: string) => setSharedPremiumCover({ data: { token, photoId } }),
     onMutate: (photoId) => setPendingId(photoId),
@@ -138,16 +142,23 @@ export function PremiumPhotos({
         added += 1;
       } catch (error) {
         if (target?.path) {
-          await supabase.storage\n            .from("chantier-photos")\n            .remove([target.path])\n            .catch(() => undefined);
+          await supabase.storage
+            .from("chantier-photos")
+            .remove([target.path])
+            .catch(() => undefined);
         }
-        toast.error(\n          `« ${original.name} » : ${error instanceof Error ? error.message : "ajout impossible"}`,\n        );
+        toast.error(
+          `« ${original.name} » : ${error instanceof Error ? error.message : "ajout impossible"}`,
+        );
       }
       setUploadProgress((progress) =>
         progress ? { ...progress, done: progress.done + 1 } : progress,
       );
     }
     if (added > 0) {
-      toast.success(\n        `${added} photo${added > 1 ? "s" : ""} ajoutée${added > 1 ? "s" : ""} à votre galerie.`,\n      );
+      toast.success(
+        `${added} photo${added > 1 ? "s" : ""} ajoutée${added > 1 ? "s" : ""} à votre galerie.`,
+      );
       onPhotosAdded();
     }
     setUploading(false);
@@ -260,7 +271,9 @@ export function PremiumPhotos({
                   </ImageLightbox>
                 </div>
                 {photo.caption && (
-                  <figcaption className="text-xs text-muted-foreground">\n                    {photo.caption}\n                  </figcaption>
+                  <figcaption className="text-xs text-muted-foreground">
+                    {photo.caption}
+                  </figcaption>
                 )}
               </figure>
             ))}
