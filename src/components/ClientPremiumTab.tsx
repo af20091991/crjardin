@@ -14,6 +14,10 @@ import {
   Pencil,
   RefreshCw,
   User,
+  ArrowLeft,
+  FileText,
+  Star,
+  type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +60,85 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type PremiumSection = "cover" | "calendar" | "documents" | "note";
+
+function NotePanel({
+  commercialNote,
+  setCommercialNote,
+  googleReviewUrl,
+  setGoogleReviewUrl,
+  canEdit,
+  onSave,
+  saving,
+}: {
+  commercialNote: string;
+  setCommercialNote: (v: string) => void;
+  googleReviewUrl: string;
+  setGoogleReviewUrl: (v: string) => void;
+  canEdit: boolean;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-3 pt-6">
+        <div>
+          <Label htmlFor="commercial-note">Note commerciale (visible du client)</Label>
+          <Textarea
+            id="commercial-note"
+            value={commercialNote}
+            disabled={!canEdit}
+            onChange={(e) => setCommercialNote(e.target.value)}
+            placeholder="Message libre affiché dans l'espace client"
+            rows={2}
+            className="mt-1.5"
+          />
+        </div>
+        <div>
+          <Label htmlFor="google-review">Lien avis Google</Label>
+          <Input
+            id="google-review"
+            value={googleReviewUrl}
+            disabled={!canEdit}
+            onChange={(e) => setGoogleReviewUrl(e.target.value)}
+            placeholder="https://g.page/r/..."
+            className="mt-1.5"
+          />
+        </div>
+        <Button type="button" size="sm" disabled={!canEdit || saving} onClick={onSave}>
+          Enregistrer
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FeatureTile({
+  icon: Icon,
+  title,
+  detail,
+  onOpen,
+}: {
+  icon: LucideIcon;
+  title: string;
+  detail: string;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex items-start gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+    >
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+      <div className="min-w-0">
+        <p className="font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{detail}</p>
+      </div>
+    </button>
+  );
+}
+
 export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
   const qc = useQueryClient();
 
@@ -72,16 +155,11 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
     queryFn: () => listPremiumWorkCalendar(clientId),
   });
 
-  const [gardenState, setGardenState] = useState("");
-  const [gardenObjectives, setGardenObjectives] = useState("");
-  const [gardenSpecificities, setGardenSpecificities] = useState("");
+  const [section, setSection] = useState<PremiumSection | null>(null);
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [commercialNote, setCommercialNote] = useState("");
   const [initialized, setInitialized] = useState(false);
   if (premium && !initialized) {
-    setGardenState(premium.garden_state ?? "");
-    setGardenObjectives(premium.garden_objectives ?? "");
-    setGardenSpecificities(premium.garden_specificities ?? "");
     setGoogleReviewUrl(premium.google_review_url ?? "");
     setCommercialNote(premium.commercial_note ?? "");
     setInitialized(true);
@@ -264,9 +342,6 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
   const saveFields = useMutation({
     mutationFn: () =>
       updateClientPremium(clientId, {
-        garden_state: gardenState || null,
-        garden_objectives: gardenObjectives || null,
-        garden_specificities: gardenSpecificities || null,
         google_review_url: googleReviewUrl || null,
         commercial_note: commercialNote || null,
       }),
@@ -359,100 +434,87 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
         </Card>
       )}
 
-      <Card>
-        <CardContent className="space-y-3 pt-6">
-          <div>
-            <Label htmlFor="garden-state">État du jardin</Label>
-            <Textarea
-              id="garden-state"
-              value={gardenState}
-              disabled={!canEdit}
-              onChange={(e) => setGardenState(e.target.value)}
-              placeholder="Ex : jardin en bon état général, taille des rosiers prévue en mars…"
-              rows={3}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="garden-objectives">Objectifs du jardin</Label>
-            <Textarea
-              id="garden-objectives"
-              value={gardenObjectives}
-              disabled={!canEdit}
-              onChange={(e) => setGardenObjectives(e.target.value)}
-              placeholder="Ex : préserver les plantes existantes, réduire l’arrosage, garder une floraison étalée…"
-              rows={3}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="garden-specificities">Particularités du jardin</Label>
-            <Textarea
-              id="garden-specificities"
-              value={gardenSpecificities}
-              disabled={!canEdit}
-              onChange={(e) => setGardenSpecificities(e.target.value)}
-              placeholder="Ex : sol très calcaire, zone ventée, présence d’un chien, contraintes d’accès…"
-              rows={3}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="commercial-note">Note commerciale (visible du client)</Label>
-            <Textarea
-              id="commercial-note"
-              value={commercialNote}
-              disabled={!canEdit}
-              onChange={(e) => setCommercialNote(e.target.value)}
-              placeholder="Message libre affiché dans l'espace client"
-              rows={2}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="google-review">Lien avis Google</Label>
-            <Input
-              id="google-review"
-              value={googleReviewUrl}
-              disabled={!canEdit}
-              onChange={(e) => setGoogleReviewUrl(e.target.value)}
-              placeholder="https://g.page/r/..."
-              className="mt-1.5"
-            />
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            disabled={!canEdit || saveFields.isPending}
-            onClick={() => saveFields.mutate()}
-          >
-            Enregistrer
+      {section === null ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FeatureTile
+            icon={ImageIcon}
+            title="Photo de couverture"
+            detail={
+              premium?.cover_photo_id || premium?.cover_document_id
+                ? "Couverture définie"
+                : "Aucune couverture"
+            }
+            onOpen={() => setSection("cover")}
+          />
+          <FeatureTile
+            icon={CalendarDays}
+            title="Calendrier travaux"
+            detail={`${workCalendar?.length ?? 0} intervention(s) au calendrier`}
+            onOpen={() => setSection("calendar")}
+          />
+          <FeatureTile
+            icon={FileText}
+            title="Photos et documents"
+            detail={`${documents?.length ?? 0} document(s)`}
+            onOpen={() => setSection("documents")}
+          />
+          <FeatureTile
+            icon={Star}
+            title="Note et avis Google"
+            detail={commercialNote || googleReviewUrl ? "Renseignés" : "À renseigner"}
+            onOpen={() => setSection("note")}
+          />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setSection(null)}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Retour aux fonctionnalités
           </Button>
-        </CardContent>
-      </Card>
-
-      <CoverPhotoPicker
-        clientId={clientId}
-        canEdit={canEdit}
-        currentPhotoId={premium?.cover_photo_id ?? null}
-        currentDocumentId={premium?.cover_document_id ?? null}
-        coverSetBy={premium?.cover_set_by ?? null}
-        coverSetAt={premium?.cover_set_at ?? null}
-        documents={documents ?? []}
-        onSelected={invalidate}
-      />
-
-      <PremiumWorkCalendarCard
-        clientId={clientId}
-        documents={documents ?? []}
-        workCalendar={workCalendar ?? []}
-        canEdit={canEdit}
-        onUpdated={() => {
-          qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
-          qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
-        }}
-      />
-      <PremiumDocumentsCard clientId={clientId} documents={documents ?? []} canEdit={canEdit} />
+          {section === "cover" && (
+            <CoverPhotoPicker
+              clientId={clientId}
+              canEdit={canEdit}
+              currentPhotoId={premium?.cover_photo_id ?? null}
+              currentDocumentId={premium?.cover_document_id ?? null}
+              coverSetBy={premium?.cover_set_by ?? null}
+              coverSetAt={premium?.cover_set_at ?? null}
+              documents={documents ?? []}
+              onSelected={invalidate}
+            />
+          )}
+          {section === "calendar" && (
+            <PremiumWorkCalendarCard
+              clientId={clientId}
+              documents={documents ?? []}
+              workCalendar={workCalendar ?? []}
+              canEdit={canEdit}
+              onUpdated={() => {
+                qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+                qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+              }}
+            />
+          )}
+          {section === "documents" && (
+            <PremiumDocumentsCard
+              clientId={clientId}
+              documents={documents ?? []}
+              canEdit={canEdit}
+            />
+          )}
+          {section === "note" && (
+            <NotePanel
+              commercialNote={commercialNote}
+              setCommercialNote={setCommercialNote}
+              googleReviewUrl={googleReviewUrl}
+              setGoogleReviewUrl={setGoogleReviewUrl}
+              canEdit={canEdit}
+              onSave={() => saveFields.mutate()}
+              saving={saveFields.isPending}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

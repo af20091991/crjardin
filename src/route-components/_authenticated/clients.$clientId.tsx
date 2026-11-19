@@ -101,7 +101,9 @@ function ClientDetail() {
   const qc = useQueryClient();
   const { canEdit } = useRole();
   const [copied, setCopied] = useState(false);
-  const [group, setGroup] = useState<"gestion" | "pilotage">("gestion");
+  const [group, setGroup] = useState<"gestion" | "premium" | "pilotage">(
+    initialTab === "premium" ? "premium" : "gestion",
+  );
   const [gestionTab, setGestionTab] = useState<string>(initialTab ?? "interventions");
   const [editOpen, setEditOpen] = useState(false);
   useEffect(() => {
@@ -321,6 +323,15 @@ function ClientDetail() {
             Gestion
           </Button>
           <Button
+            variant={group === "premium" ? "default" : "outline"}
+            size="sm"
+            className="flex-1"
+            onClick={() => setGroup("premium")}
+          >
+            <Crown className="mr-1.5 h-4 w-4" />
+            Premium
+          </Button>
+          <Button
             variant={group === "pilotage" ? "default" : "outline"}
             size="sm"
             className="flex-1"
@@ -343,7 +354,6 @@ function ClientDetail() {
                 <SelectItem value="health">Santé</SelectItem>
                 <SelectItem value="reco">Préconisations</SelectItem>
                 <SelectItem value="opps">Opportunités</SelectItem>
-                <SelectItem value="premium">Premium</SelectItem>
               </SelectContent>
             </Select>
             <TabsContent value="interventions">
@@ -465,12 +475,10 @@ function ClientDetail() {
             <TabsContent value="opps">
               <ClientOpportunitiesWidget clientId={clientId} />
             </TabsContent>
-            <TabsContent value="premium">
-              <ClientPremiumTab clientId={clientId} canEdit={canEdit} />
-            </TabsContent>
           </Tabs>
         )}
 
+        {group === "premium" && <ClientPremiumTab clientId={clientId} canEdit={canEdit} />}
         {group === "pilotage" && <ClientPilotageTabs clientId={clientId} />}
       </div>
     </AppShell>
