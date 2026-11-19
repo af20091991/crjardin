@@ -910,6 +910,19 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
       throw new Error("Le fichier envoyé n'est pas une image.");
     }
 
+    if (data.albumId) {
+      const { data: album, error: albumError } = await supabaseAdmin
+        .from("client_photo_albums")
+        .select("id")
+        .eq("id", data.albumId)
+        .eq("client_id", client.id)
+        .maybeSingle();
+      if (albumError || !album) {
+        await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
+        throw new Error("Album introuvable pour ce client.");
+      }
+    }
+
     const { data: last } = await supabaseAdmin
       .from("intervention_photos")
       .select("position")
