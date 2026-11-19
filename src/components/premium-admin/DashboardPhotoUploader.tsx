@@ -16,6 +16,20 @@ import { uploadInterventionPhoto } from "@/lib/storage";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 
+type PhotoAlbumRow = { id: string; name: string; created_at: string };
+type AlbumTableClient = {
+  from: (_table: "client_photo_albums") => {
+    select: (_columns: string) => {
+      eq: (_column: "client_id", value: string) => {
+        order: (_column: "created_at", options: { ascending: boolean }) => Promise<{ data: PhotoAlbumRow[] | null; error: { message: string } | null }>;
+      };
+    };
+    insert: (values: { client_id: string; user_id: string; name: string }) => {
+      select: (_columns: string) => { single: () => Promise<{ data: PhotoAlbumRow | null; error: { message: string } | null }> };
+    };
+  };
+};
+
 export interface UploadableIntervention {
   id: string;
   title: string | null;
@@ -38,7 +52,7 @@ export function DashboardPhotoUploader({
   const [interventionId, setInterventionId] = useState<string>(interventions[0]?.id ?? FREE_VALUE);
   const isFree = interventionId === FREE_VALUE;
   const [busy, setBusy] = useState(false);
-  const [albums, setAlbums] = useState<{ id: string; name: string; created_at: string }[]>([]);
+  const [albums, setAlbums] = useState<PhotoAlbumRow[]>([]);
   const [albumId, setAlbumId] = useState("");
   const [albumName, setAlbumName] = useState("");
   const [creatingAlbum, setCreatingAlbum] = useState(false);
@@ -47,10 +61,10 @@ export function DashboardPhotoUploader({
   useEffect(() => {
     if (!isFree) return;
     const loadAlbums = async () => {
-      const db = supabase as unknown as { from: (table: string) => any };
+      const db = supabase as unknown as AlbumTableClient;
       const { data } = await db.from("client_photo_albums").select("id,name,created_at")
         .eq("client_id", clientId).order("created_at", { ascending: false });
-      setAlbums((data ?? []) as { id: string; name: string; created_at: string }[]);
+      setAlbums(data ?? []);
     };
     void loadAlbums();
   }, [clientId, isFree]);
@@ -60,13 +74,14 @@ export function DashboardPhotoUploader({
     if (!name || creatingAlbum) return;
     setCreatingAlbum(true);
     try {
-      const db = supabase as unknown as { from: (table: string) => any };
+      const db = supabase as unknown as AlbumTableClient;
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error("Session expirée.");
       const { data, error } = await db.from("client_photo_albums")
         .insert({ client_id: clientId, user_id: auth.user.id, name })
         .select("id,name,created_at").single();
-      if (error) throw error;
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("Album non retourné.");
       setAlbums((current) => [data, ...current]);
       setAlbumId(data.id);
       setAlbumName("");
