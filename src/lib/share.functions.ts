@@ -834,6 +834,107 @@ async function requireEnabledPremiumClient(token: string) {
   return { supabaseAdmin, client };
 }
 
+/** Prépare un dépôt de photo dans la galerie du client Premium. */
+export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; filename: string; contentType: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.filename?.trim()) throw new Error("Nom de photo invalide");
+    if (!data.contentType?.startsWith("image/")) throw new Error("Le fichier doit être une image.");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const rawExt = data.filename.split(".").pop()?.toLowerCase() || "img";
+    const ext = /^[a-z0-9]{2,8}$/.test(rawExt) ? rawExt : "img";
+    const path = `${client.id}/client-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("chantier-photos")
+      .createSignedUploadUrl(path);
+    if (error || !signed?.token) {
+      throw new Error(`Préparation de l'envoi impossible : ${error?.message ?? "URL signée indisponible"}`);
+    }
+    return { path, token: signed.token };
+  });
+
+/** Vérifie le dépôt puis l'ajoute aux photos libres du client, visibles des deux côtés. */
+export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; path: string; filename: string; size: number }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.path || !data.filename) throw new Error("Photo invalide");
+    if (!Number.isFinite(data.size) || data.size <= 0) throw new Error("Fichier vide ou invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    if (!data.path.startsWith(`${client.id}/client-`)) throw new Error("Chemin de fichier invalide");
+    const filename = data.path.split("/").pop()!;
+    const { data: listed, error: listError } = await supabaseAdmin.storage
+      .from("chantier-photos")
+      .list(client.id, { search: filename, limit: 1 });
+    const stored = listed?.find((file) => file.name === filename);
+    if (listError || !stored) throw new Error("La photo n'a pas été reçue par le stockage");
+    const actualSize = Number(stored.metadata?.size ?? data.size);
+    if (!Number.isFinite(actualSize) || actualSize <= 0) throw new Error("La photo enregistrée est invalide");
+    const mime = String(stored.metadata?.mimetype ?? "");
+    if (mime && !mime.startsWith("image/")) {
+      await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
+      throw new Error("Le fichier envoyé n'est pas une image.");
+    }
+
+    const { data: last } = await supabaseAdmin
+      .from("intervention_photos")
+      .select("position")
+      .eq("client_id", client.id)
+      .is("intervention_id", null)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { error: insertError } = await supabaseAdmin.from("intervention_photos").insert({
+      client_id: client.id,
+      intervention_id: null,
+      user_id: client.user_id,
+      storage_path: data.path,
+      caption: null,
+      position: (last?.position ?? 0) + 1,
+      include_in_report: false,
+    } as never);
+    if (insertError) {
+      await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
+      throw new Error(`Enregistrement de la photo impossible : ${insertError.message}`);
+    }
+
+    await supabaseAdmin.from("notifications").insert({
+      user_id: client.user_id,
+      type: "client_activity",
+      title: `${client.name} a ajouté une photo`,
+      body: "Une nouvelle photo a été ajoutée à la rubrique Photos de son espace client.",
+      client_id: client.id,
+    });
+
+    try {
+      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
+      const email = userRes.user?.email;
+      if (email) {
+        const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+        await sendTemplateEmail("client-activity", email, {
+          templateData: {
+            clientName: client.name,
+            actionText: "a ajouté une photo",
+            contentPreview: data.filename,
+            clientUrl: `https://crjardin.lovable.app/clients/${client.id}`,
+          },
+          idempotencyKey: `client-premium-photo-${data.path}`,
+        });
+      }
+    } catch {
+      // Best effort : l'ajout de la photo ne dépend pas de l'envoi d'email.
+    }
+
+    return { ok: true, size: actualSize };
+  });
+
 /** Étape 1 — prépare une URL d'upload signée pour un document déposé par le client. */
 export const createSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
   .inputValidator((data: { token: string; filename: string; size: number }) => {
