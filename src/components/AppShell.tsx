@@ -773,16 +773,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         data-shell="content"
         className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}
       >
-        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur md:hidden">
+        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-3 pb-1.5 pt-[calc(env(safe-area-inset-top)+0.375rem)] backdrop-blur md:hidden">
           <Sheet>
-            <div className="-ml-1 flex h-[76px] shrink-0 flex-col items-center justify-between">
+            <div className="-ml-1 flex h-12 shrink-0 flex-col items-center justify-between">
               <SheetTrigger asChild>
                 <button
-                  className="grid h-16 w-16 place-items-center rounded-lg text-foreground active:bg-accent/40"
+                  className="grid h-10 w-10 place-items-center rounded-lg text-foreground active:bg-accent/40"
                   aria-label="Ouvrir le menu des modules"
                   title="Menu des modules"
                 >
-                  <Menu className="h-14 w-14" />
+                  <Menu className="h-7 w-7" />
                 </button>
               </SheetTrigger>
               <p className="text-[11px] leading-none text-muted-foreground">
@@ -830,7 +830,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             </SheetContent>
           </Sheet>
           <FitTitle text={headerTitle} />
-          <div className="flex h-[76px] shrink-0 flex-col items-end justify-between">
+          <div className="flex h-12 shrink-0 flex-col items-end justify-between">
             <div className="flex items-center gap-2">
               <div className="flex flex-col items-end gap-0.5 text-[11px] leading-none">
                 <span className="font-serif font-semibold text-primary">PilotPro</span>
@@ -841,7 +841,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               <img
                 src="/pilotpro-splash.svg"
                 alt="PilotPro"
-                className="h-12 w-12 shrink-0 object-contain"
+                className="h-9 w-9 shrink-0 object-contain"
               />
             </div>
             <div className="flex items-center gap-3">
