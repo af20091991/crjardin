@@ -407,7 +407,13 @@ function ClientDetail() {
             </TabsContent>
             <TabsContent value="health">
               {(health?.length ?? 0) === 0 ? (
-                <HistoryPlaceholder label="Aucune évaluation enregistrée." icon={Leaf} />
+                <HistoryPlaceholder
+                  label="Aucune évaluation enregistrée."
+                  hint="Les évaluations se saisissent dans un compte-rendu d'intervention."
+                  icon={Leaf}
+                  action
+                  clientId={clientId}
+                />
               ) : (
                 <div className="mt-3 space-y-2.5">
                   {health!.map((h) => {
@@ -442,7 +448,13 @@ function ClientDetail() {
             </TabsContent>
             <TabsContent value="reco">
               {(recos?.length ?? 0) === 0 ? (
-                <HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} />
+                <HistoryPlaceholder
+                  label="Aucune préconisation enregistrée."
+                  hint="Les préconisations se rédigent dans un compte-rendu d'intervention."
+                  icon={Sparkles}
+                  action
+                  clientId={clientId}
+                />
               ) : (
                 <div className="mt-3 space-y-2.5">
                   {recos!.map((r) => (
@@ -838,11 +850,13 @@ function RecoCard({
 
 function HistoryPlaceholder({
   label,
+  hint,
   icon: Icon,
   action,
   clientId,
 }: {
   label: string;
+  hint?: string;
   icon: typeof FileText;
   action?: boolean;
   clientId?: string;
@@ -852,6 +866,7 @@ function HistoryPlaceholder({
       <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
         <Icon className="h-7 w-7 text-muted-foreground/60" />
         <p className="text-sm text-muted-foreground">{label}</p>
+        {hint && <p className="max-w-xs text-xs text-muted-foreground/80">{hint}</p>}
         {action && (
           <Link
             to="/interventions/new"
