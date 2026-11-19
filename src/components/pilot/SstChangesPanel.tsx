@@ -125,7 +125,7 @@ export function SstChangesPanel({
                     {change.details.map((line, index) => (
                       <li
                         key={index}
-                        className="rounded bg-white/70 px-2 py-1 text-xs text-amber-950"
+                        className="rounded bg-background/70 px-2 py-1 text-xs text-amber-950"
                       >
                         {describeChangeLine(line)}
                       </li>
