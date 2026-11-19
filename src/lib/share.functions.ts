@@ -849,9 +849,7 @@ export const createSharedPremiumPhotoAlbum = createServerFn({ method: "POST" })
     if (!data?.token) throw new Error("Lien invalide");
     const name = data.name?.trim();
     if (!name || name.length > 100) {
-      throw new Error(
-        "Le nom de l'album doit contenir entre 1 et 100 caractères.",
-      );
+      throw new Error("Le nom de l'album doit contenir entre 1 et 100 caractères.");
     }
     return { token: data.token, name };
   })
