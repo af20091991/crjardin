@@ -195,50 +195,12 @@ export function PremiumPhotos({
     .filter((group) => group.photos.length > 0)
     .sort((a, b) => b.iv.intervention_date.localeCompare(a.iv.intervention_date));
 
-  const visibleFree = freePhotos.filter((photo) => photo.url);\n  const albumPhotos = albums.map((album) => ({ album, photos: visibleFree.filter((photo) => photo.album_id === album.id) }));\n  const unassignedPhotos = visibleFree.filter((photo) => !photo.album_id);
-
-  if (groups.length === 0 && visibleFree.length === 0 && albums.length === 0) {
-    return (
-      <div className="mt-8 space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            Ajoutez vos propres photos pour les partager avec votre jardinier.
-          </p>
-          <Button type="button" variant="outline" disabled={uploading} asChild>
-            <label className="cursor-pointer">
-              {uploading ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : (
-                <Upload className="mr-2 size-4" />
-              )}
-              {uploading && uploadProgress
-                ? `Import ${uploadProgress.done}/${uploadProgress.total}…`
-                : "Ajouter des photos"}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                disabled={uploading}
-                onChange={(event) => {
-                  void uploadPhotos(event.target.files);
-                  event.target.value = "";
-                }}
-              />
-            </label>
-          </Button>
-        </div>
-        <div className="rounded-2xl border border-dashed bg-muted/20 p-8 text-center">
-          <ImageIcon className="mx-auto size-8 text-primary/60" strokeWidth={1.4} />
-          <p className="mt-3 font-premium-serif text-2xl">Vos photos</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Ajoutez vos photos ici. Les photos de vos interventions apparaîtront également dans
-            cette rubrique.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const visibleFree = freePhotos.filter((photo) => photo.url);
+  const albumPhotos = albums.map((album) => ({
+    album,
+    photos: visibleFree.filter((photo) => photo.album_id === album.id),
+  }));
+  const unassignedPhotos = visibleFree.filter((photo) => !photo.album_id);
 
   return (
     <div className="mt-8 space-y-8">
@@ -317,40 +279,6 @@ export function PremiumPhotos({
                     <ThumbImg src={photo.url!} alt={photo.caption ?? "Photo"} className="aspect-[4/3] w-full object-cover" />
                   </ImageLightbox>
                 </div>
-              </figure>
-            ))}
-          </div>
-        </section>
-      )}
-      {false && visibleFree.length > 0 && (
-        <section>
-          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
-            <h3 className="font-premium-serif text-2xl font-medium sm:text-3xl">Photos libres</h3>
-            <p className="text-sm text-muted-foreground">
-              {visibleFree.length} photo{visibleFree.length > 1 ? "s" : ""}
-            </p>
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {visibleFree.map((photo) => (
-              <figure key={photo.id} className="space-y-2">
-                <div className="overflow-hidden rounded-xl border bg-muted">
-                  <ImageLightbox
-                    src={photo.url!}
-                    alt={photo.caption ?? "Photo libre"}
-                    caption={photo.caption}
-                  >
-                    <ThumbImg
-                      src={photo.url!}
-                      alt={photo.caption ?? "Photo libre"}
-                      className="aspect-[4/3] w-full object-cover"
-                    />
-                  </ImageLightbox>
-                </div>
-                {photo.caption && (
-                  <figcaption className="text-xs text-muted-foreground">
-                    {photo.caption}
-                  </figcaption>
-                )}
               </figure>
             ))}
           </div>
