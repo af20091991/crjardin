@@ -965,7 +965,7 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
 
 /** Étape 1 — prépare une URL d'upload signée pour un document déposé par le client. */
 export const createSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; path: string; filename: string; size: number; albumId?: string | null }) => {
+  .inputValidator((data: { token: string; path: string; filename: string; size: number; title: string }) => {
     if (!data?.token) throw new Error("Lien invalide");
     if (!data.filename) throw new Error("Nom de fichier invalide");
     if (!Number.isFinite(data.size) || data.size <= 0 || data.size > PREMIUM_DOC_MAX_BYTES) {
