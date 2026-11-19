@@ -139,7 +139,7 @@ function DirectoryRow({
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" asChild>
           <Link to="/clients/$clientId" params={{ clientId: row.id }}>
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -222,7 +222,7 @@ function MobileDirectoryRow({
             )}
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" asChild>
           <Link to="/clients/$clientId" params={{ clientId: row.id }}>
             <MoreHorizontal className="h-4 w-4" />
           </Link>
