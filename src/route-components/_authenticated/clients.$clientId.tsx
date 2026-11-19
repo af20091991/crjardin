@@ -728,6 +728,11 @@ function RecoCard({
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
             {reco.category && <Badge variant="secondary">{reco.category}</Badge>}
             <Badge variant="outline">{sourceLabel}</Badge>
+            {!(reco.include_in_report && reco.status !== "refusee") && (
+              <Badge variant="outline" className="text-muted-foreground">
+                Masquée au client
+              </Badge>
+            )}
             {reco.recommended_season && (
               <Badge variant="outline" className="gap-1">
                 <Sprout className="h-3 w-3" /> {reco.recommended_season}

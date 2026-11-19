@@ -599,10 +599,11 @@ export const getSharedPremium = createServerFn({ method: "GET" })
     if (raw.cover_photo_id) {
       const { data: photo } = await supabaseAdmin
         .from("intervention_photos")
-        .select("storage_path")
+        .select("storage_path, include_in_report")
         .eq("id", raw.cover_photo_id)
         .maybeSingle();
-      if (photo?.storage_path) {
+      // Une photo retirée du CR ne doit plus apparaître en couverture côté client.
+      if (photo?.storage_path && photo.include_in_report) {
         const { data: signed } = await supabaseAdmin.storage
           .from(BUCKET)
           .createSignedUrl(photo.storage_path, 60 * 60 * 24 * 7);
