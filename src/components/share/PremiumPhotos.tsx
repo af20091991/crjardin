@@ -93,6 +93,7 @@ export function PremiumPhotos({
   token,
   onCoverChanged,
   onPhotosAdded,
+  allowCover = false,
 }: {
   interventions: SharedIntervention[];
   freePhotos?: SharedPhoto[];
@@ -101,6 +102,7 @@ export function PremiumPhotos({
   token: string;
   onCoverChanged: () => void;
   onPhotosAdded: () => void;
+  allowCover?: boolean;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -330,7 +332,7 @@ export function PremiumPhotos({
                       {photo.caption}
                     </figcaption>
                   )}
-                  {!isCover && (
+                  {allowCover && !isCover && (
                     <Button
                       type="button"
                       variant="link"
