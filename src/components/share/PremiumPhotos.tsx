@@ -284,6 +284,13 @@ export function PremiumPhotos({
           </div>
         </section>
       )}
+      {groups.length > 0 && (
+        <section className="space-y-6">
+          <div className="border-b pb-3">
+            <h3 className="font-premium-serif text-2xl font-medium sm:text-3xl">Comptes-rendus de chantier</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Un dossier par intervention, du plus récent au plus ancien.</p>
+          </div>
+          <div className="space-y-8">
       {groups.map(({ iv, photos }) => (
         <section key={iv.id}>
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
@@ -341,6 +348,9 @@ export function PremiumPhotos({
           </div>
         </section>
       ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
