@@ -203,20 +203,37 @@ export function PremiumPhotos({
     );
   }
 
-
-    return (
-      <div className="mt-8 rounded-2xl border border-dashed bg-muted/20 p-8 text-center">
-        <ImageIcon className="mx-auto size-8 text-primary/60" strokeWidth={1.4} />
-        <p className="mt-3 font-premium-serif text-2xl">Vos photos</p>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Les photos de vos interventions apparaîtront ici, classées par passage.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="mt-8 space-y-12">
+    <div className="mt-8 space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Ajoutez vos propres photos pour les partager avec votre jardinier.
+        </p>
+        <Button type="button" variant="outline" disabled={uploading} asChild>
+          <label className="cursor-pointer">
+            {uploading ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 size-4" />
+            )}
+            {uploading && uploadProgress
+              ? `Import ${uploadProgress.done}/${uploadProgress.total}…`
+              : "Ajouter des photos"}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={uploading}
+              onChange={(event) => {
+                void uploadPhotos(event.target.files);
+                event.target.value = "";
+              }}
+            />
+          </label>
+        </Button>
+      </div>
+
       {visibleFree.length > 0 && (
         <section>
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
