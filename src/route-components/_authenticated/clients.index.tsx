@@ -32,7 +32,7 @@ import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 
 type StatusFilter = "all" | "actif" | "a_relancer" | "dormant" | "perdu" | "cr_a_qualifier";
 
-type SortKey = "name" | "ca" | "recent";
+type SortKey = "modif" | "date" | "ca" | "recent" | "name";
 
 type Row = {
   client: Client;
@@ -68,7 +68,7 @@ function ClientsPage() {
   const { year } = usePilotYear();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
-  const [sort, setSort] = useState<SortKey>("name");
+  const [sort, setSort] = useState<SortKey>("modif");
   const [showLost, setShowLost] = useState(false);
 
   const clientsQuery = useQuery({
@@ -162,14 +162,24 @@ function ClientsPage() {
         .some((value) => value!.toLowerCase().includes(query));
     });
 
+    // Les favoris restent en tête, quel que soit le tri.
     return [...result].sort((a, b) => {
-      if (sort === "ca") return b.ca - a.ca;
-      if (sort === "recent") {
-        return (b.lastDate ?? "").localeCompare(a.lastDate ?? "");
+      const fav = Number(favorites.has(b.client.id)) - Number(favorites.has(a.client.id));
+      if (fav !== 0) return fav;
+      switch (sort) {
+        case "modif":
+          return (b.client.updated_at ?? "").localeCompare(a.client.updated_at ?? "");
+        case "date":
+          return (b.client.created_at ?? "").localeCompare(a.client.created_at ?? "");
+        case "ca":
+          return b.ca - a.ca;
+        case "recent":
+          return (b.lastDate ?? "").localeCompare(a.lastDate ?? "");
+        default:
+          return a.client.name.localeCompare(b.client.name, "fr");
       }
-      return a.client.name.localeCompare(b.client.name, "fr");
     });
-  }, [rows, search, showLost, sort, status]);
+  }, [rows, search, showLost, sort, status, favorites]);
 
   const directoryRows: ClientDirectoryRow[] = filtered.map((row) => ({
     id: row.client.id,
@@ -257,9 +267,11 @@ function ClientsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">Trier : nom</SelectItem>
+              <SelectItem value="modif">Trier : dernière modification</SelectItem>
+              <SelectItem value="date">Trier : date de création</SelectItem>
               <SelectItem value="ca">Trier : CA</SelectItem>
-              <SelectItem value="recent">Trier : activité</SelectItem>
+              <SelectItem value="recent">Trier : dernière activité</SelectItem>
+              <SelectItem value="name">Trier : alphabétique</SelectItem>
             </SelectContent>
           </Select>
 
