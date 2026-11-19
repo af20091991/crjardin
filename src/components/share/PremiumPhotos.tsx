@@ -17,6 +17,7 @@ import {
 const PHOTO_TARGET_BYTES = 4 * 1024 * 1024;
 
 /** Compression progressive : 4 Mo est une cible, jamais une limite d'acceptation. */
+// prettier-ignore
 async function prepareClientPhoto(file: File): Promise<File> {
   if (file.type && !file.type.startsWith("image/")) {
     throw new Error("Sélectionnez un fichier image.");
@@ -81,6 +82,7 @@ function formatDate(value: string) {
   });
 }
 
+// prettier-ignore
 export function PremiumPhotos({
   interventions,
   freePhotos = [],
