@@ -23,6 +23,7 @@ import {
 import { MobileUpdatePrompt } from "@/components/MobileUpdatePrompt";
 import { SproutSplash } from "@/components/SproutSplash";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
+import { PremiumPhotos } from "@/components/share/PremiumPhotos";
 
 // prettier-ignore
 import { Route } from "@/routes/partage.$token";
@@ -265,7 +266,16 @@ function SharePage() {
               />
             </TabsContent>
             <TabsContent value="photos">
-              <PhotoGallery interventions={interventions} />
+              <PremiumPhotos
+                interventions={interventions}
+                freePhotos={freePhotos}
+                albums={photoAlbums}
+                coverPhotoId={premium?.cover_photo_id ?? null}
+                token={token}
+                allowCover={!!premium?.enabled}
+                onCoverChanged={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}
+                onPhotosAdded={() => qc.invalidateQueries({ queryKey: ["shared-client", token] })}
+              />
             </TabsContent>
             <TabsContent value="recos">
               <RecommendationsTab recommendations={recommendations} token={token} />
