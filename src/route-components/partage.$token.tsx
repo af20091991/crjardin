@@ -96,6 +96,7 @@ function SharePage() {
   if (!data) return null;
   const { client, interventions, recommendations } = data;
   const freePhotos = data.free_photos ?? [];
+  const photoAlbums = data.photo_albums ?? [];
 
   const unreadRecos = recommendations.filter((r) => !r.client_viewed_at).length;
 
@@ -125,6 +126,7 @@ function SharePage() {
         client={client}
         interventions={interventions}
         freePhotos={freePhotos}
+        photoAlbums={photoAlbums}
         recommendations={recommendations}
         premium={premium}
         messages={messages ?? []}
