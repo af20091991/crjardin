@@ -174,18 +174,20 @@ function ClientDetail() {
         </Link>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-primary/10 font-serif text-xl font-semibold text-primary">
+              <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 font-serif text-base font-semibold text-primary sm:h-14 sm:w-14 sm:text-xl">
                   {client.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   {client.civility && (
                     <p className="text-xs font-medium text-muted-foreground">{client.civility}</p>
                   )}
-                  <h2 className="truncate font-serif text-xl font-semibold">{client.name}</h2>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
+                  <h2 className="truncate font-serif text-lg font-semibold sm:text-xl">
+                    {client.name}
+                  </h2>
+                  <div className="mt-1 flex flex-wrap gap-1 sm:gap-1.5">
                     {client.contract_type && (
                       <Badge variant="secondary">{client.contract_type}</Badge>
                     )}
