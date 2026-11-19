@@ -46,7 +46,7 @@ export async function addFreePhoto(
       storage_path: storagePath,
       position,
       include_in_report: false,
-    })
+    } as never)
     .select()
     .single();
   if (error) throw error;
