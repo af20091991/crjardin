@@ -886,7 +886,7 @@ export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
 
 /** Vérifie le dépôt puis l'ajoute aux photos libres du client, visibles des deux côtés. */
 export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; path: string; filename: string; size: number }) => {
+  .inputValidator((data: { token: string; path: string; filename: string; size: number; albumId?: string | null }) => {
     if (!data?.token) throw new Error("Lien invalide");
     if (!data.path || !data.filename) throw new Error("Photo invalide");
     if (!Number.isFinite(data.size) || data.size <= 0) throw new Error("Fichier vide ou invalide");
