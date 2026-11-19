@@ -25,7 +25,11 @@ export interface SharedPhoto {
   storage_path: string;
   caption: string | null;
   url: string | null;
+  album_id?: string | null;
+  created_at?: string;
 }
+
+export interface SharedPhotoAlbum { id: string; name: string; created_at: string; }
 
 export interface SharedIntervention {
   id: string;
@@ -75,6 +79,7 @@ export interface SharedClientData {
   recommendations: SharedRecommendation[];
   interventions: SharedIntervention[];
   free_photos?: SharedPhoto[];
+  photo_albums?: SharedPhotoAlbum[];
 }
 
 export interface SharedPremiumDocument {
@@ -834,6 +839,28 @@ async function requireEnabledPremiumClient(token: string) {
   return { supabaseAdmin, client };
 }
 
+/** Crée un album de photos libres depuis le lien client sécurisé. */
+export const createSharedPremiumPhotoAlbum = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; name: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    const name = data.name?.trim();
+    if (!name || name.length > 100) throw new Error("Le nom de l'album doit contenir entre 1 et 100 caractères.");
+    return { token: data.token, name };
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const { data: album, error } = await supabaseAdmin.from("client_photo_albums")
+      .insert({ client_id: client.id, user_id: client.user_id, name: data.name })
+      .select("id,name,created_at").single();
+    if (error) throw new Error(`Création de l'album impossible : ${error.message}`);
+    await supabaseAdmin.from("notifications").insert({
+      user_id: client.user_id, type: "client_activity", title: `${client.name} a créé un album photo`,
+      body: `Album « ${data.name} » créé dans la galerie photos.`, client_id: client.id,
+    });
+    return album;
+  });
+
 /** Prépare un dépôt de photo dans la galerie du client Premium. */
 export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
   .inputValidator((data: { token: string; filename: string; contentType: string }) => {
@@ -894,6 +921,7 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
     const { error: insertError } = await supabaseAdmin.from("intervention_photos").insert({
       client_id: client.id,
       intervention_id: null,
+      album_id: data.albumId || null,
       user_id: client.user_id,
       storage_path: data.path,
       caption: null,
@@ -937,7 +965,7 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
 
 /** Étape 1 — prépare une URL d'upload signée pour un document déposé par le client. */
 export const createSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; filename: string; size: number }) => {
+  .inputValidator((data: { token: string; path: string; filename: string; size: number; albumId?: string | null }) => {
     if (!data?.token) throw new Error("Lien invalide");
     if (!data.filename) throw new Error("Nom de fichier invalide");
     if (!Number.isFinite(data.size) || data.size <= 0 || data.size > PREMIUM_DOC_MAX_BYTES) {
