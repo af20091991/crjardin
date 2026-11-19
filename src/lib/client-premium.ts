@@ -254,6 +254,46 @@ export async function updatePremiumDocumentVisibility(id: string, visible: boole
   if (error) throw new Error(`Impossible de mettre à jour le document : ${error.message}`);
 }
 
+export async function renamePremiumDocument(id: string, title: string): Promise<void> {
+  const clean = title.trim();
+  if (!clean) throw new Error("Le titre ne peut pas être vide");
+  const { error } = await supabase
+    .from("client_premium_documents")
+    .update({ title: clean })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible de renommer le document : ${error.message}`);
+}
+
+/** Remplace le fichier d'un document en gardant son identifiant (couverture et calendrier restent liés). */
+export async function replacePremiumDocumentFile(
+  id: string,
+  clientId: string,
+  file: File,
+): Promise<void> {
+  const { data: current, error: readError } = await supabase
+    .from("client_premium_documents")
+    .select("storage_path")
+    .eq("id", id)
+    .single();
+  if (readError || !current) throw new Error("Document introuvable");
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${clientId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (uploadError) throw new Error(`Échec de l'envoi du fichier : ${uploadError.message}`);
+  const { error } = await supabase
+    .from("client_premium_documents")
+    .update({ storage_path: path, filename: file.name, size_bytes: file.size })
+    .eq("id", id);
+  if (error) {
+    await supabase.storage.from(DOCS_BUCKET).remove([path]);
+    throw new Error(`Impossible de remplacer le document : ${error.message}`);
+  }
+  await supabase.storage.from(DOCS_BUCKET).remove([current.storage_path]);
+}
+
 export async function deletePremiumDocument(id: string, storagePath: string): Promise<void> {
   const { error: storageError } = await supabase.storage.from(DOCS_BUCKET).remove([storagePath]);
   if (storageError) {
