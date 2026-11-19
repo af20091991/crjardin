@@ -10,6 +10,7 @@ import {
   type SharedClientData,
   type SharedPremiumData,
   type SharedPhoto,
+  type SharedPhotoAlbum,
   premiumClientTitle,
 } from "@/lib/share.functions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,6 +53,7 @@ export function PremiumExperience({
   client,
   interventions,
   freePhotos,
+  photoAlbums,
   recommendations,
   premium,
   messages,
@@ -64,6 +66,7 @@ export function PremiumExperience({
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
   freePhotos: SharedPhoto[];
+  photoAlbums: SharedPhotoAlbum[];
   recommendations: SharedRecommendation[];
   premium: SharedPremiumData;
   messages: ClientMessage[];
@@ -215,6 +218,7 @@ export function PremiumExperience({
             <PremiumPhotos
               interventions={interventions}
               freePhotos={freePhotos}
+              albums={photoAlbums}
               coverPhotoId={premium.cover_photo_id}
               token={token}
               onCoverChanged={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}

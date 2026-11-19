@@ -25,6 +25,14 @@ export interface SharedPhoto {
   storage_path: string;
   caption: string | null;
   url: string | null;
+  album_id?: string | null;
+  created_at?: string;
+}
+
+export interface SharedPhotoAlbum {
+  id: string;
+  name: string;
+  created_at: string;
 }
 
 export interface SharedIntervention {
@@ -75,6 +83,7 @@ export interface SharedClientData {
   recommendations: SharedRecommendation[];
   interventions: SharedIntervention[];
   free_photos?: SharedPhoto[];
+  photo_albums?: SharedPhotoAlbum[];
 }
 
 export interface SharedPremiumDocument {
@@ -834,12 +843,51 @@ async function requireEnabledPremiumClient(token: string) {
   return { supabaseAdmin, client };
 }
 
+/** Crée un album de photos libres depuis le lien client sécurisé. */
+// prettier-ignore
+export const createSharedPremiumPhotoAlbum = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; name: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    const name = data.name?.trim();
+    if (!name || name.length > 100) {
+      throw new Error("Le nom de l'album doit contenir entre 1 et 100 caractères.");
+    }
+    return { token: data.token, name };
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const { data: album, error } = await supabaseAdmin
+      .from("client_photo_albums")
+      .insert({
+        client_id: client.id,
+        user_id: client.user_id,
+        name: data.name,
+      })
+      .select("id,name,created_at")
+      .single();
+    if (error) {
+      throw new Error(`Création de l'album impossible : ${error.message}`);
+    }
+    await supabaseAdmin.from("notifications").insert({
+      user_id: client.user_id,
+      type: "client_activity",
+      title: `${client.name} a créé un album photo`,
+      body: `Album « ${data.name} » créé dans la galerie photos.`,
+      client_id: client.id,
+    });
+    return album;
+  });
+
 /** Prépare un dépôt de photo dans la galerie du client Premium. */
+// prettier-ignore
 export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
   .inputValidator((data: { token: string; filename: string; contentType: string }) => {
     if (!data?.token) throw new Error("Lien invalide");
     if (!data.filename?.trim()) throw new Error("Nom de photo invalide");
-    if (!data.contentType?.startsWith("image/")) throw new Error("Le fichier doit être une image.");
+    if (!data.contentType?.startsWith("image/")) {
+      throw new Error("Le fichier doit être une image.");
+    }
     return data;
   })
   .handler(async ({ data }) => {
@@ -852,23 +900,38 @@ export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
       .from("chantier-photos")
       .createSignedUploadUrl(path);
     if (error || !signed?.token) {
-      throw new Error(`Préparation de l'envoi impossible : ${error?.message ?? "URL signée indisponible"}`);
+      throw new Error(
+        `Préparation de l'envoi impossible : ${error?.message ?? "URL signée indisponible"}`,
+      );
     }
     return { path, token: signed.token };
   });
 
 /** Vérifie le dépôt puis l'ajoute aux photos libres du client, visibles des deux côtés. */
+// prettier-ignore
 export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; path: string; filename: string; size: number }) => {
-    if (!data?.token) throw new Error("Lien invalide");
-    if (!data.path || !data.filename) throw new Error("Photo invalide");
-    if (!Number.isFinite(data.size) || data.size <= 0) throw new Error("Fichier vide ou invalide");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      token: string;
+      path: string;
+      filename: string;
+      size: number;
+      albumId?: string | null;
+    }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!data.path || !data.filename) throw new Error("Photo invalide");
+      if (!Number.isFinite(data.size) || data.size <= 0) {
+        throw new Error("Fichier vide ou invalide");
+      }
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     assertNotApercu();
     const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
-    if (!data.path.startsWith(`${client.id}/client-`)) throw new Error("Chemin de fichier invalide");
+    if (!data.path.startsWith(`${client.id}/client-`)) {
+      throw new Error("Chemin de fichier invalide");
+    }
     const filename = data.path.split("/").pop()!;
     const { data: listed, error: listError } = await supabaseAdmin.storage
       .from("chantier-photos")
@@ -876,11 +939,26 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
     const stored = listed?.find((file) => file.name === filename);
     if (listError || !stored) throw new Error("La photo n'a pas été reçue par le stockage");
     const actualSize = Number(stored.metadata?.size ?? data.size);
-    if (!Number.isFinite(actualSize) || actualSize <= 0) throw new Error("La photo enregistrée est invalide");
+    if (!Number.isFinite(actualSize) || actualSize <= 0) {
+      throw new Error("La photo enregistrée est invalide");
+    }
     const mime = String(stored.metadata?.mimetype ?? "");
     if (mime && !mime.startsWith("image/")) {
       await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
       throw new Error("Le fichier envoyé n'est pas une image.");
+    }
+
+    if (data.albumId) {
+      const { data: album, error: albumError } = await supabaseAdmin
+        .from("client_photo_albums")
+        .select("id")
+        .eq("id", data.albumId)
+        .eq("client_id", client.id)
+        .maybeSingle();
+      if (albumError || !album) {
+        await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
+        throw new Error("Album introuvable pour ce client.");
+      }
     }
 
     const { data: last } = await supabaseAdmin
@@ -891,15 +969,18 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
       .order("position", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { error: insertError } = await supabaseAdmin.from("intervention_photos").insert({
-      client_id: client.id,
-      intervention_id: null,
-      user_id: client.user_id,
-      storage_path: data.path,
-      caption: null,
-      position: (last?.position ?? 0) + 1,
-      include_in_report: false,
-    } as never);
+    const { error: insertError } = await supabaseAdmin
+      .from("intervention_photos")
+      .insert({
+        client_id: client.id,
+        intervention_id: null,
+        album_id: data.albumId || null,
+        user_id: client.user_id,
+        storage_path: data.path,
+        caption: null,
+        position: (last?.position ?? 0) + 1,
+        include_in_report: false,
+      } as never);
     if (insertError) {
       await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
       throw new Error(`Enregistrement de la photo impossible : ${insertError.message}`);
