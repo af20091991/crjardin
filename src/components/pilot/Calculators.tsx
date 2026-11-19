@@ -4,7 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Calculator, Trash2, ArrowLeftRight, Percent, Coins, HeartHandshake } from "lucide-react";
-import { calcHtToTtc, calcTtcToHt, calcDechetterie, calcSap, calcRemise } from "@/lib/pilot-ca";
+import {
+  calcHtToTtc,
+  calcTtcToHt,
+  calcDechetterie,
+  calcSap,
+  calcRemiseHt,
+  REMISE_VAT_RATES,
+} from "@/lib/pilot-ca";
 import { formatEuro } from "@/lib/pilot";
 
 function ResultLine({
@@ -91,12 +98,13 @@ export function Calculators({ onUse }: { onUse: (v: number) => void }) {
   const [sapTtc, setSapTtc] = useState("");
   const [remBase, setRemBase] = useState("");
   const [remPct, setRemPct] = useState("");
+  const [remVat, setRemVat] = useState<(typeof REMISE_VAT_RATES)[number]>(0.2);
 
   const ht = Number(htv) || 0;
   const ttc = Number(ttcv) || 0;
   const dech = calcDechetterie(Number(kg) || 0, Number(prixT) || 0);
   const sap = calcSap(Number(sapTtc) || 0);
-  const rem = calcRemise(Number(remBase) || 0, Number(remPct) || 0);
+  const rem = calcRemiseHt(Number(remBase) || 0, Number(remPct) || 0, remVat);
   const htToTtc = calcHtToTtc(ht);
   const ttcToHt = calcTtcToHt(ttc);
 
@@ -132,10 +140,30 @@ export function Calculators({ onUse }: { onUse: (v: number) => void }) {
           </CalculatorBlock>
 
           <CalculatorBlock title="Montant remisé" icon={Percent}>
-            <NumField label="Somme initiale (€)" value={remBase} onChange={setRemBase} />
+            <NumField label="Somme initiale TTC (€)" value={remBase} onChange={setRemBase} />
             <NumField label="% remise" value={remPct} onChange={setRemPct} />
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">TVA</span>
+              {REMISE_VAT_RATES.map((rate) => (
+                <button
+                  key={rate}
+                  type="button"
+                  aria-pressed={remVat === rate}
+                  onClick={() => setRemVat(rate)}
+                  className={
+                    remVat === rate
+                      ? "rounded-md bg-primary px-2.5 py-1 font-medium text-primary-foreground"
+                      : "rounded-md border px-2.5 py-1 hover:bg-muted"
+                  }
+                >
+                  {Math.round(rate * 100)} %
+                </button>
+              ))}
+            </div>
             <ResultLine label="Remise" value={rem.remise} />
-            <ResultLine label="Prix net" value={rem.net} onUse={onUse} />
+            <ResultLine label="Prix net TTC" value={rem.netTtc} />
+            <ResultLine label="TVA" value={rem.tva} />
+            <ResultLine label="Prix HT remisé" value={rem.ht} onUse={onUse} />
           </CalculatorBlock>
         </div>
         <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">

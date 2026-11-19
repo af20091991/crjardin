@@ -279,3 +279,17 @@ export function calcRemise(initial: number, pct: number) {
   const remise = (initial * pct) / 100;
   return { remise, net: initial - remise };
 }
+
+/** Taux de TVA proposés pour le montant remisé. */
+export const REMISE_VAT_RATES = [0.1, 0.2] as const;
+
+/**
+ * Montant remisé : la somme de départ et la remise sont TTC ; on sort le prix HT remisé
+ * au taux de TVA choisi (10 % ou 20 %).
+ */
+export function calcRemiseHt(initialTtc: number, pct: number, vatRate: number) {
+  const remise = (initialTtc * pct) / 100;
+  const netTtc = initialTtc - remise;
+  const ht = netTtc / (1 + vatRate);
+  return { remise, netTtc, ht, tva: netTtc - ht };
+}
