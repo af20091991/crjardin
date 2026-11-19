@@ -11,6 +11,7 @@ import {
   createSharedPremiumPhotoUpload,
   finalizeSharedPremiumPhotoUpload,
   createSharedPremiumPhotoAlbum,
+  moveSharedPhotoToAlbum,
   type SharedPhotoAlbum,
   type SharedIntervention,
   type SharedPhoto,
@@ -109,6 +110,34 @@ export function PremiumPhotos({
   const [selectedAlbumId, setSelectedAlbumId] = useState("");
   const [newAlbumName, setNewAlbumName] = useState("");
   const [creatingAlbum, setCreatingAlbum] = useState(false);
+  const moveToAlbum = useMutation({
+    mutationFn: ({ photoId, albumId }: { photoId: string; albumId: string | null }) =>
+      moveSharedPhotoToAlbum({ data: { token, photoId, albumId } }),
+    onSuccess: () => {
+      toast.success("Photo classée.");
+      onPhotosAdded();
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Classement impossible."),
+  });
+  // Sélecteur d'album pour une photo libre : le serveur vérifie l'appartenance de l'album au client.
+  const albumSelect = (photo: SharedPhoto) => (
+    <select
+      aria-label="Classer la photo dans un album"
+      className="h-9 w-full rounded-md border bg-background px-2 text-xs"
+      value={photo.album_id ?? ""}
+      disabled={moveToAlbum.isPending}
+      onChange={(event) =>
+        moveToAlbum.mutate({ photoId: photo.id, albumId: event.target.value || null })
+      }
+    >
+      <option value="">Photos à classer</option>
+      {albums.map((album) => (
+        <option key={album.id} value={album.id}>
+          {album.name}
+        </option>
+      ))}
+    </select>
+  );
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(
     null,
   );
@@ -261,6 +290,7 @@ export function PremiumPhotos({
                     <ThumbImg src={photo.url!} alt={photo.caption ?? "Photo"} className="aspect-[4/3] w-full object-cover" />
                   </ImageLightbox>
                 </div>
+                {albumSelect(photo)}
                 {photo.caption && <figcaption className="text-xs text-muted-foreground">{photo.caption}</figcaption>}
               </figure>
             ))}
@@ -281,6 +311,7 @@ export function PremiumPhotos({
                     <ThumbImg src={photo.url!} alt={photo.caption ?? "Photo"} className="aspect-[4/3] w-full object-cover" />
                   </ImageLightbox>
                 </div>
+                {albumSelect(photo)}
               </figure>
             ))}
           </div>

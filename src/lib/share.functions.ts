@@ -1027,6 +1027,41 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
     return { ok: true, size: actualSize };
   });
 
+/** Classe une photo libre dans un album du même client, ou la retire de son album. */
+export const moveSharedPhotoToAlbum = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; photoId: string; albumId: string | null }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.photoId) throw new Error("Photo invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireSharedClientByToken(data.token);
+    const { data: photo } = await supabaseAdmin
+      .from("intervention_photos")
+      .select("id")
+      .eq("id", data.photoId)
+      .eq("client_id", client.id)
+      .is("intervention_id", null)
+      .maybeSingle();
+    if (!photo) throw new Error("Photo introuvable pour ce client.");
+    if (data.albumId) {
+      const { data: album } = await supabaseAdmin
+        .from("client_photo_albums")
+        .select("id")
+        .eq("id", data.albumId)
+        .eq("client_id", client.id)
+        .maybeSingle();
+      if (!album) throw new Error("Album introuvable pour ce client.");
+    }
+    const { error } = await supabaseAdmin
+      .from("intervention_photos")
+      .update({ album_id: data.albumId } as never)
+      .eq("id", data.photoId);
+    if (error) throw new Error(`Classement impossible : ${error.message}`);
+    return { ok: true };
+  });
+
 /** Étape 1 — prépare une URL d'upload signée pour un document déposé par le client. */
 export const createSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
   .inputValidator((data: { token: string; filename: string; size: number }) => {

@@ -29,7 +29,6 @@ import { PremiumPhotos } from "@/components/share/PremiumPhotos";
 import { Route } from "@/routes/partage.$token";
 import {
   Info,
-  PhotoGallery,
   RecommendationsTab,
   ReportsTab,
   StatCard,
