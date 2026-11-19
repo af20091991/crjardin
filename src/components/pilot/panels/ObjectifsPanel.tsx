@@ -498,7 +498,7 @@ function GoalCard({
             {goal.title}
           </p>
           <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" onClick={onEdit}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
             <Button
