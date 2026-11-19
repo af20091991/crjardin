@@ -18,7 +18,7 @@ const PHOTO_TARGET_BYTES = 4 * 1024 * 1024;
 
 /** Compression progressive : 4 Mo est une cible, jamais une limite d'acceptation. */
 async function prepareClientPhoto(file: File): Promise<File> {
-  if (!file.type.startsWith("image/")) throw new Error("Sélectionnez un fichier image.");
+  if (file.type && !file.type.startsWith("image/")) throw new Error("Sélectionnez un fichier image.");
   if (file.size <= PHOTO_TARGET_BYTES) return file;
 
   const bitmap = await createImageBitmap(file).catch(() => null);
