@@ -308,7 +308,7 @@ function ClientDetail() {
           Exporter la fiche (PDF)
         </Button>
 
-        {client.ceev_enabled && client.ceev_planning_path && (
+        {client.ceev_planning_path && (
           <ClientPlanningShortcut clientId={client.id} filename={client.ceev_planning_filename} />
         )}
 

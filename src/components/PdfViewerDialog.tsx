@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, FileText, Loader2 } from "lucide-react";
+import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -16,17 +16,41 @@ export function PdfViewerDialog({
   title: string;
   url: string | null;
 }) {
+  const download = async () => {
+    if (!url) return;
+    const name = title.toLowerCase().endsWith(".pdf") ? title : `${title}.pdf`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("téléchargement impossible");
+      const objectUrl = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[90vh] max-w-5xl flex-col gap-3 p-4">
         <DialogHeader className="flex-row items-center justify-between gap-3 space-y-0">
           <DialogTitle className="truncate text-left">{title}</DialogTitle>
           {url && (
-            <Button type="button" variant="outline" size="sm" asChild>
-              <a href={url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-1.5 h-4 w-4" /> Ouvrir dans un onglet
-              </a>
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={download}>
+                <Download className="mr-1.5 h-4 w-4" /> Télécharger
+              </Button>
+              <Button type="button" variant="outline" size="sm" asChild>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-1.5 h-4 w-4" /> Ouvrir
+                </a>
+              </Button>
+            </div>
           )}
         </DialogHeader>
         {url ? (
