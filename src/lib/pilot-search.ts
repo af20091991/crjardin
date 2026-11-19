@@ -3,7 +3,18 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export type SearchKind = "client" | "ceev" | "sst" | "page";
+export type SearchKind =
+  | "client"
+  | "ceev"
+  | "sst"
+  | "page"
+  | "cr"
+  | "reco"
+  | "materiel"
+  | "achat"
+  | "mission"
+  | "message"
+  | "fiche";
 
 export interface SearchResult {
   id: string;
@@ -12,6 +23,8 @@ export interface SearchResult {
   detail?: string;
   to: string;
   params?: Record<string, string>;
+  /** Texte complet interrogé par la recherche (absent de l'affichage). */
+  haystack?: string;
 }
 
 export const SEARCH_KIND_LABELS: Record<SearchKind, string> = {
@@ -19,6 +32,13 @@ export const SEARCH_KIND_LABELS: Record<SearchKind, string> = {
   ceev: "Contrats CEEV",
   sst: "Sous-traitants",
   page: "Écrans",
+  cr: "Comptes-rendus",
+  reco: "Préconisations",
+  materiel: "Matériel",
+  achat: "Achats et fournisseurs",
+  mission: "Missions SST",
+  message: "Messages clients",
+  fiche: "Fiches chantier",
 };
 
 export const SEARCH_PAGES: SearchResult[] = [
@@ -66,7 +86,7 @@ export const SEARCH_PAGES: SearchResult[] = [
 /** Charge une fois l'index de recherche (données réelles uniquement). */
 export async function loadSearchIndex(): Promise<SearchResult[]> {
   const [clients, ceev, sst] = await Promise.all([
-    supabase.from("clients").select("id,name,address").order("name").limit(1000),
+    supabase.from("clients").select("id,name,address,email,phone,notes").order("name").limit(1000),
     supabase
       .from("ceev_contracts")
       .select("id,label,year")
@@ -77,11 +97,16 @@ export async function loadSearchIndex(): Promise<SearchResult[]> {
 
   const out: SearchResult[] = [...SEARCH_PAGES];
 
+  const clientNames = new Map<string, string>();
   for (const c of (clients.data ?? []) as Array<{
     id: string;
     name: string;
     address: string | null;
+    email: string | null;
+    phone: string | null;
+    notes: string | null;
   }>) {
+    clientNames.set(c.id, c.name);
     out.push({
       id: `client-${c.id}`,
       kind: "client",
@@ -89,8 +114,10 @@ export async function loadSearchIndex(): Promise<SearchResult[]> {
       detail: c.address ?? undefined,
       to: "/clients/$clientId",
       params: { clientId: c.id },
+      haystack: [c.name, c.address, c.email, c.phone, c.notes].filter(Boolean).join(" "),
     });
   }
+  out.push(...(await loadDataIndex(clientNames)));
   for (const c of (ceev.data ?? []) as Array<{ id: string; label: string; year: number }>) {
     out.push({
       id: `ceev-${c.id}`,
@@ -112,6 +139,151 @@ export async function loadSearchIndex(): Promise<SearchResult[]> {
   return out;
 }
 
+type Row = Record<string, string | null>;
+
+/** Toutes les autres informations de l'application (CR, préconisations, matériel, achats, missions…). */
+async function loadDataIndex(clientNames: Map<string, string>): Promise<SearchResult[]> {
+  const [ivs, recos, equip, sup, supplies, missions, messages, sheets, agreements] =
+    await Promise.all([
+      supabase
+        .from("interventions")
+        .select(
+          "id,client_id,intervention_date,intervention_type,recommendations_text,attention_points,positive_points",
+        )
+        .order("intervention_date", { ascending: false })
+        .limit(2000),
+      supabase
+        .from("recommendations")
+        .select("id,title,description,client_id,intervention_id")
+        .limit(2000),
+      supabase.from("equipment").select("id,name,category,notes").limit(500),
+      supabase.from("ap_suppliers").select("id,name,email,phone,comment").limit(300),
+      supabase.from("ap_supplies").select("id,item,supplier,comment,status").limit(2000),
+      supabase
+        .from("subcontractor_missions")
+        .select("id,prestation,context_notes,objective,invoice_ref,client_id,mission_date")
+        .limit(2000),
+      supabase.from("client_messages").select("id,content,client_id,created_at").limit(2000),
+      supabase
+        .from("worksite_sheets")
+        .select("id,client_name,address,notes,intervention_date")
+        .limit(1000),
+      supabase.from("ceev_agreements").select("id,name,site_address,notes").limit(300),
+    ]);
+
+  const out: SearchResult[] = [];
+  const name = (id: string | null | undefined) => (id ? clientNames.get(id) : undefined);
+  const join = (...parts: Array<string | null | undefined>) =>
+    parts.filter((p): p is string => !!p && p.trim() !== "").join(" ");
+
+  for (const r of (ivs.data ?? []) as Row[]) {
+    out.push({
+      id: `cr-${r.id}`,
+      kind: "cr",
+      label: `${name(r.client_id) ?? "Chantier"} · CR ${r.intervention_date ?? ""}`.trim(),
+      detail: r.intervention_type ?? undefined,
+      to: "/interventions/$interventionId",
+      params: { interventionId: r.id! },
+      haystack: join(
+        name(r.client_id),
+        r.intervention_type,
+        r.recommendations_text,
+        r.attention_points,
+        r.positive_points,
+      ),
+    });
+  }
+  for (const r of (recos.data ?? []) as Row[]) {
+    const to = r.intervention_id ? "/interventions/$interventionId" : "/clients/$clientId";
+    const params: Record<string, string> = r.intervention_id
+      ? { interventionId: r.intervention_id }
+      : { clientId: r.client_id ?? "" };
+    out.push({
+      id: `reco-${r.id}`,
+      kind: "reco",
+      label: r.title ?? "Préconisation",
+      detail: name(r.client_id),
+      to,
+      params,
+      haystack: join(r.title, r.description, name(r.client_id)),
+    });
+  }
+  for (const r of (equip.data ?? []) as Row[]) {
+    out.push({
+      id: `mat-${r.id}`,
+      kind: "materiel",
+      label: r.name ?? "Matériel",
+      detail: r.category ?? undefined,
+      to: "/parc-materiel/$equipmentId",
+      params: { equipmentId: r.id! },
+      haystack: join(r.name, r.category, r.notes),
+    });
+  }
+  for (const r of (sup.data ?? []) as Row[]) {
+    out.push({
+      id: `fou-${r.id}`,
+      kind: "achat",
+      label: r.name ?? "Fournisseur",
+      detail: r.email ?? r.phone ?? undefined,
+      to: "/pilot/assistant-ap",
+      haystack: join(r.name, r.email, r.phone, r.comment),
+    });
+  }
+  for (const r of (supplies.data ?? []) as Row[]) {
+    out.push({
+      id: `app-${r.id}`,
+      kind: "achat",
+      label: r.item ?? "Fourniture",
+      detail: r.supplier ?? undefined,
+      to: "/pilot/assistant-ap",
+      haystack: join(r.item, r.supplier, r.comment),
+    });
+  }
+  for (const r of (missions.data ?? []) as Row[]) {
+    out.push({
+      id: `mis-${r.id}`,
+      kind: "mission",
+      label: r.prestation ?? "Mission",
+      detail: join(name(r.client_id), r.mission_date),
+      to: "/sst",
+      haystack: join(r.prestation, r.context_notes, r.objective, r.invoice_ref, name(r.client_id)),
+    });
+  }
+  for (const r of (messages.data ?? []) as Row[]) {
+    out.push({
+      id: `msg-${r.id}`,
+      kind: "message",
+      label: (r.content ?? "").slice(0, 80) || "Message",
+      detail: name(r.client_id),
+      to: "/clients/$clientId",
+      params: { clientId: r.client_id ?? "" },
+      haystack: join(r.content, name(r.client_id)),
+    });
+  }
+  for (const r of (sheets.data ?? []) as Row[]) {
+    out.push({
+      id: `fic-${r.id}`,
+      kind: "fiche",
+      label: r.client_name ?? "Fiche chantier",
+      detail: r.address ?? undefined,
+      to: "/fiches",
+      haystack: join(r.client_name, r.address, r.notes),
+    });
+  }
+  for (const r of (agreements.data ?? []) as Row[]) {
+    out.push({
+      id: `agr-${r.id}`,
+      kind: "ceev",
+      label: r.name ?? "Contrat",
+      detail: r.site_address ?? undefined,
+      to: "/pilot/ceev-contrats/$agreementId",
+      params: { agreementId: r.id! },
+      haystack: join(r.name, r.site_address, r.notes),
+    });
+  }
+  return out;
+}
+
 function normalize(s: string): string {
   return s
     .normalize("NFD")
@@ -122,5 +294,7 @@ function normalize(s: string): string {
 export function searchIndex(index: SearchResult[], query: string, limit = 40): SearchResult[] {
   const q = normalize(query.trim());
   if (!q) return index.filter((r) => r.kind === "page").slice(0, limit);
-  return index.filter((r) => normalize(`${r.label} ${r.detail ?? ""}`).includes(q)).slice(0, limit);
+  return index
+    .filter((r) => normalize(r.haystack ?? `${r.label} ${r.detail ?? ""}`).includes(q))
+    .slice(0, limit);
 }
