@@ -21,7 +21,19 @@ import {
   type SearchResult,
 } from "@/lib/pilot-search";
 
-const KIND_ORDER: SearchKind[] = ["page", "client", "ceev", "sst"];
+const KIND_ORDER: SearchKind[] = [
+  "page",
+  "client",
+  "cr",
+  "reco",
+  "ceev",
+  "sst",
+  "mission",
+  "materiel",
+  "achat",
+  "fiche",
+  "message",
+];
 
 export function GlobalSearch({ collapsed = false }: { collapsed?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -89,10 +101,16 @@ export function GlobalSearch({ collapsed = false }: { collapsed?: boolean }) {
           {grouped.map((g) => (
             <CommandGroup key={g.kind} heading={SEARCH_KIND_LABELS[g.kind]}>
               {g.items.map((r) => (
-                <CommandItem key={r.id} value={`${r.label} ${r.detail ?? ""}`} onSelect={() => go(r)}>
+                <CommandItem
+                  key={r.id}
+                  value={`${r.label} ${r.detail ?? ""}`}
+                  onSelect={() => go(r)}
+                >
                   <span className="truncate">{r.label}</span>
                   {r.detail && (
-                    <span className="ml-auto truncate text-xs text-muted-foreground">{r.detail}</span>
+                    <span className="ml-auto truncate text-xs text-muted-foreground">
+                      {r.detail}
+                    </span>
                   )}
                 </CommandItem>
               ))}
