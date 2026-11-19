@@ -511,6 +511,12 @@ export const getSharedClient = createServerFn({ method: "GET" })
 
 const PREMIUM_BUCKET = "client-premium";
 
+/**
+ * Durée des liens vers les fichiers Premium (photos, documents) : courte, pour que l'accès
+ * s'arrête vite après désactivation. La page en génère de nouveaux à chaque ouverture.
+ */
+const PREMIUM_URL_SECONDS = 60 * 60;
+
 /** Identifiants des documents qui ne servent qu'à la photo de couverture. */
 async function coverOnlyDocumentIds(clientId: string): Promise<Set<string>> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -606,7 +612,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       if (photo?.storage_path && photo.include_in_report) {
         const { data: signed } = await supabaseAdmin.storage
           .from(BUCKET)
-          .createSignedUrl(photo.storage_path, 60 * 60 * 24 * 7);
+          .createSignedUrl(photo.storage_path, PREMIUM_URL_SECONDS);
         coverPhotoUrl = signed?.signedUrl ?? null;
       }
     }
@@ -627,7 +633,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
         if (doc?.storage_path) {
           const { data: signed } = await supabaseAdmin.storage
             .from(PREMIUM_BUCKET)
-            .createSignedUrl(doc.storage_path, 60 * 60 * 24 * 7);
+            .createSignedUrl(doc.storage_path, PREMIUM_URL_SECONDS);
           coverPhotoUrl = signed?.signedUrl ?? null;
         }
       }
@@ -686,7 +692,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
     if (docPaths.length > 0) {
       const { data: signed } = await supabaseAdmin.storage
         .from(PREMIUM_BUCKET)
-        .createSignedUrls(docPaths, 60 * 60 * 24);
+        .createSignedUrls(docPaths, PREMIUM_URL_SECONDS);
       (signed ?? []).forEach((s) => {
         if (s.path && s.signedUrl) docUrlMap.set(s.path, s.signedUrl);
       });
