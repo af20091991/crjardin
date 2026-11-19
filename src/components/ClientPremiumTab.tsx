@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -11,6 +12,7 @@ import {
   EyeOff,
   ImageIcon,
   Loader2,
+  LayoutDashboard,
   Pencil,
   RefreshCw,
   User,
@@ -382,6 +384,15 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
           />
         </CardContent>
       </Card>
+
+      {premium?.enabled && (
+        <Button asChild variant="outline" className="w-full">
+          <Link to="/clients/premium-dashboard/$clientId" params={{ clientId }}>
+            <LayoutDashboard className="mr-1.5 h-4 w-4" />
+            Dashboard
+          </Link>
+        </Button>
+      )}
 
       <Dialog
         open={activationOpen}
