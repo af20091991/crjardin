@@ -860,10 +860,16 @@ export const createSharedPremiumPhotoAlbum = createServerFn({ method: "POST" })
     const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
     const { data: album, error } = await supabaseAdmin
       .from("client_photo_albums")
-      .insert({ client_id: client.id, user_id: client.user_id, name: data.name })
+      .insert({
+        client_id: client.id,
+        user_id: client.user_id,
+        name: data.name,
+      })
       .select("id,name,created_at")
       .single();
-    if (error) throw new Error(`Création de l'album impossible : ${error.message}`);
+    if (error) {
+      throw new Error(`Création de l'album impossible : ${error.message}`);
+    }
     await supabaseAdmin.from("notifications").insert({
       user_id: client.user_id,
       type: "client_activity",
@@ -965,15 +971,15 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
     const { error: insertError } = await supabaseAdmin
       .from("intervention_photos")
       .insert({
-      client_id: client.id,
-      intervention_id: null,
-      album_id: data.albumId || null,
-      user_id: client.user_id,
-      storage_path: data.path,
-      caption: null,
-      position: (last?.position ?? 0) + 1,
-      include_in_report: false,
-    } as never);
+        client_id: client.id,
+        intervention_id: null,
+        album_id: data.albumId || null,
+        user_id: client.user_id,
+        storage_path: data.path,
+        caption: null,
+        position: (last?.position ?? 0) + 1,
+        include_in_report: false,
+      } as never);
     if (insertError) {
       await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
       throw new Error(`Enregistrement de la photo impossible : ${insertError.message}`);
@@ -1011,7 +1017,7 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
 
 /** Étape 1 — prépare une URL d'upload signée pour un document déposé par le client. */
 export const createSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; path: string; filename: string; size: number; title: string }) => {
+  .inputValidator((data: { token: string; filename: string; size: number }) => {
     if (!data?.token) throw new Error("Lien invalide");
     if (!data.filename) throw new Error("Nom de fichier invalide");
     if (!Number.isFinite(data.size) || data.size <= 0 || data.size > PREMIUM_DOC_MAX_BYTES) {
