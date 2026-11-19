@@ -286,6 +286,8 @@ export async function listClientPhotosForCover(
     .from("intervention_photos")
     .select("id, storage_path")
     .in("intervention_id", ids)
+    // Seules les photos que le client voit peuvent devenir sa couverture.
+    .eq("include_in_report", true)
     .order("created_at", { ascending: false })
     .limit(40);
   if (error) throw new Error(`Impossible de charger les photos : ${error.message}`);
