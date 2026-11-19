@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ClientCompletenessCard } from "@/components/clients/ClientCompletenessCard";
 import { recoResponseState, RECO_RESPONSE_TONE } from "@/lib/reco-response";
 import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -312,6 +313,19 @@ function ClientDetail() {
         {client.ceev_planning_path && (
           <ClientPlanningShortcut clientId={client.id} filename={client.ceev_planning_filename} />
         )}
+
+        <ClientCompletenessCard
+          client={client}
+          scope="fiche"
+          interventionCount={interventions?.length ?? 0}
+          recoCount={recos?.length ?? 0}
+          onEdit={() => setEditOpen(true)}
+          onGestion={(tab) => {
+            setGroup("gestion");
+            setGestionTab(tab);
+          }}
+          onPremium={() => setGroup("premium")}
+        />
 
         <div className="flex gap-2">
           <Button

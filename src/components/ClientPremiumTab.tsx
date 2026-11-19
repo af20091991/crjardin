@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { getClient } from "@/lib/clients";
+import { ClientCompletenessCard } from "@/components/clients/ClientCompletenessCard";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -144,6 +146,10 @@ function FeatureTile({
 export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
   const qc = useQueryClient();
 
+  const { data: client } = useQuery({
+    queryKey: ["client", clientId],
+    queryFn: () => getClient(clientId),
+  });
   const { data: premium, isLoading } = useQuery({
     queryKey: ["client-premium", clientId],
     queryFn: () => getClientPremium(clientId),
@@ -366,6 +372,16 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
 
   return (
     <div className="mt-3 space-y-4">
+      {client && (
+        <ClientCompletenessCard
+          client={client}
+          scope="premium"
+          onEdit={() => undefined}
+          onGestion={() => undefined}
+          onPremium={(next) => setSection(next)}
+        />
+      )}
+
       <Card>
         <CardContent className="flex items-center justify-between gap-3 pt-6">
           <div className="flex items-center gap-2">
