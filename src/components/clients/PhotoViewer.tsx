@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Maximize, Pause, Play, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Maximize, Pause, Pencil, Play, X } from "lucide-react";
 import { signedPhotoUrl } from "@/lib/interventions";
 
 export interface ViewerPhoto {
@@ -15,12 +15,17 @@ export function PhotoViewer({
   photos,
   startIndex,
   onClose,
+  onCaptionSave,
 }: {
   photos: ViewerPhoto[];
   startIndex: number;
   onClose: () => void;
+  /** Si fourni, la légende de chaque photo peut être modifiée depuis la visionneuse. */
+  onCaptionSave?: (id: string, caption: string) => Promise<void>;
 }) {
   const [index, setIndex] = useState(startIndex);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [captions, setCaptions] = useState<Record<string, string | null | undefined>>({});
   const [playing, setPlaying] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const count = photos.length;
@@ -68,6 +73,7 @@ export function PhotoViewer({
   };
 
   if (!current) return null;
+  const caption = current.id in captions ? captions[current.id] : current.caption;
 
   return (
     <div
@@ -148,9 +154,56 @@ export function PhotoViewer({
         )}
       </div>
 
-      {current.caption && (
-        <p className="p-3 text-center text-sm text-white/80">{current.caption}</p>
-      )}
+      <div className="flex min-h-12 items-center justify-center gap-2 p-3 text-center text-sm text-white/80">
+        {editing === current.id ? (
+          <form
+            className="flex w-full max-w-md items-center gap-2"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const value = (
+                event.currentTarget.elements.namedItem("caption") as HTMLInputElement
+              ).value.trim();
+              try {
+                await onCaptionSave?.(current.id, value);
+                setCaptions((c) => ({ ...c, [current.id]: value || null }));
+                setEditing(null);
+              } catch {
+                // Échec signalé par le parent ; la légende reste inchangée.
+              }
+            }}
+          >
+            <input
+              name="caption"
+              defaultValue={caption ?? ""}
+              maxLength={200}
+              autoFocus
+              placeholder="Légende de la photo"
+              className="h-9 flex-1 rounded-md bg-white/10 px-3 text-white placeholder:text-white/50"
+            />
+            <button
+              type="submit"
+              className="grid h-9 w-9 place-items-center rounded-md hover:bg-white/10"
+              aria-label="Enregistrer la légende"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+          </form>
+        ) : (
+          <>
+            <span>{caption || (onCaptionSave ? "Aucune légende" : "")}</span>
+            {onCaptionSave && (
+              <button
+                type="button"
+                onClick={() => setEditing(current.id)}
+                className="grid h-8 w-8 place-items-center rounded-md hover:bg-white/10"
+                aria-label="Modifier la légende"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

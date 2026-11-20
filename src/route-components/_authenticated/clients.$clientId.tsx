@@ -273,7 +273,7 @@ function ClientDetail() {
               )}
             </div>
 
-            <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t pt-4 text-sm">
               {client.address && (
                 <Info icon={MapPin} text={client.address}>
                   <AddressLink address={client.address} />
