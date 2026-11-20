@@ -773,7 +773,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         data-shell="content"
         className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}
       >
-        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-4 pb-3 pt-[calc(max(env(safe-area-inset-top),1.625rem)+2px)] backdrop-blur md:hidden">
+        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-4 pb-2 pt-[max(env(safe-area-inset-top),0.875rem)] backdrop-blur md:hidden">
           <Sheet>
             <div className="-ml-1 flex h-[76px] shrink-0 flex-col items-center justify-between">
               <SheetTrigger asChild>
