@@ -11,10 +11,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { ClientPhotosPanel } from "@/components/clients/ClientPhotosPanel";
+import { ClientPhotosPanel, PhotoThumb } from "@/components/clients/ClientPhotosPanel";
 import { Card } from "@/components/ui/card";
 import { getClient } from "@/lib/clients";
 import { listInterventionsByClient } from "@/lib/interventions";
+import { listFreePhotos } from "@/lib/free-photos";
 
 type FicheTab = "interventions" | "calendar" | "health" | "reco" | "opps";
 
@@ -37,6 +38,20 @@ export function ClientDashboard() {
     queryKey: ["interventions", clientId],
     queryFn: () => listInterventionsByClient(clientId),
   });
+
+  const { data: freePhotos } = useQuery({
+    queryKey: ["client-free-photos", clientId],
+    queryFn: () => listFreePhotos(clientId),
+  });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = (interventions ?? [])
+    .filter((iv) => iv.intervention_date >= today && iv.status !== "annulee")
+    .sort((a, b) => a.intervention_date.localeCompare(b.intervention_date))
+    .slice(0, 3);
+  const latestPhotos = [...(freePhotos ?? [])]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, 6);
 
   return (
     <AppShell title="Dashboard client">
@@ -69,6 +84,43 @@ export function ClientDashboard() {
             </Link>
           ))}
         </section>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="space-y-3 p-4">
+            <h2 className="font-serif text-lg font-semibold">Prochaines interventions</h2>
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune intervention planifiée.</p>
+            ) : (
+              <ul className="divide-y">
+                {upcoming.map((iv) => (
+                  <li key={iv.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                    <span className="min-w-0 truncate">
+                      {iv.title ?? iv.intervention_type ?? "Intervention"}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {new Date(`${iv.intervention_date}T12:00:00`).toLocaleDateString("fr-FR")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card className="space-y-3 p-4">
+            <h2 className="font-serif text-lg font-semibold">Dernières photos</h2>
+            {latestPhotos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune photo ajoutée pour le moment.</p>
+            ) : (
+              <ul className="grid grid-cols-3 gap-2">
+                {latestPhotos.map((photo) => (
+                  <li key={photo.id} className="aspect-square overflow-hidden rounded-md border">
+                    <PhotoThumb path={photo.storage_path} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
 
         <Card className="space-y-4 p-4">
           <h2 className="flex items-center gap-2 font-serif text-xl font-semibold">

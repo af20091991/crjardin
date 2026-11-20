@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { listFreePhotos, type FreePhoto } from "@/lib/free-photos";
-import { deletePhoto, reorderPhotos, signedPhotoUrl } from "@/lib/interventions";
+import { deletePhoto, reorderPhotos, signedPhotoUrl, updatePhoto } from "@/lib/interventions";
 import { PhotoViewer } from "@/components/clients/PhotoViewer";
 import {
   DashboardPhotoUploader,
@@ -70,7 +70,7 @@ async function listAlbums(clientId: string): Promise<Album[]> {
   return (data ?? []) as Album[];
 }
 
-function PhotoThumb({ path }: { path: string }) {
+export function PhotoThumb({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
@@ -115,6 +115,7 @@ export function ClientPhotosPanel({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dragId, setDragId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
+  const [layout, setLayout] = useState<"grid" | "list">("grid");
 
   const photosKey = ["client-free-photos", clientId] as const;
   const albumsKey = ["client-photo-albums", clientId] as const;
@@ -339,6 +340,10 @@ export function ClientPhotosPanel({
           photos={viewer.photos}
           startIndex={viewer.index}
           onClose={() => setViewer(null)}
+          onCaptionSave={async (id, caption) => {
+            await updatePhoto(id, { caption: caption || null });
+            refresh();
+          }}
         />
       )}
 
@@ -363,6 +368,19 @@ export function ClientPhotosPanel({
               className={`ml-1 h-4 w-4 transition-transform ${uploadOpen ? "rotate-180" : ""}`}
             />
           </Button>
+          <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Affichage">
+            {(["grid", "list"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={layout === mode}
+                onClick={() => setLayout(mode)}
+                className={`rounded px-2.5 py-1 text-xs font-medium ${layout === mode ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+              >
+                {mode === "grid" ? "Grille" : "Liste"}
+              </button>
+            ))}
+          </div>
           {currentAlbum && visible.length > 0 && (
             <Button variant="outline" size="sm" onClick={() => openViewer(visible[0])}>
               <Play className="mr-1.5 h-4 w-4" />
@@ -563,7 +581,13 @@ export function ClientPhotosPanel({
                 : "Aucune photo pour ce client."}
           </p>
         ) : (
-          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+          <ul
+            className={
+              layout === "grid"
+                ? "grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6"
+                : "space-y-2"
+            }
+          >
             {visible.map((photo) => {
               const isSelected = selected.has(photo.id);
               return (
@@ -583,14 +607,16 @@ export function ClientPhotosPanel({
                     event.preventDefault();
                     dropOnPhoto(photo.id);
                   }}
-                  className={`group relative overflow-hidden rounded-lg border bg-card ${
-                    isSelected ? "ring-2 ring-primary" : ""
-                  } ${dragId === photo.id ? "opacity-50" : ""}`}
+                  className={`group relative rounded-lg border bg-card ${
+                    layout === "grid" ? "overflow-hidden" : "flex items-center gap-3 p-2"
+                  } ${isSelected ? "ring-2 ring-primary" : ""} ${dragId === photo.id ? "opacity-50" : ""}`}
                 >
                   <button
                     type="button"
                     aria-label="Agrandir la photo"
-                    className="block aspect-square w-full overflow-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                    className={`block overflow-hidden focus-visible:ring-2 focus-visible:ring-ring ${
+                      layout === "grid" ? "aspect-square w-full" : "h-14 w-14 shrink-0 rounded-md"
+                    }`}
                     onClick={() => openViewer(photo)}
                   >
                     <PhotoThumb path={photo.storage_path} />
@@ -608,9 +634,18 @@ export function ClientPhotosPanel({
                   >
                     {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
                   </button>
+                  {layout === "list" && (
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {photo.caption ?? "Sans légende"}
+                    </span>
+                  )}
                   <select
                     aria-label="Classer la photo dans un album"
-                    className="absolute inset-x-1 bottom-1 h-7 rounded-md border bg-background/95 px-1 text-[11px] opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                    className={`h-7 rounded-md border bg-background/95 px-1 text-[11px] transition-opacity ${
+                      layout === "list"
+                        ? "ml-auto w-40 shrink-0"
+                        : "absolute inset-x-1 bottom-1 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    }`}
                     value={photo.album_id ?? ""}
                     disabled={movePhotos.isPending}
                     onChange={(event) =>
