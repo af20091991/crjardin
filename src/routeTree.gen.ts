@@ -18,6 +18,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as PartageTokenRouteImport } from './routes/partage.$token'
+import { Route as AlbumTokenRouteImport } from './routes/album.$token'
 import { Route as AuthenticatedVersionsRouteImport } from './routes/_authenticated/versions'
 import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedSstRouteImport } from './routes/_authenticated/sst'
@@ -135,6 +136,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const PartageTokenRoute = PartageTokenRouteImport.update({
   id: '/partage/$token',
   path: '/partage/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlbumTokenRoute = AlbumTokenRouteImport.update({
+  id: '/album/$token',
+  path: '/album/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedVersionsRoute = AuthenticatedVersionsRouteImport.update({
@@ -574,6 +580,7 @@ export interface FileRoutesByFullPath {
   '/sst': typeof AuthenticatedSstRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/versions': typeof AuthenticatedVersionsRoute
+  '/album/$token': typeof AlbumTokenRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
   '/clients/premium': typeof AuthenticatedClientsPremiumRoute
@@ -656,6 +663,7 @@ export interface FileRoutesByTo {
   '/sst': typeof AuthenticatedSstRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/versions': typeof AuthenticatedVersionsRoute
+  '/album/$token': typeof AlbumTokenRoute
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -741,6 +749,7 @@ export interface FileRoutesById {
   '/_authenticated/sst': typeof AuthenticatedSstRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
   '/_authenticated/versions': typeof AuthenticatedVersionsRoute
+  '/album/$token': typeof AlbumTokenRoute
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -828,6 +837,7 @@ export interface FileRouteTypes {
     | '/sst'
     | '/statistiques'
     | '/versions'
+    | '/album/$token'
     | '/partage/$token'
     | '/clients/$clientId'
     | '/clients/premium'
@@ -910,6 +920,7 @@ export interface FileRouteTypes {
     | '/sst'
     | '/statistiques'
     | '/versions'
+    | '/album/$token'
     | '/partage/$token'
     | '/'
     | '/clients/$clientId'
@@ -994,6 +1005,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sst'
     | '/_authenticated/statistiques'
     | '/_authenticated/versions'
+    | '/album/$token'
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
@@ -1068,6 +1080,7 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AlbumTokenRoute: typeof AlbumTokenRoute
   PartageTokenRoute: typeof PartageTokenRoute
   ApiPublicApRemindersRoute: typeof ApiPublicApRemindersRoute
   ApiPublicBrevoWebhookRoute: typeof ApiPublicBrevoWebhookRoute
@@ -1144,6 +1157,13 @@ declare module '@tanstack/react-router' {
       path: '/partage/$token'
       fullPath: '/partage/$token'
       preLoaderRoute: typeof PartageTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/album/$token': {
+      id: '/album/$token'
+      path: '/album/$token'
+      fullPath: '/album/$token'
+      preLoaderRoute: typeof AlbumTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/versions': {
@@ -1842,6 +1862,7 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AlbumTokenRoute: AlbumTokenRoute,
   PartageTokenRoute: PartageTokenRoute,
   ApiPublicApRemindersRoute: ApiPublicApRemindersRoute,
   ApiPublicBrevoWebhookRoute: ApiPublicBrevoWebhookRoute,

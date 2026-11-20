@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { listFreePhotos, type FreePhoto } from "@/lib/free-photos";
 import { deletePhoto, reorderPhotos, signedPhotoUrl, updatePhoto } from "@/lib/interventions";
+import { buildZip } from "@/lib/zip-store";
 import { PhotoViewer } from "@/components/clients/PhotoViewer";
 import {
   DashboardPhotoUploader,
@@ -50,6 +51,8 @@ type PhotoDb = {
 interface Album {
   id: string;
   name: string;
+  cover_photo_id?: string | null;
+  share_token?: string | null;
 }
 
 /** Vue affichée : toutes les photos, les photos à classer, ou un album. */
@@ -63,7 +66,7 @@ const BULK_NOTICE_THRESHOLD = 5;
 async function listAlbums(clientId: string): Promise<Album[]> {
   const { data, error } = await db()
     .from("client_photo_albums")
-    .select("id,name,created_at")
+    .select("id,name,created_at,cover_photo_id,share_token")
     .eq("client_id", clientId)
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
@@ -116,6 +119,8 @@ export function ClientPhotosPanel({
   const [dragId, setDragId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const [droppedFiles, setDroppedFiles] = useState<{ files: File[]; key: number } | null>(null);
+  const [zipping, setZipping] = useState(false);
 
   const photosKey = ["client-free-photos", clientId] as const;
   const albumsKey = ["client-photo-albums", clientId] as const;
@@ -201,6 +206,81 @@ export function ClientPhotosPanel({
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Suppression impossible."),
   });
+
+  const setCover = useMutation({
+    mutationFn: async ({ albumId, photoId }: { albumId: string; photoId: string | null }) => {
+      const { error } = await db()
+        .from("client_photo_albums")
+        .update({ cover_photo_id: photoId })
+        .eq("id", albumId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      setSelected(new Set());
+      toast.success("Photo de couverture mise à jour.");
+      refresh();
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Mise à jour impossible."),
+  });
+
+  const setShare = useMutation({
+    mutationFn: async ({ albumId, enable }: { albumId: string; enable: boolean }) => {
+      const token = enable ? crypto.randomUUID() : null;
+      const { error } = await db()
+        .from("client_photo_albums")
+        .update({ share_token: token })
+        .eq("id", albumId);
+      if (error) throw new Error(error.message);
+      return token;
+    },
+    onSuccess: async (token) => {
+      refresh();
+      if (token) {
+        const link = `${window.location.origin}/album/${token}`;
+        try {
+          await navigator.clipboard.writeText(link);
+          toast.success("Lien copié. Quiconque le possède peut voir cet album.");
+        } catch {
+          toast.success(`Lien créé : ${link}`);
+        }
+      } else {
+        toast.success("Lien de partage révoqué.");
+      }
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Partage impossible."),
+  });
+
+  const downloadAlbumZip = async (album: Album, list: FreePhoto[]) => {
+    if (list.length === 0) return;
+    setZipping(true);
+    try {
+      const entries = [];
+      for (const [index, photo] of list.entries()) {
+        const url = await signedPhotoUrl(photo.storage_path);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Photo indisponible");
+        const ext = photo.storage_path.split(".").pop()?.toLowerCase() ?? "jpg";
+        entries.push({
+          name: `${String(index + 1).padStart(3, "0")}.${ext}`,
+          data: new Uint8Array(await response.arrayBuffer()),
+        });
+      }
+      const blob = buildZip(entries);
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = `${album.name.replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "album"}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 1000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Téléchargement impossible.");
+    } finally {
+      setZipping(false);
+    }
+  };
 
   const movePhotos = useMutation({
     mutationFn: async ({ ids, albumId }: { ids: string[]; albumId: string | null }) => {
@@ -334,7 +414,28 @@ export function ClientPhotosPanel({
   const name = albumName.trim();
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        const files = Array.from(event.dataTransfer.files).filter((f) =>
+          f.type.startsWith("image/"),
+        );
+        if (files.length === 0) {
+          toast.error("Seules les images peuvent être déposées ici.");
+          return;
+        }
+        const albumId = view !== "all" && view !== "unclassified" ? view : "";
+        const key = uploadTarget.key + 1;
+        setUploadTarget({ albumId, key });
+        setDroppedFiles({ files, key });
+        setUploadOpen(true);
+      }}
+    >
       {viewer !== null && (
         <PhotoViewer
           photos={viewer.photos}
@@ -427,6 +528,7 @@ export function ClientPhotosPanel({
             interventions={interventions}
             onUploaded={handleUploaded}
             defaultAlbumId={uploadTarget.albumId || undefined}
+            initialFiles={droppedFiles?.key === uploadTarget.key ? droppedFiles.files : undefined}
           />
         </div>
       )}
@@ -495,13 +597,61 @@ export function ClientPhotosPanel({
               </Button>
             </form>
           ) : (
-            <h3 className="font-serif text-lg font-semibold">
-              {viewTitle}{" "}
-              <span className="text-sm font-normal text-muted-foreground">({visible.length})</span>
-            </h3>
+            <div className="flex min-w-0 items-center gap-3">
+              {currentAlbum?.cover_photo_id && (
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md border">
+                  <PhotoThumb
+                    path={
+                      allPhotos.find((p) => p.id === currentAlbum.cover_photo_id)?.storage_path ??
+                      ""
+                    }
+                  />
+                </div>
+              )}
+              <h3 className="font-serif text-lg font-semibold">
+                {viewTitle}{" "}
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({visible.length})
+                </span>
+              </h3>
+            </div>
           )}
           {currentAlbum && (
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={visible.length === 0 || zipping}
+                onClick={() => void downloadAlbumZip(currentAlbum, visible)}
+              >
+                {zipping ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                Télécharger (ZIP)
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={setShare.isPending}
+                onClick={() =>
+                  currentAlbum.share_token
+                    ? void navigator.clipboard
+                        .writeText(`${window.location.origin}/album/${currentAlbum.share_token}`)
+                        .then(() => toast.success("Lien copié."))
+                        .catch(() => toast.error("Copie impossible."))
+                    : setShare.mutate({ albumId: currentAlbum.id, enable: true })
+                }
+              >
+                Partager
+              </Button>
+              {currentAlbum.share_token && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={setShare.isPending}
+                  onClick={() => setShare.mutate({ albumId: currentAlbum.id, enable: false })}
+                >
+                  Arrêter le partage
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -553,6 +703,18 @@ export function ClientPhotosPanel({
                 </option>
               ))}
             </select>
+            {currentAlbum && selected.size === 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={setCover.isPending}
+                onClick={() =>
+                  setCover.mutate({ albumId: currentAlbum.id, photoId: selectedIds[0] })
+                }
+              >
+                Définir comme couverture
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
