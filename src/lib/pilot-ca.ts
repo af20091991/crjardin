@@ -36,7 +36,8 @@ export type MatchStatusValue =
   | "rattachee"
   | "creee"
   | "non_identifie"
-  | "non_applicable";
+  | "non_applicable"
+  | "sans_fiche";
 
 export type SaleStatusValue = "planifie" | "realise" | "regle" | "particulier";
 
@@ -65,6 +66,8 @@ export interface CaEntry {
    */
   net_amount_ht?: number | null;
   match_status?: MatchStatusValue | null;
+  /** Mission SST rattachée à la ligne de charge (rapprochement SST). */
+  subcontractor_mission_id?: string | null;
   sale_status?: SaleStatusValue;
   /** Classification de charge utilisée par la page Chiffre d'affaires. */
   charge_category?: string | null;
@@ -92,6 +95,8 @@ export type CaEntryInput = {
   charge_category?: string | null;
   charge_class?: "fixe" | "variable" | "a_classer" | null;
   is_investment?: boolean | null;
+  match_status?: MatchStatusValue | null;
+  subcontractor_mission_id?: string | null;
 };
 
 /**
