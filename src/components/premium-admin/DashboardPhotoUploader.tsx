@@ -53,12 +53,15 @@ export function DashboardPhotoUploader({
   interventions,
   onUploaded,
   defaultAlbumId,
+  initialFiles,
 }: {
   clientId: string;
   interventions: UploadableIntervention[];
   onUploaded: (count: number) => void;
   /** Album dans lequel importer directement (photos libres). */
   defaultAlbumId?: string;
+  /** Fichiers déposés sur la zone photo : envoyés dès l'ouverture du formulaire. */
+  initialFiles?: File[];
 }) {
   const [interventionId, setInterventionId] = useState<string>(
     defaultAlbumId ? FREE_VALUE : (interventions[0]?.id ?? FREE_VALUE),
@@ -111,7 +114,13 @@ export function DashboardPhotoUploader({
     }
   };
 
-  const upload = async (files: FileList | null) => {
+  useEffect(() => {
+    if (initialFiles && initialFiles.length > 0) void upload(initialFiles);
+    // Exécuté une seule fois, au montage du formulaire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const upload = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0 || !interventionId) return;
     const list = Array.from(files);
     setBusy(true);
