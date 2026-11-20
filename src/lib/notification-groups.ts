@@ -53,6 +53,7 @@ export function notificationTarget(
   if (n.type === "app_update") return "/personnalisation";
   if (n.type === "system_alert") return "/pilot/site-web";
   if (n.intervention_id) return `/interventions/${n.intervention_id}`;
+  if (n.type === "sst_rapprochement") return "/sst";
   if (n.type.startsWith("sst")) return "/pilot/calendrier";
   if (role === "prestataire") return null;
   if (!n.client_id) return n.type === "question" ? "/admin" : null;
