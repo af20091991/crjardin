@@ -298,6 +298,13 @@ function ClientDetail() {
           </CardContent>
         </Card>
 
+        {!premiumActive && (
+          <p className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
+            <Crown className="h-4 w-4 text-primary/70" />
+            Espace Premium Jardin Signature: inactif
+          </p>
+        )}
+
         <ClientCompletenessCard
           client={client}
           scope="fiche"
@@ -311,42 +318,44 @@ function ClientDetail() {
           onPremium={() => setGroup("premium")}
         />
 
-        <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm" className="flex-1">
-            <Link to="/clients/dashboard/$clientId" params={{ clientId }}>
-              <LayoutDashboard className="mr-1.5 h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
-          <Button
-            variant={group === "gestion" ? "default" : "outline"}
-            size="sm"
-            className="flex-1"
-            onClick={() => setGroup("gestion")}
+        <nav
+          aria-label="Espaces de la fiche"
+          className="grid grid-cols-4 gap-1 rounded-xl bg-muted/60 p-1"
+        >
+          <Link
+            to="/clients/dashboard/$clientId"
+            params={{ clientId }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
           >
-            <Leaf className="mr-1.5 h-4 w-4" />
-            Gestion
-          </Button>
-          <Button
-            variant={group === "premium" ? "default" : "outline"}
-            size="sm"
-            className={`flex-1 ${premiumActive ? "" : "opacity-50"}`}
-            title={premiumActive ? undefined : "Espace Premium non actif"}
-            onClick={() => setGroup("premium")}
-          >
-            <Crown className="mr-1.5 h-4 w-4" />
-            Premium
-          </Button>
-          <Button
-            variant={group === "pilotage" ? "default" : "outline"}
-            size="sm"
-            className="flex-1"
-            onClick={() => setGroup("pilotage")}
-          >
-            <Compass className="mr-1.5 h-4 w-4" />
-            Pilotage 360°
-          </Button>
-        </div>
+            <LayoutDashboard className="h-4 w-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </Link>
+          {[
+            { id: "gestion" as const, label: "Gestion", icon: Leaf },
+            { id: "premium" as const, label: "Premium", icon: Crown },
+            { id: "pilotage" as const, label: "Pilotage 360°", icon: Compass },
+          ].map((item) => {
+            const active = group === item.id;
+            const dim = item.id === "premium" && !premiumActive;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={active}
+                title={dim ? "Espace Premium non actif" : undefined}
+                onClick={() => setGroup(item.id)}
+                className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm transition-colors ${
+                  active
+                    ? "bg-background font-medium text-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                } ${dim ? "opacity-50" : ""}`}
+              >
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
 
         {group === "gestion" && (
           <Tabs value={gestionTab} onValueChange={setGestionTab}>

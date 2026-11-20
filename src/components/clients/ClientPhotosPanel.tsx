@@ -1,12 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FolderPlus, Loader2, Play, Upload } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  FolderPlus,
+  Loader2,
+  Pencil,
+  Play,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { listFreePhotos, type FreePhoto } from "@/lib/free-photos";
-import { signedPhotoUrl } from "@/lib/interventions";
+import { deletePhoto, reorderPhotos, signedPhotoUrl } from "@/lib/interventions";
 import { PhotoViewer } from "@/components/clients/PhotoViewer";
 import {
   DashboardPhotoUploader,
@@ -31,6 +41,9 @@ type PhotoDb = {
     update: (row: Record<string, unknown>) => {
       eq: (column: string, value: string) => Promise<{ error: { message: string } | null }>;
     };
+    delete: () => {
+      eq: (column: string, value: string) => Promise<{ error: { message: string } | null }>;
+    };
   };
 };
 
@@ -38,6 +51,9 @@ interface Album {
   id: string;
   name: string;
 }
+
+/** Vue affichée : toutes les photos, les photos à classer, ou un album. */
+type View = "all" | "unclassified" | string;
 
 const db = () => supabase as unknown as PhotoDb;
 
@@ -49,7 +65,7 @@ async function listAlbums(clientId: string): Promise<Album[]> {
     .from("client_photo_albums")
     .select("id,name,created_at")
     .eq("client_id", clientId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as Album[];
 }
@@ -68,14 +84,15 @@ function PhotoThumb({ path }: { path: string }) {
     };
   }, [path]);
   return url ? (
-    <img src={url} alt="" loading="lazy" className="h-24 w-full rounded-md object-cover" />
+    <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
   ) : (
-    <div className="h-24 w-full animate-pulse rounded-md bg-muted" />
+    <div className="h-full w-full animate-pulse bg-muted" />
   );
 }
 
 /**
- * Albums et photos libres d'un client, accessibles à tout client (Premium ou non).
+ * Albums photo d'un client : grille carrée, sélection multiple, glisser-déposer vers un album,
+ * réordonnancement par glisser-déposer dans un album, renommage, suppression, diaporama.
  * Les photos des comptes-rendus restent dans leurs interventions : elles ne sont jamais listées ici.
  */
 export function ClientPhotosPanel({
@@ -86,13 +103,18 @@ export function ClientPhotosPanel({
   interventions: UploadableIntervention[];
 }) {
   const qc = useQueryClient();
+  const [view, setView] = useState<View>("all");
   const [albumName, setAlbumName] = useState("");
   const [viewer, setViewer] = useState<{ photos: FreePhoto[]; index: number } | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadTarget, setUploadTarget] = useState<{ albumId: string; key: number }>({
     albumId: "",
     key: 0,
   });
   const [notifyCount, setNotifyCount] = useState<number | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
 
   const photosKey = ["client-free-photos", clientId] as const;
   const albumsKey = ["client-photo-albums", clientId] as const;
@@ -110,6 +132,29 @@ export function ClientPhotosPanel({
     void qc.invalidateQueries({ queryKey: albumsKey });
   };
 
+  const allPhotos = useMemo<FreePhoto[]>(
+    () => [...(photos.data ?? [])].sort((a, b) => a.position - b.position),
+    [photos.data],
+  );
+  const allAlbums = useMemo<Album[]>(() => albums.data ?? [], [albums.data]);
+  const unclassifiedCount = allPhotos.filter((p) => !p.album_id).length;
+
+  // Si la vue courante (album) disparaît, on revient à « Toutes les photos ».
+  useEffect(() => {
+    if (view !== "all" && view !== "unclassified" && !allAlbums.some((a) => a.id === view)) {
+      setView("all");
+    }
+  }, [view, allAlbums]);
+
+  const visible = useMemo(() => {
+    if (view === "all") return allPhotos;
+    if (view === "unclassified") return allPhotos.filter((p) => !p.album_id);
+    return allPhotos.filter((p) => p.album_id === view);
+  }, [allPhotos, view]);
+
+  const currentAlbum = allAlbums.find((a) => a.id === view) ?? null;
+  const selectedIds = [...selected];
+
   const createAlbum = useMutation({
     mutationFn: async (name: string) => {
       const { data: auth } = await supabase.auth.getUser();
@@ -126,6 +171,68 @@ export function ClientPhotosPanel({
     },
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Création impossible."),
+  });
+
+  const renameAlbum = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await db().from("client_photo_albums").update({ name }).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      setRenaming(null);
+      refresh();
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Renommage impossible."),
+  });
+
+  const deleteAlbum = useMutation({
+    mutationFn: async (id: string) => {
+      // Les photos repassent dans « À classer » (la clé étrangère passe aussi à null).
+      const { error } = await db().from("client_photo_albums").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      setView("all");
+      toast.success("Album supprimé. Ses photos sont dans « À classer ».");
+      refresh();
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Suppression impossible."),
+  });
+
+  const movePhotos = useMutation({
+    mutationFn: async ({ ids, albumId }: { ids: string[]; albumId: string | null }) => {
+      for (const id of ids) {
+        const { error } = await db()
+          .from("intervention_photos")
+          .update({ album_id: albumId })
+          .eq("id", id);
+        if (error) throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      setSelected(new Set());
+      refresh();
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Déplacement impossible."),
+  });
+
+  const removePhotos = useMutation({
+    mutationFn: async (ids: string[]) => {
+      for (const id of ids) {
+        const photo = allPhotos.find((p) => p.id === id);
+        if (photo) await deletePhoto(photo.id, photo.storage_path);
+      }
+    },
+    onSuccess: () => {
+      setSelected(new Set());
+      toast.success("Photos supprimées.");
+      refresh();
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Suppression impossible."),
   });
 
   const notifyClient = useMutation({
@@ -154,60 +261,79 @@ export function ClientPhotosPanel({
     if (count >= BULK_NOTICE_THRESHOLD) setNotifyCount(count);
   };
 
-  const movePhoto = useMutation({
-    mutationFn: async ({ photoId, albumId }: { photoId: string; albumId: string | null }) => {
-      const { error } = await db()
-        .from("intervention_photos")
-        .update({ album_id: albumId })
-        .eq("id", photoId);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => refresh(),
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Déplacement impossible."),
-  });
+  /** Déplace la photo glissée (ou toute la sélection si elle en fait partie) dans un album. */
+  const dropOnAlbum = (albumId: string | null) => {
+    if (!dragId) return;
+    const ids = selected.has(dragId) ? selectedIds : [dragId];
+    setDragId(null);
+    movePhotos.mutate({ ids, albumId });
+  };
 
-  const allPhotos: FreePhoto[] = photos.data ?? [];
-  const allAlbums: Album[] = albums.data ?? [];
-  const unclassified = allPhotos.filter((p) => !p.album_id);
+  /** Réordonne dans un album : la photo glissée prend la place de la cible. */
+  const dropOnPhoto = (targetId: string) => {
+    if (!dragId || dragId === targetId || view === "all" || view === "unclassified") return;
+    const ids = visible.map((p) => p.id);
+    const from = ids.indexOf(dragId);
+    const to = ids.indexOf(targetId);
+    setDragId(null);
+    if (from < 0 || to < 0) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    reorderPhotos(ids)
+      .then(() => refresh())
+      .catch(() => toast.error("Réordonnancement impossible."));
+  };
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const openViewer = (photo: FreePhoto) =>
+    setViewer({ photos: visible, index: visible.findIndex((p) => p.id === photo.id) });
+
+  const viewTitle =
+    view === "all"
+      ? "Toutes les photos"
+      : view === "unclassified"
+        ? "À classer"
+        : (currentAlbum?.name ?? "Album");
+
+  const chip = (id: View, label: string, count: number, extra?: React.ReactNode) => {
+    const active = view === id;
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={() => setView(id)}
+        onDragOver={(event) => {
+          if (dragId && id !== "unclassified") event.preventDefault();
+          if (dragId && id === "unclassified") event.preventDefault();
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          if (id === "all") return;
+          dropOnAlbum(id === "unclassified" ? null : id);
+        }}
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+          active
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-border bg-card hover:border-primary/50"
+        } ${dragId && id !== "all" ? "ring-2 ring-primary/30" : ""}`}
+      >
+        {label}
+        <span className={active ? "opacity-80" : "text-muted-foreground"}>{count}</span>
+        {extra}
+      </button>
+    );
+  };
+
   const name = albumName.trim();
 
-  const renderPhoto = (photo: FreePhoto) => (
-    <li key={photo.id} className="space-y-1.5">
-      <button
-        type="button"
-        className="block w-full overflow-hidden rounded-md focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Agrandir la photo"
-        onClick={() =>
-          setViewer({
-            photos: allPhotos,
-            index: allPhotos.findIndex((p) => p.id === photo.id),
-          })
-        }
-      >
-        <PhotoThumb path={photo.storage_path} />
-      </button>
-      <select
-        aria-label="Classer la photo dans un album"
-        className="h-9 w-full rounded-md border bg-background px-2 text-xs"
-        value={photo.album_id ?? ""}
-        disabled={movePhoto.isPending}
-        onChange={(event) =>
-          movePhoto.mutate({ photoId: photo.id, albumId: event.target.value || null })
-        }
-      >
-        <option value="">Photos à classer</option>
-        {allAlbums.map((album) => (
-          <option key={album.id} value={album.id}>
-            {album.name}
-          </option>
-        ))}
-      </select>
-    </li>
-  );
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {viewer !== null && (
         <PhotoViewer
           photos={viewer.photos}
@@ -215,59 +341,105 @@ export function ClientPhotosPanel({
           onClose={() => setViewer(null)}
         />
       )}
-      <div id="photo-uploader" className="space-y-3">
-        <DashboardPhotoUploader
-          key={uploadTarget.key}
-          clientId={clientId}
-          interventions={interventions}
-          onUploaded={handleUploaded}
-          defaultAlbumId={uploadTarget.albumId || undefined}
-        />
-        {notifyCount !== null && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm">
-            <span>
-              {notifyCount} photos ajoutées. Prévenir le client par notification et e-mail ?
-            </span>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setNotifyCount(null)}>
-                Non
-              </Button>
-              <Button
-                size="sm"
-                disabled={notifyClient.isPending}
-                onClick={() => notifyClient.mutate(notifyCount)}
-              >
-                Prévenir le client
-              </Button>
-            </div>
-          </div>
-        )}
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (uploadOpen) {
+                setUploadOpen(false);
+                return;
+              }
+              const albumId = view !== "all" && view !== "unclassified" ? view : "";
+              setUploadTarget((t) => ({ albumId, key: t.key + 1 }));
+              setUploadOpen(true);
+            }}
+          >
+            <Upload className="mr-1.5 h-4 w-4" />
+            Importer des photos
+            <ChevronDown
+              className={`ml-1 h-4 w-4 transition-transform ${uploadOpen ? "rotate-180" : ""}`}
+            />
+          </Button>
+          {currentAlbum && visible.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => openViewer(visible[0])}>
+              <Play className="mr-1.5 h-4 w-4" />
+              Diaporama
+            </Button>
+          )}
+        </div>
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (name && !createAlbum.isPending) createAlbum.mutate(name);
+          }}
+        >
+          <Input
+            className="h-9 w-44"
+            maxLength={100}
+            value={albumName}
+            onChange={(event) => setAlbumName(event.target.value)}
+            placeholder="Nouvel album"
+            aria-label="Nom du nouvel album"
+          />
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            disabled={!name || createAlbum.isPending}
+          >
+            {createAlbum.isPending ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <FolderPlus className="mr-1.5 h-4 w-4" />
+            )}
+            Créer
+          </Button>
+        </form>
       </div>
 
-      <form
-        className="flex flex-wrap items-center gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (name && !createAlbum.isPending) createAlbum.mutate(name);
-        }}
-      >
-        <Input
-          className="min-w-40 flex-1"
-          maxLength={100}
-          value={albumName}
-          onChange={(event) => setAlbumName(event.target.value)}
-          placeholder="Nom du nouvel album"
-          aria-label="Nom du nouvel album"
-        />
-        <Button type="submit" variant="outline" size="sm" disabled={!name || createAlbum.isPending}>
-          {createAlbum.isPending ? (
-            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-          ) : (
-            <FolderPlus className="mr-1.5 h-4 w-4" />
-          )}
-          Créer l'album
-        </Button>
-      </form>
+      {uploadOpen && (
+        <div id="photo-uploader">
+          <DashboardPhotoUploader
+            key={uploadTarget.key}
+            clientId={clientId}
+            interventions={interventions}
+            onUploaded={handleUploaded}
+            defaultAlbumId={uploadTarget.albumId || undefined}
+          />
+        </div>
+      )}
+
+      {notifyCount !== null && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm">
+          <span>
+            {notifyCount} photos ajoutées. Prévenir le client par notification et e-mail ?
+          </span>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setNotifyCount(null)}>
+              Non
+            </Button>
+            <Button
+              size="sm"
+              disabled={notifyClient.isPending}
+              onClick={() => notifyClient.mutate(notifyCount)}
+            >
+              Prévenir le client
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        {chip("all", "Toutes", allPhotos.length)}
+        {chip("unclassified", "À classer", unclassifiedCount)}
+        {allAlbums.map((album) =>
+          chip(album.id, album.name, allPhotos.filter((p) => p.album_id === album.id).length),
+        )}
+      </div>
 
       {(photos.isLoading || albums.isLoading) && (
         <p className="text-sm text-muted-foreground">Chargement des photos…</p>
@@ -276,62 +448,197 @@ export function ClientPhotosPanel({
         <p className="text-sm text-destructive">Photos indisponibles pour le moment.</p>
       )}
 
-      {allAlbums.map((album) => {
-        const inAlbum = allPhotos.filter((p) => p.album_id === album.id);
-        return (
-          <section key={album.id} className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-serif text-lg font-semibold">
-                {album.name}{" "}
-                <span className="text-sm font-normal text-muted-foreground">
-                  ({inAlbum.length})
-                </span>
-              </h3>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={inAlbum.length === 0}
-                  onClick={() => setViewer({ photos: inAlbum, index: 0 })}
-                >
-                  <Play className="mr-1.5 h-4 w-4" />
-                  Diaporama
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setUploadTarget((t) => ({ albumId: album.id, key: t.key + 1 }));
-                    document
-                      .getElementById("photo-uploader")
-                      ?.scrollIntoView({ behavior: "smooth", block: "center" });
-                  }}
-                >
-                  <Upload className="mr-1.5 h-4 w-4" />
-                  Ajouter des photos
-                </Button>
-              </div>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {currentAlbum && renaming?.id === currentAlbum.id ? (
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const value = renaming.value.trim();
+                if (value) renameAlbum.mutate({ id: currentAlbum.id, name: value });
+              }}
+            >
+              <Input
+                className="h-9 w-56"
+                maxLength={100}
+                autoFocus
+                value={renaming.value}
+                onChange={(event) =>
+                  setRenaming({ id: currentAlbum.id, value: event.target.value })
+                }
+                aria-label="Nouveau nom de l'album"
+              />
+              <Button type="submit" size="sm" disabled={renameAlbum.isPending}>
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setRenaming(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </form>
+          ) : (
+            <h3 className="font-serif text-lg font-semibold">
+              {viewTitle}{" "}
+              <span className="text-sm font-normal text-muted-foreground">({visible.length})</span>
+            </h3>
+          )}
+          {currentAlbum && (
+            <div className="flex gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setRenaming({ id: currentAlbum.id, value: currentAlbum.name })}
+              >
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                Renommer
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={deleteAlbum.isPending}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Supprimer l'album « ${currentAlbum.name} » ? Les photos restent et passent dans « À classer ».`,
+                    )
+                  )
+                    deleteAlbum.mutate(currentAlbum.id);
+                }}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Supprimer
+              </Button>
             </div>
-            {inAlbum.length > 0 ? (
-              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">{inAlbum.map(renderPhoto)}</ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Aucune photo dans cet album.</p>
-            )}
-          </section>
-        );
-      })}
+          )}
+        </div>
 
-      {unclassified.length > 0 && (
-        <section className="space-y-2">
-          <h3 className="font-serif text-lg font-semibold">
-            Photos à classer{" "}
-            <span className="text-sm font-normal text-muted-foreground">
-              ({unclassified.length})
-            </span>
-          </h3>
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">{unclassified.map(renderPhoto)}</ul>
-        </section>
-      )}
+        {selected.size > 0 && (
+          <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5 shadow-sm">
+            <span className="px-1 text-sm font-medium">{selected.size} sélectionnée(s)</span>
+            <select
+              aria-label="Déplacer la sélection vers un album"
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+              value=""
+              disabled={movePhotos.isPending}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "__none__") movePhotos.mutate({ ids: selectedIds, albumId: null });
+                else if (value) movePhotos.mutate({ ids: selectedIds, albumId: value });
+              }}
+            >
+              <option value="">Déplacer vers…</option>
+              <option value="__none__">À classer</option>
+              {allAlbums.map((album) => (
+                <option key={album.id} value={album.id}>
+                  {album.name}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              disabled={removePhotos.isPending}
+              onClick={() => {
+                if (window.confirm(`Supprimer définitivement ${selected.size} photo(s) ?`))
+                  removePhotos.mutate(selectedIds);
+              }}
+            >
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              Supprimer
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+              Annuler
+            </Button>
+          </div>
+        )}
+
+        {visible.length === 0 && !photos.isLoading ? (
+          <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+            {view === "unclassified"
+              ? "Aucune photo à classer."
+              : currentAlbum
+                ? "Cet album est vide. Glissez des photos ici ou utilisez « Importer des photos »."
+                : "Aucune photo pour ce client."}
+          </p>
+        ) : (
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+            {visible.map((photo) => {
+              const isSelected = selected.has(photo.id);
+              return (
+                <li
+                  key={photo.id}
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData("text/plain", photo.id);
+                    event.dataTransfer.effectAllowed = "move";
+                    setDragId(photo.id);
+                  }}
+                  onDragEnd={() => setDragId(null)}
+                  onDragOver={(event) => {
+                    if (dragId && dragId !== photo.id) event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    dropOnPhoto(photo.id);
+                  }}
+                  className={`group relative overflow-hidden rounded-lg border bg-card ${
+                    isSelected ? "ring-2 ring-primary" : ""
+                  } ${dragId === photo.id ? "opacity-50" : ""}`}
+                >
+                  <button
+                    type="button"
+                    aria-label="Agrandir la photo"
+                    className="block aspect-square w-full overflow-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => openViewer(photo)}
+                  >
+                    <PhotoThumb path={photo.storage_path} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={isSelected ? "Désélectionner" : "Sélectionner"}
+                    aria-pressed={isSelected}
+                    onClick={() => toggleSelect(photo.id)}
+                    className={`absolute left-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full border bg-background/90 transition-opacity ${
+                      isSelected
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                    }`}
+                  >
+                    {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </button>
+                  <select
+                    aria-label="Classer la photo dans un album"
+                    className="absolute inset-x-1 bottom-1 h-7 rounded-md border bg-background/95 px-1 text-[11px] opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                    value={photo.album_id ?? ""}
+                    disabled={movePhotos.isPending}
+                    onChange={(event) =>
+                      movePhotos.mutate({
+                        ids: [photo.id],
+                        albumId: event.target.value || null,
+                      })
+                    }
+                  >
+                    <option value="">À classer</option>
+                    {allAlbums.map((album) => (
+                      <option key={album.id} value={album.id}>
+                        {album.name}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {visible.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Glissez une photo sur un album pour la classer, ou sur une autre photo d'un album pour
+            la réordonner. Cliquez sur le rond pour sélectionner plusieurs photos.
+          </p>
+        )}
+      </section>
     </div>
   );
 }
