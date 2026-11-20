@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useParams, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Compass, Crown, Images, Leaf } from "lucide-react";
+import { ArrowLeft, Compass, Crown, Images, Leaf, MessageSquare } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ClientPhotosPanel } from "@/components/clients/ClientPhotosPanel";
 import { ClientGestionTabs } from "@/components/clients/ClientGestionTabs";
+import { ClientMessagesPanel } from "@/components/clients/ClientMessagesPanel";
 import { ClientPremiumTab } from "@/components/ClientPremiumTab";
 import { ClientPilotageTabs } from "@/components/pilot/ClientPilotageTabs";
 import { Card } from "@/components/ui/card";
@@ -15,7 +16,7 @@ import { listHealthByClient, listRecommendationsByClient } from "@/lib/garden";
 import { listInterventionsByClient } from "@/lib/interventions";
 import { useRole } from "@/hooks/use-role";
 
-type HubTab = "photos" | "premium" | "gestion" | "pilotage";
+type HubTab = "photos" | "premium" | "messages" | "gestion" | "pilotage";
 
 /**
  * Tableau de bord client : un seul écran, onglets sans rechargement.
@@ -50,8 +51,8 @@ export function ClientDashboard() {
   const premiumActive = !!premiumRow?.enabled;
 
   const available: HubTab[] = premiumActive
-    ? ["premium", "gestion", "pilotage"]
-    : ["photos", "gestion", "pilotage", "premium"];
+    ? ["premium", "messages", "gestion", "pilotage"]
+    : ["photos", "messages", "gestion", "pilotage", "premium"];
   const requested = search.tab as HubTab | undefined;
   const defaultTab: HubTab = premiumActive ? "premium" : "photos";
   const [tab, setTab] = useState<HubTab>(
@@ -63,12 +64,14 @@ export function ClientDashboard() {
     photos: "Photos et albums",
     premium: premiumActive ? "Premium" : "Activer l'espace Premium",
     gestion: "Gestion",
+    messages: "Messages",
     pilotage: "Pilotage 360°",
   };
   const icons: Record<HubTab, typeof Images> = {
     photos: Images,
     premium: Crown,
     gestion: Leaf,
+    messages: MessageSquare,
     pilotage: Compass,
   };
 
@@ -126,6 +129,10 @@ export function ClientDashboard() {
               </Card>
             )}
             <ClientPremiumTab clientId={clientId} canEdit={canEdit} />
+          </TabsContent>
+
+          <TabsContent value="messages" className="mt-4">
+            <ClientMessagesPanel clientId={clientId} />
           </TabsContent>
 
           <TabsContent value="gestion" className="mt-4">

@@ -41,7 +41,7 @@ const MESSAGE_TYPES = ["question", "annotation", "demande", "message", "client"]
  * Chaque notification mène à l'écran où l'on peut agir sur son sujet :
  * - intervention -> compte-rendu ; SST -> calendrier ;
  * - préconisation -> onglet Préconisations du tableau de bord client ;
- * - message du client -> messagerie, sur la conversation du client ;
+ * - message du client (hors compte-rendu) -> onglet Messages du tableau de bord client ;
  * - demande d'inscription -> administration des comptes ;
  * - autre sujet client -> fiche client.
  * Source unique pour la cloche in-app ET la notification push (voir push-fcm.server.ts).
@@ -59,7 +59,7 @@ export function notificationTarget(
   if (/préconisation/i.test(n.title ?? "")) {
     return `/clients/dashboard/${n.client_id}?tab=gestion&sub=reco`;
   }
-  if (MESSAGE_TYPES.includes(n.type)) return `/emails?client=${n.client_id}`;
+  if (MESSAGE_TYPES.includes(n.type)) return `/clients/dashboard/${n.client_id}?tab=messages`;
   return `/clients/${n.client_id}`;
 }
 

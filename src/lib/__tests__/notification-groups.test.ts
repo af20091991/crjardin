@@ -70,13 +70,15 @@ describe("cible de chaque notification (cloche et push)", () => {
       "/clients/c1",
     );
   });
-  it("message du client -> messagerie sur sa conversation", () => {
-    expect(notificationTarget(n({ type: "question", client_id: "c1" }))).toBe("/emails?client=c1");
+  it("message du client -> onglet Messages du client", () => {
+    expect(notificationTarget(n({ type: "question", client_id: "c1" }))).toBe(
+      "/clients/dashboard/c1?tab=messages",
+    );
     expect(notificationTarget(n({ type: "annotation", client_id: "c1" }))).toBe(
-      "/emails?client=c1",
+      "/clients/dashboard/c1?tab=messages",
     );
     expect(notificationUrl({ type: "question", client_id: "c1", intervention_id: null })).toBe(
-      "/emails?client=c1",
+      "/clients/dashboard/c1?tab=messages",
     );
   });
   it("message lié à une intervention -> compte-rendu", () => {
