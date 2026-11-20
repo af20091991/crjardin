@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { LoadingState } from "@/components/pilot/LoadingState";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -42,6 +42,8 @@ function fmtDate(iso: string): string {
   });
 }
 
+const emailsRoute = getRouteApi("/_authenticated/emails");
+
 function EmailsPage() {
   const { isAdmin, isLoading } = useIsAdmin();
   const navigate = useNavigate();
@@ -71,6 +73,7 @@ type EmailTab = "reports" | "premium" | "inbox";
 
 /** Messagerie des comptes Premium : même contenu que l'onglet Messagerie de Comptes Premium. */
 function PremiumInbox() {
+  const { client: focusClientId } = emailsRoute.useSearch();
   const data = usePremiumAdminData(true);
   if (data.isLoading) {
     return <LoadingState label="Chargement de la messagerie Premium…" />;
@@ -84,7 +87,28 @@ function PremiumInbox() {
       </p>
     );
   }
-  return <InboxTab rows={data.rows} messages={data.messages} composeFor={null} />;
+  return (
+    <>
+      {focusClientId && !data.rows.some((row) => row.client.id === focusClientId) && (
+        <Card className="mb-4 p-4 text-sm">
+          Ce client n'a pas d'espace Premium : sa conversation n'apparaît pas dans la messagerie.{" "}
+          <Link
+            to="/clients/$clientId"
+            params={{ clientId: focusClientId }}
+            className="font-medium text-primary hover:underline"
+          >
+            Ouvrir la fiche client
+          </Link>
+        </Card>
+      )}
+      <InboxTab
+        rows={data.rows}
+        messages={data.messages}
+        composeFor={null}
+        focusClientId={focusClientId}
+      />
+    </>
+  );
 }
 
 function EmailManagement() {

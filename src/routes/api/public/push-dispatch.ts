@@ -47,7 +47,12 @@ export const Route = createFileRoute("/api/public/push-dispatch")({
           title: claimed.title as string,
           body: claimed.body as string | null,
           url: notificationUrl(
-            claimed as { type: string; client_id: string | null; intervention_id: string | null },
+            claimed as {
+              type: string;
+              client_id: string | null;
+              intervention_id: string | null;
+              title?: string | null;
+            },
           ),
         });
         if (invalid.length > 0) {
