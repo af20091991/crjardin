@@ -3,8 +3,15 @@ import { LoadingState } from "@/components/pilot/LoadingState";
 import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRole } from "@/hooks/use-role";
-import { listMissions, listSubcontractors } from "@/lib/subcontractors";
+import { listMissions, listSubcontractors, type SubcontractorMission } from "@/lib/subcontractors";
 import { linkChargesToMissions, shouldAutoClassifySst } from "@/lib/sst-charges";
+import {
+  NO_SHEET_STATUS,
+  RECONCILIATION_YEAR,
+  sstMissionCost,
+  sstReconciliation,
+} from "@/lib/sst-accounting-gap";
+import { SstReconciliationCard } from "@/components/pilot/SstReconciliationCard";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listCaEntries,
@@ -507,8 +514,55 @@ function CaPage() {
         (e) => e.kind === "charge" && (e.charge_category === "SST" || shouldAutoClassifySst(e)),
       )
       .map((e) => ({ id: e.id, year: e.year, month: e.month, amount: Number(e.amount_ht) || 0 }));
-    return linkChargesToMissions(sstCharges, sstMissionsQ.data ?? []);
+    const links = linkChargesToMissions(sstCharges, sstMissionsQ.data ?? []);
+    // Un rattachement manuel prime sur la correspondance automatique (mois + montant).
+    for (const e of entries) {
+      if (e.subcontractor_mission_id && links.has(e.id)) {
+        links.set(e.id, { missionId: e.subcontractor_mission_id, duplicate: false });
+      }
+    }
+    return links;
   }, [entries, sstMissionsQ.data]);
+  const sstRecon = useMemo(
+    () =>
+      year === RECONCILIATION_YEAR
+        ? sstReconciliation({
+            charges: entries,
+            missions: sstMissionsQ.data ?? [],
+            year: RECONCILIATION_YEAR,
+          })
+        : null,
+    [entries, sstMissionsQ.data, year],
+  );
+  const subcontractorName = (id: string) =>
+    (sstListQ.data ?? []).find((x) => x.id === id)?.name ?? "SST";
+  const missionClientName = (m: { client_id: string | null }) =>
+    clients.find((c) => c.id === m.client_id)?.name ?? "sans client";
+  const isoDateFr = (iso: string) => {
+    const [y, mo, d] = iso.slice(0, 10).split("-");
+    return `${d}/${mo}/${y}`;
+  };
+  const missionLabel = (m: SubcontractorMission) =>
+    `${isoDateFr(m.mission_date)} · ${subcontractorName(m.subcontractor_id)} · ${missionClientName(m)}`;
+  const attachCharge = (chargeId: string, missionId: string) =>
+    save(chargeId, { subcontractor_mission_id: missionId, match_status: "rattachee" });
+  const markNoSheet = (chargeId: string) => save(chargeId, { match_status: NO_SHEET_STATUS });
+  const addMissionCharge = (m: SubcontractorMission) => {
+    const [y, mo] = m.mission_date.slice(0, 10).split("-").map(Number);
+    createMut.mutate({
+      year: y,
+      month: mo,
+      kind: "charge",
+      designation: `SST ${subcontractorName(m.subcontractor_id)} · ${isoDateFr(m.mission_date)}`,
+      amount_ht: sstMissionCost(m),
+      is_fixed: false,
+      charge_category: "SST",
+      charge_class: "variable",
+      is_investment: false,
+      match_status: "rattachee",
+      subcontractor_mission_id: m.id,
+    });
+  };
   const sstMissionLabel = (missionId: string) => {
     const m = (sstMissionsQ.data ?? []).find((x) => x.id === missionId);
     if (!m) return "";
@@ -780,6 +834,20 @@ function CaPage() {
         className={`flex flex-col gap-4 ${CA_DENSITY_CLASS[density]}`}
       >
         <div data-testid="ca-ventes-column" className="min-w-0 space-y-4">
+          {sstRecon && (
+            <SstReconciliationCard
+              year={RECONCILIATION_YEAR}
+              reconciliation={sstRecon}
+              chargeLabel={(row) =>
+                `${MONTH_NAMES[row.month - 1]} · ${row.designation ?? "Charge SST"}`
+              }
+              missionLabel={missionLabel}
+              busy={updateMut.isPending || createMut.isPending}
+              onAttach={attachCharge}
+              onNoSheet={markNoSheet}
+              onAddCharge={addMissionCharge}
+            />
+          )}
           {/* Ventes — source de vérité unique, encart repliable */}
           <CaSection
             id="ventes"
@@ -1405,6 +1473,13 @@ function CaPage() {
                                         title="Cette charge correspond à une mission SST déjà saisie : elle n'est comptée qu'une fois dans le suivi SST."
                                       >
                                         ✓ Mission SST liée · {sstMissionLabel(sstLink.missionId)}
+                                      </p>
+                                    ) : sstLink && row.match_status === NO_SHEET_STATUS ? (
+                                      <p
+                                        className="text-xs text-muted-foreground"
+                                        title="Pas de fiche de mission : la ligne est saisie dans les charges et comptabilisée."
+                                      >
+                                        ✓ Sans fiche · comptabilisée
                                       </p>
                                     ) : sstLink?.duplicate ? (
                                       <p
