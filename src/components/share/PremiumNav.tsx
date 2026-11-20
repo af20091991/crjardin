@@ -77,6 +77,9 @@ export function PremiumNav({
             </button>
           );
         })}
+        <p className="ml-auto flex shrink-0 items-center whitespace-nowrap px-3 text-xs text-muted-foreground sm:px-4">
+          Interface Premium Jardin Signature: activée
+        </p>
       </nav>
     </div>
   );
