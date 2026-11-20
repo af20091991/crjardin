@@ -15,7 +15,9 @@ import { SstCreateMissionDialog } from "@/components/pilot/SstCreateMissionDialo
 import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS } from "@/lib/pilot-colors";
-import { Plus, ReceiptText } from "lucide-react";
+import { AlertTriangle, Plus, ReceiptText } from "lucide-react";
+import { findInvoicedMissionsToAccount, listAccountedMissionIds } from "@/lib/sst-accounting-gap";
+import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/pilot/EmptyState";
 
 const eur = (n: number) => formatEuro(n);
@@ -147,6 +149,7 @@ export function SstDashboard() {
           données prévisionnelles.
         </div>
       )}
+      <SstAccountingAlert />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -363,5 +366,61 @@ export function SstDashboard() {
         complet » sont incluses dans les agrégats mais signalées comme prévisionnelles.
       </p>
     </div>
+  );
+}
+
+/**
+ * Alerte : missions déjà facturées qui ne sont pas encore comptabilisées
+ * (aucune ligne comptable rattachée). Rien ne s'affiche quand tout est à jour.
+ */
+function SstAccountingAlert() {
+  const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
+  const sstQ = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
+  const clientsQ = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const accountedQ = useQuery({
+    queryKey: ["sst-accounted-ids"],
+    queryFn: listAccountedMissionIds,
+  });
+
+  if (!missionsQ.data || !accountedQ.data) return null;
+  const pending = findInvoicedMissionsToAccount(missionsQ.data, accountedQ.data);
+  if (pending.length === 0) return null;
+
+  const sstName = new Map((sstQ.data ?? []).map((s) => [s.id, s.name]));
+  const clientName = new Map((clientsQ.data ?? []).map((c) => [c.id, c.name]));
+  const total = pending.reduce((sum, m) => sum + m.invoiced_amount, 0);
+
+  return (
+    <Card className="border-amber-300 bg-amber-50/60 dark:bg-amber-950/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          {pending.length} mission{pending.length > 1 ? "s" : ""} facturée
+          {pending.length > 1 ? "s" : ""} à comptabiliser
+          <span className="font-normal text-muted-foreground">· {formatEuro(total)}</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <ul className="divide-y">
+          {pending.slice(0, 8).map((m) => (
+            <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+              <span className="min-w-0 truncate">
+                {new Date(`${m.mission_date.slice(0, 10)}T12:00:00`).toLocaleDateString("fr-FR")} ·{" "}
+                {sstName.get(m.subcontractor_id) ?? "Sous-traitant"}
+                {m.client_id ? ` · ${clientName.get(m.client_id) ?? "Client"}` : ""} ·{" "}
+                {m.prestation || m.service_requested}
+              </span>
+              <span className="shrink-0 tabular-nums">{formatEuro(m.invoiced_amount)}</span>
+            </li>
+          ))}
+        </ul>
+        {pending.length > 8 && (
+          <p className="text-xs text-muted-foreground">+ {pending.length - 8} autre(s)</p>
+        )}
+        <Button asChild variant="outline" size="sm">
+          <Link to="/pilot/ca">Ouvrir le suivi du CA pour les rattacher</Link>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
