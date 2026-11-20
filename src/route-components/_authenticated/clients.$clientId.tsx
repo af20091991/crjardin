@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ClientCompletenessCard } from "@/components/clients/ClientCompletenessCard";
-import { ClientPhotosPanel } from "@/components/clients/ClientPhotosPanel";
 import { recoResponseState, RECO_RESPONSE_TONE } from "@/lib/reco-response";
 import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -87,6 +86,7 @@ import {
   Sprout,
   Crown,
   FileDown,
+  LayoutDashboard,
 } from "lucide-react";
 import { exportClientFichePdf } from "@/lib/client-fiche-pdf";
 import { toast } from "sonner";
@@ -292,6 +292,14 @@ function ClientDetail() {
           </CardContent>
         </Card>
 
+        <div className="flex justify-end">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/clients/dashboard/$clientId" params={{ clientId }}>
+              <LayoutDashboard className="mr-1.5 h-4 w-4" />
+              Dashboard
+            </Link>
+          </Button>
+        </div>
         <ClientCompletenessCard
           client={client}
           scope="fiche"
@@ -347,7 +355,6 @@ function ClientDetail() {
                 <SelectItem value="health">Santé</SelectItem>
                 <SelectItem value="reco">Préconisations</SelectItem>
                 <SelectItem value="opps">Opportunités</SelectItem>
-                <SelectItem value="photos">Photos et albums</SelectItem>
               </SelectContent>
             </Select>
             <TabsContent value="interventions">
@@ -480,17 +487,6 @@ function ClientDetail() {
             </TabsContent>
             <TabsContent value="opps">
               <ClientOpportunitiesWidget clientId={clientId} />
-            </TabsContent>
-            <TabsContent value="photos">
-              <ClientPhotosPanel
-                clientId={clientId}
-                interventions={(interventions ?? []).map((iv) => ({
-                  id: iv.id,
-                  title: iv.title ?? null,
-                  intervention_type: iv.intervention_type ?? null,
-                  intervention_date: iv.intervention_date,
-                }))}
-              />
             </TabsContent>
           </Tabs>
         )}
