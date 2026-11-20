@@ -16,7 +16,7 @@ import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { AlertTriangle, Plus, ReceiptText } from "lucide-react";
-import { findInvoicedMissionsToAccount, listAccountedMissionIds } from "@/lib/sst-accounting-gap";
+import { findInvoicedMissionsWithoutClient } from "@/lib/sst-accounting-gap";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/pilot/EmptyState";
 
@@ -370,24 +370,18 @@ export function SstDashboard() {
 }
 
 /**
- * Alerte : missions déjà facturées qui ne sont pas encore comptabilisées
- * (aucune ligne comptable rattachée). Rien ne s'affiche quand tout est à jour.
+ * Alerte : missions SST facturées de l'exercice sans client rattaché.
+ * Rien ne s'affiche quand tout est rattaché.
  */
 function SstAccountingAlert() {
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const sstQ = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
-  const clientsQ = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const accountedQ = useQuery({
-    queryKey: ["sst-accounted-ids"],
-    queryFn: listAccountedMissionIds,
-  });
 
-  if (!missionsQ.data || !accountedQ.data) return null;
-  const pending = findInvoicedMissionsToAccount(missionsQ.data, accountedQ.data);
+  if (!missionsQ.data) return null;
+  const pending = findInvoicedMissionsWithoutClient(missionsQ.data);
   if (pending.length === 0) return null;
 
   const sstName = new Map((sstQ.data ?? []).map((s) => [s.id, s.name]));
-  const clientName = new Map((clientsQ.data ?? []).map((c) => [c.id, c.name]));
   const total = pending.reduce((sum, m) => sum + m.invoiced_amount, 0);
 
   return (
@@ -395,8 +389,7 @@ function SstAccountingAlert() {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
-          {pending.length} mission{pending.length > 1 ? "s" : ""} facturée
-          {pending.length > 1 ? "s" : ""} à comptabiliser
+          {pending.length} mission{pending.length > 1 ? "s" : ""} SST sans client rattaché
           <span className="font-normal text-muted-foreground">· {formatEuro(total)}</span>
         </CardTitle>
       </CardHeader>
@@ -406,8 +399,7 @@ function SstAccountingAlert() {
             <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
               <span className="min-w-0 truncate">
                 {new Date(`${m.mission_date.slice(0, 10)}T12:00:00`).toLocaleDateString("fr-FR")} ·{" "}
-                {sstName.get(m.subcontractor_id) ?? "Sous-traitant"}
-                {m.client_id ? ` · ${clientName.get(m.client_id) ?? "Client"}` : ""} ·{" "}
+                {sstName.get(m.subcontractor_id) ?? "Sous-traitant"} ·{" "}
                 {m.prestation || m.service_requested}
               </span>
               <span className="shrink-0 tabular-nums">{formatEuro(m.invoiced_amount)}</span>
@@ -418,7 +410,7 @@ function SstAccountingAlert() {
           <p className="text-xs text-muted-foreground">+ {pending.length - 8} autre(s)</p>
         )}
         <Button asChild variant="outline" size="sm">
-          <Link to="/pilot/sst-rapprochement">Rapprocher ces missions</Link>
+          <Link to="/pilot/sst-rapprochement">Rattacher les clients</Link>
         </Button>
       </CardContent>
     </Card>
