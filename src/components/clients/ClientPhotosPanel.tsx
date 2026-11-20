@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FolderPlus, Loader2 } from "lucide-react";
+import { FolderPlus, Loader2, Play, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,9 @@ interface Album {
 }
 
 const db = () => supabase as unknown as PhotoDb;
+
+/** Au-delà de ce nombre de photos ajoutées d'un coup, on propose de prévenir le client. */
+const BULK_NOTICE_THRESHOLD = 5;
 
 async function listAlbums(clientId: string): Promise<Album[]> {
   const { data, error } = await db()
@@ -84,7 +87,12 @@ export function ClientPhotosPanel({
 }) {
   const qc = useQueryClient();
   const [albumName, setAlbumName] = useState("");
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [viewer, setViewer] = useState<{ photos: FreePhoto[]; index: number } | null>(null);
+  const [uploadTarget, setUploadTarget] = useState<{ albumId: string; key: number }>({
+    albumId: "",
+    key: 0,
+  });
+  const [notifyCount, setNotifyCount] = useState<number | null>(null);
 
   const photosKey = ["client-free-photos", clientId] as const;
   const albumsKey = ["client-photo-albums", clientId] as const;
@@ -120,6 +128,32 @@ export function ClientPhotosPanel({
       toast.error(error instanceof Error ? error.message : "Création impossible."),
   });
 
+  const notifyClient = useMutation({
+    mutationFn: async (count: number) => {
+      const rpc = supabase as unknown as {
+        rpc: (
+          fn: "request_client_photo_notice",
+          args: { p_client: string; p_count: number },
+        ) => Promise<{ error: { message: string } | null }>;
+      };
+      const { error } = await rpc.rpc("request_client_photo_notice", {
+        p_client: clientId,
+        p_count: count,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      setNotifyCount(null);
+      toast.success("Demande envoyée : le client sera prévenu après validation.");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Demande impossible."),
+  });
+
+  const handleUploaded = (count: number) => {
+    refresh();
+    if (count >= BULK_NOTICE_THRESHOLD) setNotifyCount(count);
+  };
+
   const movePhoto = useMutation({
     mutationFn: async ({ photoId, albumId }: { photoId: string; albumId: string | null }) => {
       const { error } = await db()
@@ -144,7 +178,12 @@ export function ClientPhotosPanel({
         type="button"
         className="block w-full overflow-hidden rounded-md focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="Agrandir la photo"
-        onClick={() => setViewerIndex(allPhotos.findIndex((p) => p.id === photo.id))}
+        onClick={() =>
+          setViewer({
+            photos: allPhotos,
+            index: allPhotos.findIndex((p) => p.id === photo.id),
+          })
+        }
       >
         <PhotoThumb path={photo.storage_path} />
       </button>
@@ -169,18 +208,41 @@ export function ClientPhotosPanel({
 
   return (
     <div className="space-y-5">
-      {viewerIndex !== null && (
+      {viewer !== null && (
         <PhotoViewer
-          photos={allPhotos}
-          startIndex={viewerIndex}
-          onClose={() => setViewerIndex(null)}
+          photos={viewer.photos}
+          startIndex={viewer.index}
+          onClose={() => setViewer(null)}
         />
       )}
-      <DashboardPhotoUploader
-        clientId={clientId}
-        interventions={interventions}
-        onUploaded={refresh}
-      />
+      <div id="photo-uploader" className="space-y-3">
+        <DashboardPhotoUploader
+          key={uploadTarget.key}
+          clientId={clientId}
+          interventions={interventions}
+          onUploaded={handleUploaded}
+          defaultAlbumId={uploadTarget.albumId || undefined}
+        />
+        {notifyCount !== null && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm">
+            <span>
+              {notifyCount} photos ajoutées. Prévenir le client par notification et e-mail ?
+            </span>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setNotifyCount(null)}>
+                Non
+              </Button>
+              <Button
+                size="sm"
+                disabled={notifyClient.isPending}
+                onClick={() => notifyClient.mutate(notifyCount)}
+              >
+                Prévenir le client
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <form
         className="flex flex-wrap items-center gap-2"
@@ -218,10 +280,38 @@ export function ClientPhotosPanel({
         const inAlbum = allPhotos.filter((p) => p.album_id === album.id);
         return (
           <section key={album.id} className="space-y-2">
-            <h3 className="font-serif text-lg font-semibold">
-              {album.name}{" "}
-              <span className="text-sm font-normal text-muted-foreground">({inAlbum.length})</span>
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-serif text-lg font-semibold">
+                {album.name}{" "}
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({inAlbum.length})
+                </span>
+              </h3>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={inAlbum.length === 0}
+                  onClick={() => setViewer({ photos: inAlbum, index: 0 })}
+                >
+                  <Play className="mr-1.5 h-4 w-4" />
+                  Diaporama
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUploadTarget((t) => ({ albumId: album.id, key: t.key + 1 }));
+                    document
+                      .getElementById("photo-uploader")
+                      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }}
+                >
+                  <Upload className="mr-1.5 h-4 w-4" />
+                  Ajouter des photos
+                </Button>
+              </div>
+            </div>
             {inAlbum.length > 0 ? (
               <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">{inAlbum.map(renderPhoto)}</ul>
             ) : (
