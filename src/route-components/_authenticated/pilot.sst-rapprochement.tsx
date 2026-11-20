@@ -15,6 +15,7 @@ import { formatEuro } from "@/lib/format-utils";
 import { listMissions, listSubcontractors, type SubcontractorMission } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
 import {
+  RECONCILIATION_YEAR,
   findInvoicedMissionsToAccount,
   listAccountedMissionIds,
   type InvoicedMissionToAccount,
@@ -38,6 +39,7 @@ async function listPendingCharges(): Promise<ChargeLine[]> {
       "id, year, month, net_amount_ht, amount_ht, designation, raw_client_text, raw_category, note, match_status, subcontractor_mission_id",
     )
     .eq("kind", "charge")
+    .eq("year", RECONCILIATION_YEAR)
     .is("subcontractor_mission_id", null)
     .in("match_status", PENDING_CHARGE_STATUSES)
     .order("year", { ascending: false })
