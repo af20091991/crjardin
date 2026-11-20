@@ -108,6 +108,7 @@ export function notificationUrl(n: {
   type: string;
   client_id: string | null;
   intervention_id: string | null;
+  title?: string | null;
 }): string {
   return notificationTarget({ ...n, intervention_id: n.intervention_id ?? null }, "admin") ?? "/";
 }

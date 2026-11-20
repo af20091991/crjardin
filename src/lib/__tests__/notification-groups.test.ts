@@ -70,4 +70,34 @@ describe("cible de chaque notification (cloche et push)", () => {
       "/clients/c1",
     );
   });
+  it("message du client -> messagerie sur sa conversation", () => {
+    expect(notificationTarget(n({ type: "question", client_id: "c1" }))).toBe("/emails?client=c1");
+    expect(notificationTarget(n({ type: "annotation", client_id: "c1" }))).toBe(
+      "/emails?client=c1",
+    );
+    expect(notificationUrl({ type: "question", client_id: "c1", intervention_id: null })).toBe(
+      "/emails?client=c1",
+    );
+  });
+  it("message lié à une intervention -> compte-rendu", () => {
+    expect(
+      notificationTarget(n({ type: "question", client_id: "c1", intervention_id: "i1" })),
+    ).toBe("/interventions/i1");
+  });
+  it("intérêt pour une préconisation -> onglet Préconisations du tableau de bord", () => {
+    expect(
+      notificationTarget(
+        n({
+          type: "question",
+          client_id: "c1",
+          title: "Client X est intéressé(e) par une préconisation",
+        }),
+      ),
+    ).toBe("/clients/dashboard/c1?tab=gestion&sub=reco");
+  });
+  it("demande d'inscription -> administration des comptes", () => {
+    expect(
+      notificationTarget(n({ type: "question", title: "Nouvelle inscription à valider" })),
+    ).toBe("/admin");
+  });
 });

@@ -33,6 +33,9 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/emails")({
+  validateSearch: (search: Record<string, unknown>): { client?: string } => ({
+    client: typeof search.client === "string" ? search.client : undefined,
+  }),
   head: () => ({
     meta: [{ title: "Gestion et suivi des e-mails clients — De la graine au jardin" }],
   }),

@@ -181,7 +181,15 @@ export function NotificationBell() {
                       onClick={() => {
                         if (!n.is_read) readOne.mutate(n.id);
                         const target = notificationTarget(n, role);
-                        if (target) void navigate({ to: target as never });
+                        if (target) {
+                          const [path, query] = target.split("?");
+                          void navigate({
+                            to: path as never,
+                            search: query
+                              ? (Object.fromEntries(new URLSearchParams(query)) as never)
+                              : undefined,
+                          });
+                        }
                       }}
                       className={`flex w-full items-start gap-2.5 border-b px-3 py-3 text-left transition-colors hover:bg-accent/40 ${
                         n.is_read ? "opacity-60" : "bg-primary/5"
