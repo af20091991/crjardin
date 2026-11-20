@@ -846,6 +846,8 @@ export type Database = {
           commercial_note: string | null;
           cover_photo_id: string | null;
           cover_document_id: string | null;
+          cover_set_at: string | null;
+          cover_set_by: string | null;
           created_at: string;
           deactivated_at: string | null;
           enabled: boolean;
@@ -862,6 +864,8 @@ export type Database = {
           commercial_note?: string | null;
           cover_photo_id?: string | null;
           cover_document_id?: string | null;
+          cover_set_at?: string | null;
+          cover_set_by?: string | null;
           created_at?: string;
           deactivated_at?: string | null;
           enabled?: boolean;
@@ -878,6 +882,8 @@ export type Database = {
           commercial_note?: string | null;
           cover_photo_id?: string | null;
           cover_document_id?: string | null;
+          cover_set_at?: string | null;
+          cover_set_by?: string | null;
           created_at?: string;
           deactivated_at?: string | null;
           enabled?: boolean;
@@ -922,6 +928,7 @@ export type Database = {
       client_premium_documents: {
         Row: {
           client_id: string;
+          cover_only: boolean;
           created_at: string;
           filename: string;
           id: string;
@@ -935,6 +942,7 @@ export type Database = {
         };
         Insert: {
           client_id: string;
+          cover_only?: boolean;
           created_at?: string;
           filename: string;
           id?: string;
@@ -948,6 +956,7 @@ export type Database = {
         };
         Update: {
           client_id?: string;
+          cover_only?: boolean;
           created_at?: string;
           filename?: string;
           id?: string;
