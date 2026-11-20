@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { listFreePhotos, type FreePhoto } from "@/lib/free-photos";
 import { signedPhotoUrl } from "@/lib/interventions";
+import { PhotoViewer } from "@/components/clients/PhotoViewer";
 import {
   DashboardPhotoUploader,
   type UploadableIntervention,
@@ -83,6 +84,7 @@ export function ClientPhotosPanel({
 }) {
   const qc = useQueryClient();
   const [albumName, setAlbumName] = useState("");
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const photosKey = ["client-free-photos", clientId] as const;
   const albumsKey = ["client-photo-albums", clientId] as const;
@@ -138,7 +140,14 @@ export function ClientPhotosPanel({
 
   const renderPhoto = (photo: FreePhoto) => (
     <li key={photo.id} className="space-y-1.5">
-      <PhotoThumb path={photo.storage_path} />
+      <button
+        type="button"
+        className="block w-full overflow-hidden rounded-md focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Agrandir la photo"
+        onClick={() => setViewerIndex(allPhotos.findIndex((p) => p.id === photo.id))}
+      >
+        <PhotoThumb path={photo.storage_path} />
+      </button>
       <select
         aria-label="Classer la photo dans un album"
         className="h-9 w-full rounded-md border bg-background px-2 text-xs"
@@ -160,6 +169,13 @@ export function ClientPhotosPanel({
 
   return (
     <div className="space-y-5">
+      {viewerIndex !== null && (
+        <PhotoViewer
+          photos={allPhotos}
+          startIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
       <DashboardPhotoUploader
         clientId={clientId}
         interventions={interventions}

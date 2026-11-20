@@ -32,6 +32,7 @@ import {
   type Recommendation,
 } from "@/lib/garden";
 import { Button } from "@/components/ui/button";
+import { getClientPremium } from "@/lib/client-premium";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -120,6 +121,11 @@ function ClientDetail() {
     queryKey: ["interventions", clientId],
     queryFn: () => listInterventionsByClient(clientId),
   });
+  const { data: premiumRow } = useQuery({
+    queryKey: ["client-premium", clientId],
+    queryFn: () => getClientPremium(clientId),
+  });
+  const premiumActive = !!premiumRow?.enabled;
   const { data: recos } = useQuery({
     queryKey: ["recommendations", clientId],
     queryFn: () => listRecommendationsByClient(clientId),
@@ -292,14 +298,6 @@ function ClientDetail() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/clients/dashboard/$clientId" params={{ clientId }}>
-              <LayoutDashboard className="mr-1.5 h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
-        </div>
         <ClientCompletenessCard
           client={client}
           scope="fiche"
@@ -314,6 +312,12 @@ function ClientDetail() {
         />
 
         <div className="flex gap-2">
+          <Button asChild size="sm" className="flex-1">
+            <Link to="/clients/dashboard/$clientId" params={{ clientId }}>
+              <LayoutDashboard className="mr-1.5 h-4 w-4" />
+              Dashboard
+            </Link>
+          </Button>
           <Button
             variant={group === "gestion" ? "default" : "outline"}
             size="sm"
@@ -326,7 +330,8 @@ function ClientDetail() {
           <Button
             variant={group === "premium" ? "default" : "outline"}
             size="sm"
-            className="flex-1"
+            className={`flex-1 ${premiumActive ? "" : "opacity-50"}`}
+            title={premiumActive ? undefined : "Espace Premium non actif"}
             onClick={() => setGroup("premium")}
           >
             <Crown className="mr-1.5 h-4 w-4" />
