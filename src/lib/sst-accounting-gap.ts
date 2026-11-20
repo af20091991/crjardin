@@ -18,12 +18,17 @@ export interface InvoicedMissionToAccount {
  * Missions déjà facturées (montant facturé renseigné) qui ne sont pas encore rattachées
  * à une ligne comptable (charges ou CA). Ce sont celles à comptabiliser.
  */
+/** Exercice suivi pour le rapprochement SST. */
+export const RECONCILIATION_YEAR = 2026;
+
 export function findInvoicedMissionsToAccount(
   missions: SubcontractorMission[],
   accountedMissionIds: Set<string>,
+  year: number = RECONCILIATION_YEAR,
 ): InvoicedMissionToAccount[] {
   return missions
     .filter((m) => !m.archived_at && Number(m.invoiced_amount ?? 0) > 0)
+    .filter((m) => Number(m.mission_date.slice(0, 4)) === year)
     .filter((m) => !accountedMissionIds.has(m.id))
     .map((m) => ({
       id: m.id,
