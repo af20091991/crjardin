@@ -1,17 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Check,
-  ChevronDown,
-  FolderPlus,
-  Loader2,
-  Pencil,
-  Play,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
+import { Check, FolderPlus, Loader2, Pencil, Play, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -119,6 +109,7 @@ export function ClientPhotosPanel({
   const [dragId, setDragId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const fileInput = useRef<HTMLInputElement>(null);
   const [droppedFiles, setDroppedFiles] = useState<{ files: File[]; key: number } | null>(null);
   const [zipping, setZipping] = useState(false);
 
@@ -364,6 +355,15 @@ export function ClientPhotosPanel({
       .catch(() => toast.error("Réordonnancement impossible."));
   };
 
+  /** Ouvre l'import dans la vue courante (album ou photos à classer) et envoie les fichiers. */
+  const startUpload = (files: File[]) => {
+    const albumId = view !== "all" && view !== "unclassified" ? view : "";
+    const key = uploadTarget.key + 1;
+    setUploadTarget({ albumId, key });
+    setDroppedFiles({ files, key });
+    setUploadOpen(true);
+  };
+
   const toggleSelect = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -429,11 +429,7 @@ export function ClientPhotosPanel({
           toast.error("Seules les images peuvent être déposées ici.");
           return;
         }
-        const albumId = view !== "all" && view !== "unclassified" ? view : "";
-        const key = uploadTarget.key + 1;
-        setUploadTarget({ albumId, key });
-        setDroppedFiles({ files, key });
-        setUploadOpen(true);
+        startUpload(files);
       }}
     >
       {viewer !== null && (
@@ -450,25 +446,24 @@ export function ClientPhotosPanel({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (uploadOpen) {
-                setUploadOpen(false);
-                return;
-              }
-              const albumId = view !== "all" && view !== "unclassified" ? view : "";
-              setUploadTarget((t) => ({ albumId, key: t.key + 1 }));
-              setUploadOpen(true);
-            }}
-          >
+          <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
             <Upload className="mr-1.5 h-4 w-4" />
             Importer des photos
-            <ChevronDown
-              className={`ml-1 h-4 w-4 transition-transform ${uploadOpen ? "rotate-180" : ""}`}
-            />
           </Button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={(event) => {
+              const files = Array.from(event.target.files ?? []);
+              event.target.value = "";
+              if (files.length > 0) startUpload(files);
+            }}
+          />
           <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Affichage">
             {(["grid", "list"] as const).map((mode) => (
               <button
@@ -521,7 +516,16 @@ export function ClientPhotosPanel({
       </div>
 
       {uploadOpen && (
-        <div id="photo-uploader">
+        <div id="photo-uploader" className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 z-10 h-7 w-7"
+            aria-label="Fermer l'import"
+            onClick={() => setUploadOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
           <DashboardPhotoUploader
             key={uploadTarget.key}
             clientId={clientId}
