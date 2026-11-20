@@ -21,7 +21,10 @@ describe("notifyClient — invalidation des fiches client", () => {
 });
 
 describe("fiche client classique — badge d'envoi par intervention", () => {
-  const src = readRouteSource("src/routes/_authenticated/clients.$clientId.tsx");
+  // Les listes d'interventions sont dans ClientGestionTabs (partagé par la fiche et le tableau de bord).
+  const src =
+    readRouteSource("src/routes/_authenticated/clients.$clientId.tsx") +
+    readFileSync("src/components/clients/ClientGestionTabs.tsx", "utf8");
 
   test("affiche « Envoyé au client » quand sent_to_client_at est renseigné", () => {
     expect(src).toContain("Envoyé au client");

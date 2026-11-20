@@ -1,35 +1,32 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { useState } from "react";
+import { Link, useParams, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  CalendarDays,
-  ClipboardList,
-  Images,
-  Leaf,
-  Sparkles,
-  TrendingUp,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowLeft, Compass, Crown, Images, Leaf } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { ClientPhotosPanel, PhotoThumb } from "@/components/clients/ClientPhotosPanel";
+import { ClientPhotosPanel } from "@/components/clients/ClientPhotosPanel";
+import { ClientGestionTabs } from "@/components/clients/ClientGestionTabs";
+import { ClientPremiumTab } from "@/components/ClientPremiumTab";
+import { ClientPilotageTabs } from "@/components/pilot/ClientPilotageTabs";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getClient } from "@/lib/clients";
+import { getClientPremium } from "@/lib/client-premium";
+import { listHealthByClient, listRecommendationsByClient } from "@/lib/garden";
 import { listInterventionsByClient } from "@/lib/interventions";
-import { listFreePhotos } from "@/lib/free-photos";
+import { useRole } from "@/hooks/use-role";
 
-type FicheTab = "interventions" | "calendar" | "health" | "reco" | "opps";
+type HubTab = "photos" | "premium" | "gestion" | "pilotage";
 
-/** Accès rapides vers les écrans de la fiche, pour tout client (Premium ou non). */
-const SHORTCUTS: { tab: FicheTab; label: string; icon: LucideIcon }[] = [
-  { tab: "interventions", label: "Interventions", icon: ClipboardList },
-  { tab: "calendar", label: "Calendrier", icon: CalendarDays },
-  { tab: "health", label: "Évaluations", icon: Leaf },
-  { tab: "reco", label: "Préconisations", icon: Sparkles },
-  { tab: "opps", label: "Opportunités", icon: TrendingUp },
-];
-
+/**
+ * Tableau de bord client : un seul écran, onglets sans rechargement.
+ * Client Premium : l'onglet « Premium » réunit les photos et l'espace Premium.
+ * Sans Premium : l'onglet « Premium » sert à l'activer.
+ */
 export function ClientDashboard() {
   const { clientId } = useParams({ from: "/_authenticated/clients/dashboard/$clientId" });
+  const search = useSearch({ from: "/_authenticated/clients/dashboard/$clientId" });
+  const { canEdit } = useRole();
+
   const { data: client } = useQuery({
     queryKey: ["client", clientId],
     queryFn: () => getClient(clientId),
@@ -38,24 +35,53 @@ export function ClientDashboard() {
     queryKey: ["interventions", clientId],
     queryFn: () => listInterventionsByClient(clientId),
   });
-
-  const { data: freePhotos } = useQuery({
-    queryKey: ["client-free-photos", clientId],
-    queryFn: () => listFreePhotos(clientId),
+  const { data: recos } = useQuery({
+    queryKey: ["recommendations", clientId],
+    queryFn: () => listRecommendationsByClient(clientId),
   });
+  const { data: health } = useQuery({
+    queryKey: ["health", clientId],
+    queryFn: () => listHealthByClient(clientId),
+  });
+  const { data: premiumRow } = useQuery({
+    queryKey: ["client-premium", clientId],
+    queryFn: () => getClientPremium(clientId),
+  });
+  const premiumActive = !!premiumRow?.enabled;
 
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = (interventions ?? [])
-    .filter((iv) => iv.intervention_date >= today && iv.status !== "annulee")
-    .sort((a, b) => a.intervention_date.localeCompare(b.intervention_date))
-    .slice(0, 3);
-  const latestPhotos = [...(freePhotos ?? [])]
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, 6);
+  const available: HubTab[] = premiumActive
+    ? ["premium", "gestion", "pilotage"]
+    : ["photos", "gestion", "pilotage", "premium"];
+  const requested = search.tab as HubTab | undefined;
+  const defaultTab: HubTab = premiumActive ? "premium" : "photos";
+  const [tab, setTab] = useState<HubTab>(
+    requested && available.includes(requested) ? requested : defaultTab,
+  );
+  const [gestionTab, setGestionTab] = useState<string>(search.sub ?? "interventions");
+
+  const labels: Record<HubTab, string> = {
+    photos: "Photos et albums",
+    premium: premiumActive ? "Premium" : "Activer l'espace Premium",
+    gestion: "Gestion",
+    pilotage: "Pilotage 360°",
+  };
+  const icons: Record<HubTab, typeof Images> = {
+    photos: Images,
+    premium: Crown,
+    gestion: Leaf,
+    pilotage: Compass,
+  };
+
+  const photoInterventions = (interventions ?? []).map((iv) => ({
+    id: iv.id,
+    title: iv.title ?? null,
+    intervention_type: iv.intervention_type ?? null,
+    intervention_date: iv.intervention_date,
+  }));
 
   return (
-    <AppShell title="Dashboard client">
-      <div className="space-y-6">
+    <AppShell title="Tableau de bord">
+      <div className="mx-auto max-w-5xl space-y-5">
         <Link
           to="/clients/$clientId"
           params={{ clientId }}
@@ -70,73 +96,57 @@ export function ClientDashboard() {
           {client?.address && <p className="text-sm text-muted-foreground">{client.address}</p>}
         </header>
 
-        <section className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {SHORTCUTS.map(({ tab, label, icon: Icon }) => (
-            <Link
-              key={tab}
-              to="/clients/$clientId"
-              params={{ clientId }}
-              search={{ tab }}
-              className="flex flex-col items-center gap-1.5 rounded-lg border bg-card p-3 text-center text-sm font-medium hover:bg-accent/40"
-            >
-              <Icon className="h-5 w-5 text-primary" />
-              {label}
-            </Link>
-          ))}
-        </section>
+        <Tabs value={tab} onValueChange={(value) => setTab(value as HubTab)}>
+          <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto bg-muted/60 p-1">
+            {available.map((id) => {
+              const Icon = icons[id];
+              return (
+                <TabsTrigger key={id} value={id} className="shrink-0 gap-1.5 text-sm">
+                  <Icon className="h-4 w-4" />
+                  {labels[id]}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="space-y-3 p-4">
-            <h2 className="font-serif text-lg font-semibold">Prochaines interventions</h2>
-            {upcoming.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune intervention planifiée.</p>
-            ) : (
-              <ul className="divide-y">
-                {upcoming.map((iv) => (
-                  <li key={iv.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                    <span className="min-w-0 truncate">
-                      {iv.title ?? iv.intervention_type ?? "Intervention"}
-                    </span>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {new Date(`${iv.intervention_date}T12:00:00`).toLocaleDateString("fr-FR")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+          <TabsContent value="photos" className="mt-4">
+            <Card className="p-4">
+              <ClientPhotosPanel clientId={clientId} interventions={photoInterventions} />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="premium" className="mt-4 space-y-5">
+            {premiumActive && (
+              <Card className="p-4">
+                <h2 className="mb-3 flex items-center gap-2 font-serif text-lg font-semibold">
+                  <Images className="h-5 w-5 text-primary" />
+                  Photos et albums
+                </h2>
+                <ClientPhotosPanel clientId={clientId} interventions={photoInterventions} />
+              </Card>
             )}
-          </Card>
+            <ClientPremiumTab clientId={clientId} canEdit={canEdit} />
+          </TabsContent>
 
-          <Card className="space-y-3 p-4">
-            <h2 className="font-serif text-lg font-semibold">Dernières photos</h2>
-            {latestPhotos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune photo ajoutée pour le moment.</p>
-            ) : (
-              <ul className="grid grid-cols-3 gap-2">
-                {latestPhotos.map((photo) => (
-                  <li key={photo.id} className="aspect-square overflow-hidden rounded-md border">
-                    <PhotoThumb path={photo.storage_path} />
-                  </li>
-                ))}
-              </ul>
+          <TabsContent value="gestion" className="mt-4">
+            {client && (
+              <ClientGestionTabs
+                clientId={clientId}
+                client={client}
+                interventions={interventions}
+                health={health}
+                recos={recos}
+                canEdit={canEdit}
+                tab={gestionTab}
+                onTabChange={setGestionTab}
+              />
             )}
-          </Card>
-        </div>
+          </TabsContent>
 
-        <Card className="space-y-4 p-4">
-          <h2 className="flex items-center gap-2 font-serif text-xl font-semibold">
-            <Images className="h-5 w-5 text-primary" />
-            Photos et albums
-          </h2>
-          <ClientPhotosPanel
-            clientId={clientId}
-            interventions={(interventions ?? []).map((iv) => ({
-              id: iv.id,
-              title: iv.title ?? null,
-              intervention_type: iv.intervention_type ?? null,
-              intervention_date: iv.intervention_date,
-            }))}
-          />
-        </Card>
+          <TabsContent value="pilotage" className="mt-4">
+            <ClientPilotageTabs clientId={clientId} />
+          </TabsContent>
+        </Tabs>
       </div>
     </AppShell>
   );
