@@ -154,7 +154,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 const SPLASH_CSS = `
 html.js-client #pp-splash{display:none!important}
-html.pp-seen #pp-splash{display:none!important}
 #pp-splash{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:#ffffff;transition:opacity .3s ease,visibility .3s}
 #pp-splash.pp-out{opacity:0;visibility:hidden;pointer-events:none}
 #pp-splash img{width:min(86vmin,886px);height:auto}
@@ -164,30 +163,11 @@ html.pp-seen #pp-splash{display:none!important}
  * Tout le calendrier est géré ici, dans un seul script, à partir du début réel de l'animation. */
 function SplashOverlay() {
   const script = `(function(){
-var el=document.getElementById('pp-splash'),img=el&&el.querySelector('img');
-function nat(){try{return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());}catch(e){return false;}}
+var el=document.getElementById('pp-splash');
 function hideNative(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}
-var seen=false;try{seen=sessionStorage.getItem('pp-splash-seen')==='1';}catch(e){}
-if(seen&&!nat()){document.documentElement.classList.add('pp-seen');return;}
 hideNative();
 if(!el)return;
-var animDone=false,begun=false;
-function remove(){el.classList.add('pp-out');setTimeout(function(){el.remove();},300);}
-function check(){if(animDone&&window.__ppAppReady)remove();}
-window.__ppSplashCheck=check;
-function begin(){
-  if(begun)return;begun=true;
-  try{sessionStorage.setItem('pp-splash-seen','1');}catch(e){}
-  setTimeout(function(){animDone=true;check();},4600);
-  setTimeout(function(){
-    if(window.__ppAppReady)return;
-    try{if(sessionStorage.getItem('pp-boot-retry'))return;sessionStorage.setItem('pp-boot-retry','1');}catch(e){}
-    location.reload();
-  },24600);
-  setTimeout(function(){animDone=true;if(!window.__ppAppReady)window.__ppAppReady=true;check();},30000);
-}
-if(img){if(img.complete&&img.naturalWidth)begin();else{img.addEventListener('load',begin);img.addEventListener('error',begin);}}
-else begin();
+setTimeout(function(){el.classList.add('pp-out');setTimeout(function(){el.remove();},300);},3000);
 })();`;
   return (
     <>
@@ -272,15 +252,6 @@ function RootComponent() {
 
   useEffect(() => {
     registerPwa();
-    // L'appli est montée : l'écran de démarrage se retire dès que son animation est finie.
-    const w = window as unknown as { __ppAppReady?: boolean; __ppSplashCheck?: () => void };
-    w.__ppAppReady = true;
-    try {
-      sessionStorage.removeItem("pp-boot-retry");
-    } catch {
-      /* stockage indisponible : pas de relance automatique */
-    }
-    w.__ppSplashCheck?.();
   }, []);
 
   return (
