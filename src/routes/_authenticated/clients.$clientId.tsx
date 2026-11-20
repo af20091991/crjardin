@@ -80,15 +80,7 @@ import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidge
 import { ClientPremiumTab } from "@/components/ClientPremiumTab";
 import { ClientPilotageTabs } from "@/components/pilot/ClientPilotageTabs";
 
-const CLIENT_TABS = [
-  "interventions",
-  "calendar",
-  "health",
-  "reco",
-  "opps",
-  "photos",
-  "premium",
-] as const;
+const CLIENT_TABS = ["interventions", "calendar", "health", "reco", "opps", "premium"] as const;
 type ClientTab = (typeof CLIENT_TABS)[number];
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({

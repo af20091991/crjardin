@@ -91,6 +91,7 @@ import { Route as AuthenticatedPilotFicheClientIdRouteImport } from './routes/_a
 import { Route as AuthenticatedPilotClientsClientKeyRouteImport } from './routes/_authenticated/pilot.clients.$clientKey'
 import { Route as AuthenticatedPilotCeevContratsAgreementIdRouteImport } from './routes/_authenticated/pilot.ceev-contrats.$agreementId'
 import { Route as AuthenticatedClientsPremiumDashboardClientIdRouteImport } from './routes/_authenticated/clients/premium-dashboard.$clientId'
+import { Route as AuthenticatedClientsDashboardClientIdRouteImport } from './routes/_authenticated/clients/dashboard.$clientId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -546,6 +547,12 @@ const AuthenticatedClientsPremiumDashboardClientIdRoute =
     path: '/clients/premium-dashboard/$clientId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClientsDashboardClientIdRoute =
+  AuthenticatedClientsDashboardClientIdRouteImport.update({
+    id: '/clients/dashboard/$clientId',
+    path: '/clients/dashboard/$clientId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -621,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot/': typeof AuthenticatedPilotIndexRoute
+  '/clients/dashboard/$clientId': typeof AuthenticatedClientsDashboardClientIdRoute
   '/clients/premium-dashboard/$clientId': typeof AuthenticatedClientsPremiumDashboardClientIdRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -702,6 +710,7 @@ export interface FileRoutesByTo {
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
+  '/clients/dashboard/$clientId': typeof AuthenticatedClientsDashboardClientIdRoute
   '/clients/premium-dashboard/$clientId': typeof AuthenticatedClientsPremiumDashboardClientIdRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -787,6 +796,7 @@ export interface FileRoutesById {
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/_authenticated/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
+  '/_authenticated/clients/dashboard/$clientId': typeof AuthenticatedClientsDashboardClientIdRoute
   '/_authenticated/clients/premium-dashboard/$clientId': typeof AuthenticatedClientsPremiumDashboardClientIdRoute
   '/_authenticated/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -872,6 +882,7 @@ export interface FileRouteTypes {
     | '/interventions/'
     | '/parc-materiel/'
     | '/pilot/'
+    | '/clients/dashboard/$clientId'
     | '/clients/premium-dashboard/$clientId'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
@@ -953,6 +964,7 @@ export interface FileRouteTypes {
     | '/interventions'
     | '/parc-materiel'
     | '/pilot'
+    | '/clients/dashboard/$clientId'
     | '/clients/premium-dashboard/$clientId'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
@@ -1037,6 +1049,7 @@ export interface FileRouteTypes {
     | '/_authenticated/interventions/'
     | '/_authenticated/parc-materiel/'
     | '/_authenticated/pilot/'
+    | '/_authenticated/clients/dashboard/$clientId'
     | '/_authenticated/clients/premium-dashboard/$clientId'
     | '/_authenticated/pilot/ceev-contrats/$agreementId'
     | '/_authenticated/pilot/clients/$clientKey'
@@ -1644,6 +1657,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsPremiumDashboardClientIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clients/dashboard/$clientId': {
+      id: '/_authenticated/clients/dashboard/$clientId'
+      path: '/clients/dashboard/$clientId'
+      fullPath: '/clients/dashboard/$clientId'
+      preLoaderRoute: typeof AuthenticatedClientsDashboardClientIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -1774,6 +1794,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFichesIndexRoute: typeof AuthenticatedFichesIndexRoute
   AuthenticatedInterventionsIndexRoute: typeof AuthenticatedInterventionsIndexRoute
   AuthenticatedParcMaterielIndexRoute: typeof AuthenticatedParcMaterielIndexRoute
+  AuthenticatedClientsDashboardClientIdRoute: typeof AuthenticatedClientsDashboardClientIdRoute
   AuthenticatedClientsPremiumDashboardClientIdRoute: typeof AuthenticatedClientsPremiumDashboardClientIdRoute
 }
 
@@ -1804,6 +1825,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFichesIndexRoute: AuthenticatedFichesIndexRoute,
   AuthenticatedInterventionsIndexRoute: AuthenticatedInterventionsIndexRoute,
   AuthenticatedParcMaterielIndexRoute: AuthenticatedParcMaterielIndexRoute,
+  AuthenticatedClientsDashboardClientIdRoute:
+    AuthenticatedClientsDashboardClientIdRoute,
   AuthenticatedClientsPremiumDashboardClientIdRoute:
     AuthenticatedClientsPremiumDashboardClientIdRoute,
 }
