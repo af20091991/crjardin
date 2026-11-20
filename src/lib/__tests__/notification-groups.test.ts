@@ -28,6 +28,7 @@ describe("notification-groups", () => {
   });
   it("donne la page cible", () => {
     expect(notificationTarget(n({ type: "sst_calendar" }))).toBe("/pilot/calendrier");
+    expect(notificationTarget(n({ type: "sst_rapprochement" }))).toBe("/sst");
     expect(notificationTarget(n({ client_id: "c1" }))).toBe("/clients/c1");
     expect(notificationTarget(n({}))).toBeNull();
   });
