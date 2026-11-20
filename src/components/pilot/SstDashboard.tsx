@@ -418,7 +418,7 @@ function SstAccountingAlert() {
           <p className="text-xs text-muted-foreground">+ {pending.length - 8} autre(s)</p>
         )}
         <Button asChild variant="outline" size="sm">
-          <Link to="/pilot/ca">Ouvrir le suivi du CA pour les rattacher</Link>
+          <Link to="/pilot/sst-rapprochement">Rapprocher ces missions</Link>
         </Button>
       </CardContent>
     </Card>
