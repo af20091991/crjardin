@@ -49,7 +49,6 @@ import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_auth
 import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
 import { Route as AuthenticatedPilotStockRouteImport } from './routes/_authenticated/pilot.stock'
-import { Route as AuthenticatedPilotSstRapprochementRouteImport } from './routes/_authenticated/pilot.sst-rapprochement'
 import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authenticated/pilot.sites'
 import { Route as AuthenticatedPilotSiteWebRouteImport } from './routes/_authenticated/pilot.site-web'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
@@ -301,12 +300,6 @@ const AuthenticatedPilotStockRoute = AuthenticatedPilotStockRouteImport.update({
   path: '/stock',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
-const AuthenticatedPilotSstRapprochementRoute =
-  AuthenticatedPilotSstRapprochementRouteImport.update({
-    id: '/sst-rapprochement',
-    path: '/sst-rapprochement',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
 const AuthenticatedPilotSitesRoute = AuthenticatedPilotSitesRouteImport.update({
   id: '/sites',
   path: '/sites',
@@ -624,7 +617,6 @@ export interface FileRoutesByFullPath {
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
-  '/pilot/sst-rapprochement': typeof AuthenticatedPilotSstRapprochementRoute
   '/pilot/stock': typeof AuthenticatedPilotStockRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -708,7 +700,6 @@ export interface FileRoutesByTo {
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
-  '/pilot/sst-rapprochement': typeof AuthenticatedPilotSstRapprochementRoute
   '/pilot/stock': typeof AuthenticatedPilotStockRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -796,7 +787,6 @@ export interface FileRoutesById {
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/_authenticated/pilot/sites': typeof AuthenticatedPilotSitesRoute
-  '/_authenticated/pilot/sst-rapprochement': typeof AuthenticatedPilotSstRapprochementRoute
   '/_authenticated/pilot/stock': typeof AuthenticatedPilotStockRoute
   '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -884,7 +874,6 @@ export interface FileRouteTypes {
     | '/pilot/sante'
     | '/pilot/site-web'
     | '/pilot/sites'
-    | '/pilot/sst-rapprochement'
     | '/pilot/stock'
     | '/pilot/taux'
     | '/pilot/temps'
@@ -968,7 +957,6 @@ export interface FileRouteTypes {
     | '/pilot/sante'
     | '/pilot/site-web'
     | '/pilot/sites'
-    | '/pilot/sst-rapprochement'
     | '/pilot/stock'
     | '/pilot/taux'
     | '/pilot/temps'
@@ -1055,7 +1043,6 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/site-web'
     | '/_authenticated/pilot/sites'
-    | '/_authenticated/pilot/sst-rapprochement'
     | '/_authenticated/pilot/stock'
     | '/_authenticated/pilot/taux'
     | '/_authenticated/pilot/temps'
@@ -1387,13 +1374,6 @@ declare module '@tanstack/react-router' {
       path: '/stock'
       fullPath: '/pilot/stock'
       preLoaderRoute: typeof AuthenticatedPilotStockRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/sst-rapprochement': {
-      id: '/_authenticated/pilot/sst-rapprochement'
-      path: '/sst-rapprochement'
-      fullPath: '/pilot/sst-rapprochement'
-      preLoaderRoute: typeof AuthenticatedPilotSstRapprochementRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/pilot/sites': {
@@ -1753,7 +1733,6 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSiteWebRoute: typeof AuthenticatedPilotSiteWebRoute
   AuthenticatedPilotSitesRoute: typeof AuthenticatedPilotSitesRoute
-  AuthenticatedPilotSstRapprochementRoute: typeof AuthenticatedPilotSstRapprochementRoute
   AuthenticatedPilotStockRoute: typeof AuthenticatedPilotStockRoute
   AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
   AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
@@ -1794,8 +1773,6 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSiteWebRoute: AuthenticatedPilotSiteWebRoute,
   AuthenticatedPilotSitesRoute: AuthenticatedPilotSitesRoute,
-  AuthenticatedPilotSstRapprochementRoute:
-    AuthenticatedPilotSstRapprochementRoute,
   AuthenticatedPilotStockRoute: AuthenticatedPilotStockRoute,
   AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
   AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,

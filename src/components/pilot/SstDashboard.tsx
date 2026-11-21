@@ -17,7 +17,6 @@ import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { AlertTriangle, Plus, ReceiptText } from "lucide-react";
 import { findInvoicedMissionsWithoutClient } from "@/lib/sst-accounting-gap";
-import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/pilot/EmptyState";
 
 const eur = (n: number) => formatEuro(n);
@@ -29,9 +28,9 @@ export function SstDashboard() {
   const sstsQ = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
   const clientsQ = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const missions = missionsQ.data ?? [];
-  const ssts = sstsQ.data ?? [];
-  const clients = clientsQ.data ?? [];
+  const missions = useMemo(() => missionsQ.data ?? [], [missionsQ.data]);
+  const ssts = useMemo(() => sstsQ.data ?? [], [sstsQ.data]);
+  const clients = useMemo(() => clientsQ.data ?? [], [clientsQ.data]);
 
   // Chaque charge SST du Chiffre d'affaires est comptée. Une charge rattachée à une mission du
   // même mois fixe le coût de cette mission ; une charge sans mission reste comptée à part.
@@ -413,9 +412,6 @@ function SstAccountingAlert() {
         {pending.length > 8 && (
           <p className="text-xs text-muted-foreground">+ {pending.length - 8} autre(s)</p>
         )}
-        <Button asChild variant="outline" size="sm">
-          <Link to="/pilot/sst-rapprochement">Rattacher les clients</Link>
-        </Button>
       </CardContent>
     </Card>
   );
