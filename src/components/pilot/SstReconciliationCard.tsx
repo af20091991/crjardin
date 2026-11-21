@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatEuro } from "@/lib/pilot";
@@ -14,7 +13,6 @@ interface Props {
   chargeLabel: (row: SstReconciliation["unlinkedCharges"][number]) => string;
   missionLabel: (m: SubcontractorMission) => string;
   busy: boolean;
-  onAttach: (chargeId: string, missionId: string) => void;
   onNoSheet: (chargeId: string) => void;
   onAddCharge: (m: SubcontractorMission) => void;
   onMode?: (chargeId: string, mode: SstMode | null) => void;
@@ -32,12 +30,10 @@ export function SstReconciliationCard({
   chargeLabel,
   missionLabel,
   busy,
-  onAttach,
   onNoSheet,
   onAddCharge,
   onMode,
 }: Props) {
-  const [picked, setPicked] = useState<Record<string, string>>({});
   const { unlinkedCharges, missingMissions } = reconciliation;
   if (unlinkedCharges.length === 0 && missingMissions.length === 0) return null;
 
@@ -58,7 +54,6 @@ export function SstReconciliationCard({
             </p>
             <ul className="space-y-2">
               {unlinkedCharges.map((row) => {
-                const value = picked[row.id] ?? "";
                 return (
                   <li
                     key={row.id}
@@ -74,33 +69,7 @@ export function SstReconciliationCard({
                         onChange={(mode) => onMode(row.id, mode)}
                       />
                     )}
-                    <select
-                      aria-label="Rattacher à une mission"
-                      className="h-8 rounded-md border border-input bg-transparent px-2 text-sm md:w-80"
-                      value={value}
-                      disabled={busy || missingMissions.length === 0}
-                      onChange={(e) => setPicked((s) => ({ ...s, [row.id]: e.target.value }))}
-                    >
-                      <option value="">
-                        {missingMissions.length === 0
-                          ? "Aucune mission disponible"
-                          : "Rattacher à une mission…"}
-                      </option>
-                      {missingMissions.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {missionLabel(m)}
-                        </option>
-                      ))}
-                    </select>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy || !value}
-                        onClick={() => onAttach(row.id, value)}
-                      >
-                        Rattacher
-                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"

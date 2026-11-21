@@ -184,12 +184,6 @@ export function SstReconciliationBoard({ year = RECONCILIATION_YEAR }: { year?: 
         }
         missionLabel={missionLabel}
         busy={updateMut.isPending || createMut.isPending}
-        onAttach={(chargeId, missionId) =>
-          updateMut.mutate({
-            id: chargeId,
-            input: { subcontractor_mission_id: missionId, match_status: "rattachee" },
-          })
-        }
         onMode={(chargeId, mode) => updateMut.mutate({ id: chargeId, input: { sst_mode: mode } })}
         onNoSheet={(chargeId) =>
           updateMut.mutate({ id: chargeId, input: { match_status: NO_SHEET_STATUS } })
@@ -208,6 +202,8 @@ export function SstReconciliationBoard({ year = RECONCILIATION_YEAR }: { year?: 
             is_investment: false,
             match_status: "rattachee",
             subcontractor_mission_id: m.id,
+            sst_mode: m.sst_mode ?? null,
+            client_id: m.client_id ?? null,
           });
         }}
       />
