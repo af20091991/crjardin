@@ -476,8 +476,33 @@ function CaPage() {
     return null;
   };
 
-  // Fenêtre SST : ouverte quand une charge reçoit la catégorie « SST ».
+  const { canEdit: canEditCa } = useRole();
+  // Fenêtre SST : ouverte quand une charge reçoit la catégorie « SST », ou automatiquement
+  // pour chaque charge SST encore à classer (autonomie ou client manquants).
   const [sstDialogRow, setSstDialogRow] = useState<CaEntry | null>(null);
+  const [sstHandled, setSstHandled] = useState<Set<string>>(() => new Set());
+  const pendingSst = useMemo(
+    () =>
+      entries.filter(
+        (e) =>
+          e.kind === "charge" &&
+          !e.is_investment &&
+          !e.is_fixed &&
+          (e.charge_category === "SST" || shouldAutoClassifySst(e)) &&
+          (!e.sst_mode || !e.client_id),
+      ),
+    [entries],
+  );
+  const sstRemaining = pendingSst.filter((e) => !sstHandled.has(e.id));
+  useEffect(() => {
+    if (sstDialogRow || !canEditCa) return;
+    const next = sstRemaining[0];
+    if (next) setSstDialogRow(next);
+  }, [sstRemaining, sstDialogRow, canEditCa]);
+  const closeSstDialog = (id: string) => {
+    setSstHandled((s) => new Set(s).add(id));
+    setSstDialogRow(null);
+  };
   const saveChargeType = (
     row: CaEntry & { charge_category?: string | null; charge_class?: string | null },
     type: ChargeType,
@@ -492,7 +517,6 @@ function CaPage() {
 
   // Classement automatique : toute charge dont la désignation commence par « SST » est classée
   // « SST » (jamais par-dessus un choix explicite : fixe, investissement…).
-  const { canEdit: canEditCa } = useRole();
   const autoSstTried = useRef(new Set<string>());
   useEffect(() => {
     if (!canEditCa) return;
@@ -785,8 +809,9 @@ function CaPage() {
       {sstDialogRow && (
         <SstChargeDialog
           open
+          remaining={sstRemaining.length}
           onOpenChange={(open) => {
-            if (!open) setSstDialogRow(null);
+            if (!open) closeSstDialog(sstDialogRow.id);
           }}
           designation={sstDialogRow.designation}
           clients={clients}
@@ -801,7 +826,7 @@ function CaPage() {
               sst_mode,
               client_id,
             });
-            setSstDialogRow(null);
+            closeSstDialog(sstDialogRow.id);
           }}
         />
       )}
