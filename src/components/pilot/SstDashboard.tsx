@@ -33,9 +33,20 @@ export function SstDashboard() {
   const ssts = sstsQ.data ?? [];
   const clients = clientsQ.data ?? [];
 
+  // Chaque charge SST du Chiffre d'affaires est comptée. Une charge rattachée à une mission du
+  // même mois fixe le coût de cette mission ; une charge sans mission reste comptée à part.
+  const chargeLines = useMemo(
+    () => sstChargeLines({ chargeRows: chargeRowsQ.data ?? [], missions, clients, year }),
+    [chargeRowsQ.data, missions, clients, year],
+  );
+  const costOverride = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of chargeLines) if (l.missionId) map.set(l.missionId, l.amount);
+    return map;
+  }, [chargeLines]);
   const rows = useMemo(
-    () => sstRows({ missions, ssts, clients, mode, year, includeArchived: false }),
-    [missions, ssts, clients, mode, year],
+    () => sstRows({ missions, ssts, clients, mode, year, includeArchived: false, costOverride }),
+    [missions, ssts, clients, mode, year, costOverride],
   );
   const scopedRows = useMemo(() => {
     if (period === "exercice_complet") return rows;
@@ -43,23 +54,16 @@ export function SstDashboard() {
     return rows.filter((r) => r.mission.mission_date <= today);
   }, [rows, period]);
   const totals = useMemo(() => sstTotals(scopedRows), [scopedRows]);
-  // Charges SST déjà saisies dans le Chiffre d'affaires mais sans fiche mission : elles restent
-  // comptées en volume et en coût, sans jamais peser sur la marge (calculée sur les fiches).
   const orphanLines = useMemo(() => {
     const now = new Date();
-    return sstChargeLines({
-      chargeRows: chargeRowsQ.data ?? [],
-      missions,
-      clients,
-      year,
-    }).filter(
+    return chargeLines.filter(
       (l) =>
         !l.duplicateOfMission &&
         (period === "exercice_complet" ||
           year !== now.getFullYear() ||
           l.month <= now.getMonth() + 1),
     );
-  }, [chargeRowsQ.data, missions, clients, year, period]);
+  }, [chargeLines, period, year]);
   const orphanTotal = useMemo(
     () => orphanLines.reduce((sum, l) => sum + l.amount, 0),
     [orphanLines],

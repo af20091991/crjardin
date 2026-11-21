@@ -147,17 +147,36 @@ export function SstProfitabilityTab() {
     qc.invalidateQueries({ queryKey: ["sst-audit"] });
   };
 
+  // Sous-traitance déjà enregistrée en charges (aucune saisie supplémentaire demandée).
+  const chargeLines = useMemo(
+    () => sstChargeLines({ chargeRows, missions, clients, year }),
+    [chargeRows, missions, clients, year],
+  );
+  // Une charge rattachée à une mission du même mois fixe le coût de cette mission.
+  const costOverride = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of chargeLines) if (l.missionId) map.set(l.missionId, l.amount);
+    return map;
+  }, [chargeLines]);
+
   const rows = useMemo(
     () =>
-      sstRows({ missions, pnl, ssts, clients, mode, includeArchived: showArchived, year }).filter(
-        (r) => {
-          if (sstFilter !== "all" && r.mission.subcontractor_id !== sstFilter) return false;
-          if (!search.trim()) return true;
-          const hay = `${r.sstName} ${r.clientName} ${r.mission.service_requested} ${r.mission.prestation ?? ""}`;
-          return hay.toLowerCase().includes(search.toLowerCase());
-        },
-      ),
-    [missions, pnl, ssts, clients, mode, showArchived, year, sstFilter, search],
+      sstRows({
+        missions,
+        pnl,
+        ssts,
+        clients,
+        mode,
+        includeArchived: showArchived,
+        year,
+        costOverride,
+      }).filter((r) => {
+        if (sstFilter !== "all" && r.mission.subcontractor_id !== sstFilter) return false;
+        if (!search.trim()) return true;
+        const hay = `${r.sstName} ${r.clientName} ${r.mission.service_requested} ${r.mission.prestation ?? ""}`;
+        return hay.toLowerCase().includes(search.toLowerCase());
+      }),
+    [missions, pnl, ssts, clients, mode, showArchived, year, sstFilter, search, costOverride],
   );
 
   const totals = useMemo(() => sstTotals(rows), [rows]);
@@ -287,11 +306,6 @@ export function SstProfitabilityTab() {
     [perPresta],
   );
 
-  // Sous-traitance déjà enregistrée en charges (aucune saisie supplémentaire demandée).
-  const chargeLines = useMemo(
-    () => sstChargeLines({ chargeRows, missions, clients, year }),
-    [chargeRows, missions, clients, year],
-  );
   const caPeriod = useMemo(() => {
     if (!salesByYear) return null;
     if (year === "all") return [...salesByYear.values()].reduce((s, v) => s + v, 0);

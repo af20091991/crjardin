@@ -38,6 +38,8 @@ export interface ChargeRow {
   kind: "charge" | "remuneration";
   /** Qualifiée comme investissement : suivie à part, hors charges mensuelles. */
   is_investment: boolean;
+  /** Mission SST rattachée explicitement à la ligne (rapprochement SST). */
+  subcontractor_mission_id?: string | null;
 }
 
 type RawRow = {
@@ -50,6 +52,7 @@ type RawRow = {
   charge_class: string | null;
   charge_category: string | null;
   is_investment?: boolean | null;
+  subcontractor_mission_id?: string | null;
 };
 
 async function fetchAll(kinds: string[]): Promise<RawRow[]> {
@@ -62,7 +65,7 @@ async function fetchAll(kinds: string[]): Promise<RawRow[]> {
       .select(
         // pilot_ca_entries ne possède PAS de colonne entry_date : la date de
         // référence d'une charge est son couple year/month (règle centrale).
-        "id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment",
+        "id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment,subcontractor_mission_id",
       )
       .in("kind", kinds)
       .range(from, from + pageSize - 1);
@@ -89,6 +92,7 @@ export async function listChargeRows(): Promise<ChargeRow[]> {
     charge_category: r.charge_category ?? "À classer",
     kind: r.kind === "remuneration" ? "remuneration" : "charge",
     is_investment: Boolean(r.is_investment),
+    subcontractor_mission_id: r.subcontractor_mission_id ?? null,
   }));
 }
 

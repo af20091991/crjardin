@@ -65,8 +65,18 @@ export function sstRows(params: {
   mode?: RealProjectionMode;
   includeArchived?: boolean;
   year?: number | "all";
+  /** Coût retenu par mission quand la charge comptabilisée fait foi (missionId → montant). */
+  costOverride?: Map<string, number>;
 }): SstRow[] {
-  const { missions, ssts, clients, mode = "reel", includeArchived = false, year = "all" } = params;
+  const {
+    missions,
+    ssts,
+    clients,
+    mode = "reel",
+    includeArchived = false,
+    year = "all",
+    costOverride,
+  } = params;
   const sstById = new Map(ssts.map((s) => [s.id, s]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
   const today = todayIso();
@@ -76,7 +86,17 @@ export function sstRows(params: {
     .filter((m) => (year === "all" ? true : new Date(m.mission_date).getFullYear() === year))
     .filter((m) => (mode === "reel" ? m.mission_date <= today : true))
     .map((m) => {
-      const fin = computeMissionFinancials(m);
+      const override = costOverride?.get(m.id);
+      // Mission accompagnée : son coût SST est une charge de chantier (comptée à part),
+      // il ne doit pas réduire la marge de la mission une seconde fois.
+      const accompanied = m.sst_mode === "accompagnee";
+      const fin = computeMissionFinancials(
+        accompanied
+          ? { ...m, invoiced_amount: 0, agreed_price: 0 }
+          : override != null
+            ? { ...m, invoiced_amount: override }
+            : m,
+      );
       return {
         mission: m,
         sstName: sstById.get(m.subcontractor_id)?.name ?? "—",

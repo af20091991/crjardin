@@ -38,15 +38,15 @@ describe("préfixe SST", () => {
 });
 
 describe("rapprochement charges SST / missions", () => {
-  it("rattache une charge à la mission de même mois et même montant", () => {
+  it("rattache une charge à la mission du même mois, même si le montant diffère", () => {
     const links = linkChargesToMissions(
       [{ id: "c1", year: 2026, month: 3, amount: 450 }],
-      [mission("m1", "2026-03-12", 450)],
+      [mission("m1", "2026-03-12", 300)],
     );
     expect(links.get("c1")).toEqual({ missionId: "m1", duplicate: false });
   });
 
-  it("signale un doublon quand deux charges identiques n'ont qu'une mission", () => {
+  it("une mission n'accueille qu'une charge, la seconde reste comptée sans mission", () => {
     const links = linkChargesToMissions(
       [
         { id: "c1", year: 2026, month: 3, amount: 450 },
@@ -55,13 +55,39 @@ describe("rapprochement charges SST / missions", () => {
       [mission("m1", "2026-03-12", 450)],
     );
     expect(links.get("c1")?.missionId).toBe("m1");
-    expect(links.get("c2")).toEqual({ missionId: null, duplicate: true });
+    expect(links.get("c2")).toEqual({ missionId: null, duplicate: false });
   });
 
-  it("ignore les missions archivées et les montants différents", () => {
+  it("ignore les missions archivées et les autres mois", () => {
     const links = linkChargesToMissions(
       [{ id: "c1", year: 2026, month: 3, amount: 450 }],
-      [mission("m1", "2026-03-12", 450, true), mission("m2", "2026-03-12", 300)],
+      [mission("m1", "2026-03-12", 450, true), mission("m2", "2026-04-02", 450)],
+    );
+    expect(links.get("c1")).toEqual({ missionId: null, duplicate: false });
+  });
+
+  it("le rattachement manuel prime sur la correspondance automatique", () => {
+    const links = linkChargesToMissions(
+      [
+        { id: "c1", year: 2026, month: 3, amount: 450, manualMissionId: "m2" },
+        { id: "c2", year: 2026, month: 3, amount: 300 },
+      ],
+      [mission("m1", "2026-03-12", 300), mission("m2", "2026-03-20", 80)],
+    );
+    expect(links.get("c1")?.missionId).toBe("m2");
+    expect(links.get("c2")?.missionId).toBe("m1");
+  });
+});
+
+describe("sous-traitance accompagnée", () => {
+  it("une mission accompagnée n'accueille jamais de charge (coût = charge de chantier)", () => {
+    const accompanied = {
+      ...mission("m1", "2026-03-12", 300),
+      sst_mode: "accompagnee",
+    } as unknown as SubcontractorMission;
+    const links = linkChargesToMissions(
+      [{ id: "c1", year: 2026, month: 3, amount: 300 }],
+      [accompanied],
     );
     expect(links.get("c1")).toEqual({ missionId: null, duplicate: false });
   });

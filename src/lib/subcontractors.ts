@@ -34,7 +34,10 @@ export interface Subcontractor {
   updated_at: string;
 }
 
-export type SubcontractorInput = Omit<Subcontractor, "id" | "user_id" | "created_at" | "updated_at">;
+export type SubcontractorInput = Omit<
+  Subcontractor,
+  "id" | "user_id" | "created_at" | "updated_at"
+>;
 
 export interface SubcontractorMission {
   id: string;
@@ -65,6 +68,8 @@ export interface SubcontractorMission {
   invoice_ref: string | null;
   hours_saved: number | null;
   autonomy: string | null;
+  /** Type de sous-traitance : autonome (marge = prix client − coût SST) ou accompagnée (coût = charge de chantier). */
+  sst_mode?: "autonome" | "accompagnee" | null;
   parallel_worksite: string | null;
   import_source: string | null;
   created_at: string;
@@ -110,9 +115,13 @@ export interface SubcontractorSummary {
 }
 
 export async function listMissionPnl(): Promise<MissionPnl[]> {
-  const { data, error } = await (supabase as unknown as {
-    from: (t: string) => { select: (c: string) => Promise<{ data: MissionPnl[] | null; error: unknown }> };
-  })
+  const { data, error } = await (
+    supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => Promise<{ data: MissionPnl[] | null; error: unknown }>;
+      };
+    }
+  )
     .from("v_sst_mission_pnl")
     .select("mission_id, sst_cost, client_revenue, gross_margin, margin_pct");
   if (error) throw error;
@@ -120,11 +129,17 @@ export async function listMissionPnl(): Promise<MissionPnl[]> {
 }
 
 export async function listSubcontractorSummary(): Promise<SubcontractorSummary[]> {
-  const { data, error } = await (supabase as unknown as {
-    from: (t: string) => { select: (c: string) => Promise<{ data: SubcontractorSummary[] | null; error: unknown }> };
-  })
+  const { data, error } = await (
+    supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => Promise<{ data: SubcontractorSummary[] | null; error: unknown }>;
+      };
+    }
+  )
     .from("v_sst_summary")
-    .select("subcontractor_id, name, active, missions_count, missions_done, total_sst_cost, total_client_revenue, total_gross_margin, avg_rating, last_mission_date");
+    .select(
+      "subcontractor_id, name, active, missions_count, missions_done, total_sst_cost, total_client_revenue, total_gross_margin, avg_rating, last_mission_date",
+    );
   if (error) throw error;
   return (data ?? []) as SubcontractorSummary[];
 }
@@ -173,7 +188,10 @@ export async function createSubcontractor(input: SubcontractorInput): Promise<Su
   return data as Subcontractor;
 }
 
-export async function updateSubcontractor(id: string, patch: Partial<SubcontractorInput>): Promise<void> {
+export async function updateSubcontractor(
+  id: string,
+  patch: Partial<SubcontractorInput>,
+): Promise<void> {
   const { error } = await supabase.from("subcontractors").update(patch).eq("id", id);
   if (error) throw error;
 }
@@ -204,7 +222,11 @@ export async function listMissionsBySubcontractor(sstId: string): Promise<Subcon
 }
 
 export async function getMission(id: string): Promise<SubcontractorMission> {
-  const { data, error } = await supabase.from("subcontractor_missions").select("*").eq("id", id).single();
+  const { data, error } = await supabase
+    .from("subcontractor_missions")
+    .select("*")
+    .eq("id", id)
+    .single();
   if (error) throw error;
   return data as SubcontractorMission;
 }
