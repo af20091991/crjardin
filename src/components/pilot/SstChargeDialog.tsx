@@ -22,6 +22,7 @@ export function SstChargeDialog({
   clients,
   initialClientId,
   initialMode,
+  remaining,
   onConfirm,
 }: {
   open: boolean;
@@ -30,6 +31,8 @@ export function SstChargeDialog({
   clients: Array<{ id: string; name: string }>;
   initialClientId: string | null;
   initialMode: SstMode | null;
+  /** Nombre de charges SST encore à classer (affiché si > 1). */
+  remaining?: number;
   onConfirm: (value: { sst_mode: SstMode; client_id: string }) => void;
 }) {
   const [mode, setMode] = useState<SstMode | null>(initialMode);
@@ -64,7 +67,10 @@ export function SstChargeDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Charge de sous-traitance</DialogTitle>
-          <DialogDescription className="truncate">{designation || "Charge SST"}</DialogDescription>
+          <DialogDescription className="truncate">
+            {designation || "Charge SST"}
+            {remaining && remaining > 1 ? ` · ${remaining} charges SST à classer` : ""}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 text-sm">
