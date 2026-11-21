@@ -78,3 +78,17 @@ describe("rapprochement charges SST / missions", () => {
     expect(links.get("c2")?.missionId).toBe("m1");
   });
 });
+
+describe("sous-traitance accompagnée", () => {
+  it("une mission accompagnée n'accueille jamais de charge (coût = charge de chantier)", () => {
+    const accompanied = {
+      ...mission("m1", "2026-03-12", 300),
+      sst_mode: "accompagnee",
+    } as unknown as SubcontractorMission;
+    const links = linkChargesToMissions(
+      [{ id: "c1", year: 2026, month: 3, amount: 300 }],
+      [accompanied],
+    );
+    expect(links.get("c1")).toEqual({ missionId: null, duplicate: false });
+  });
+});

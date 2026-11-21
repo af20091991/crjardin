@@ -4785,6 +4785,7 @@ export type Database = {
           recommendations: string | null;
           report_notes: string | null;
           service_id: string | null;
+          sst_mode: string | null;
           service_requested: string;
           site_id: string | null;
           status: string;
@@ -4820,6 +4821,7 @@ export type Database = {
           recommendations?: string | null;
           report_notes?: string | null;
           service_id?: string | null;
+          sst_mode?: string | null;
           service_requested: string;
           site_id?: string | null;
           status?: string;
@@ -4855,6 +4857,7 @@ export type Database = {
           recommendations?: string | null;
           report_notes?: string | null;
           service_id?: string | null;
+          sst_mode?: string | null;
           service_requested?: string;
           site_id?: string | null;
           status?: string;

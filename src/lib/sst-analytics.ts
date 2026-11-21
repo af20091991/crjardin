@@ -87,8 +87,15 @@ export function sstRows(params: {
     .filter((m) => (mode === "reel" ? m.mission_date <= today : true))
     .map((m) => {
       const override = costOverride?.get(m.id);
+      // Mission accompagnée : son coût SST est une charge de chantier (comptée à part),
+      // il ne doit pas réduire la marge de la mission une seconde fois.
+      const accompanied = m.sst_mode === "accompagnee";
       const fin = computeMissionFinancials(
-        override != null ? { ...m, invoiced_amount: override } : m,
+        accompanied
+          ? { ...m, invoiced_amount: 0, agreed_price: 0 }
+          : override != null
+            ? { ...m, invoiced_amount: override }
+            : m,
       );
       return {
         mission: m,

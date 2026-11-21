@@ -65,6 +65,11 @@ function missionYearMonth(m: SubcontractorMission): { year: number; month: numbe
   return { year: Number(m.mission_date.slice(0, 4)), month: Number(m.mission_date.slice(5, 7)) };
 }
 
+/** Mission accompagnée : le coût SST est une charge de chantier, jamais une marge de mission. */
+export function isAccompanied(m: Pick<SubcontractorMission, "sst_mode">): boolean {
+  return m.sst_mode === "accompagnee";
+}
+
 function missionCostOf(m: SubcontractorMission): number {
   return Number(m.invoiced_amount ?? m.agreed_price ?? 0);
 }
@@ -91,7 +96,7 @@ export function linkChargesToMissions(
     .sort((a, b) => b.amount - a.amount || a.id.localeCompare(b.id));
   for (const c of automatic) {
     const candidates = missions.filter((m) => {
-      if (m.archived_at || used.has(m.id)) return false;
+      if (m.archived_at || used.has(m.id) || isAccompanied(m)) return false;
       const ym = missionYearMonth(m);
       return ym.year === c.year && ym.month === c.month;
     });

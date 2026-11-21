@@ -114,7 +114,9 @@ export function sstReconciliation(params: {
     )
     .sort((a, b) => a.month - b.month);
   const missingMissions = yearMissions
-    .filter((m) => sstMissionCost(m) > 0 && !linkedMissionIds.has(m.id))
+    .filter(
+      (m) => sstMissionCost(m) > 0 && m.sst_mode !== "accompagnee" && !linkedMissionIds.has(m.id),
+    )
     .sort((a, b) => a.mission_date.localeCompare(b.mission_date));
   return { unlinkedCharges, missingMissions };
 }
