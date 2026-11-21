@@ -52,11 +52,16 @@ export interface SstChargeMissionLink {
   duplicate: boolean;
 }
 
+/** Qualification d'une charge SST : autonome (prestataire seul) ou chantier accompagné. */
+export type SstMode = "autonome" | "accompagnee";
+
 export interface SstChargeInput {
   id: string;
   year: number;
   month: number;
   amount: number;
+  /** null = à qualifier. Une charge « chantier » n'est jamais rattachée à une mission. */
+  sstMode?: SstMode | null;
   /** Mission choisie à la main (rattachement explicite) : prime sur la correspondance automatique. */
   manualMissionId?: string | null;
 }
@@ -91,8 +96,13 @@ export function linkChargesToMissions(
     used.add(c.manualMissionId);
     result.set(c.id, { missionId: c.manualMissionId, duplicate: false });
   }
+  for (const c of charges) {
+    if (!c.manualMissionId && c.sstMode === "accompagnee") {
+      result.set(c.id, { missionId: null, duplicate: false });
+    }
+  }
   const automatic = charges
-    .filter((c) => !c.manualMissionId)
+    .filter((c) => !c.manualMissionId && c.sstMode !== "accompagnee")
     .sort((a, b) => b.amount - a.amount || a.id.localeCompare(b.id));
   for (const c of automatic) {
     const candidates = missions.filter((m) => {
@@ -165,6 +175,7 @@ export function sstChargeLines(params: {
       month: r.month,
       amount: r.amount_ht,
       manualMissionId: r.subcontractor_mission_id ?? null,
+      sstMode: (r.sst_mode as SstMode | null) ?? null,
     })),
     missions,
   );

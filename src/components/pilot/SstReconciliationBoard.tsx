@@ -190,6 +190,7 @@ export function SstReconciliationBoard({ year = RECONCILIATION_YEAR }: { year?: 
             input: { subcontractor_mission_id: missionId, match_status: "rattachee" },
           })
         }
+        onMode={(chargeId, mode) => updateMut.mutate({ id: chargeId, input: { sst_mode: mode } })}
         onNoSheet={(chargeId) =>
           updateMut.mutate({ id: chargeId, input: { match_status: NO_SHEET_STATUS } })
         }

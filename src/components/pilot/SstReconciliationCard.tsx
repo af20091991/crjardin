@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { formatEuro } from "@/lib/pilot";
 import type { SstReconciliation } from "@/lib/sst-accounting-gap";
 import { sstMissionCost } from "@/lib/sst-accounting-gap";
+import { SstModeToggle } from "@/components/pilot/SstModeToggle";
+import type { SstMode } from "@/lib/sst-charges";
 import type { SubcontractorMission } from "@/lib/subcontractors";
 
 interface Props {
@@ -15,6 +17,7 @@ interface Props {
   onAttach: (chargeId: string, missionId: string) => void;
   onNoSheet: (chargeId: string) => void;
   onAddCharge: (m: SubcontractorMission) => void;
+  onMode?: (chargeId: string, mode: SstMode | null) => void;
 }
 
 /**
@@ -32,6 +35,7 @@ export function SstReconciliationCard({
   onAttach,
   onNoSheet,
   onAddCharge,
+  onMode,
 }: Props) {
   const [picked, setPicked] = useState<Record<string, string>>({});
   const { unlinkedCharges, missingMissions } = reconciliation;
@@ -63,6 +67,13 @@ export function SstReconciliationCard({
                     <span className="flex-1">
                       {chargeLabel(row)} · <strong>{formatEuro(row.amount_ht)}</strong>
                     </span>
+                    {onMode && (
+                      <SstModeToggle
+                        value={(row.sst_mode as SstMode | null) ?? null}
+                        disabled={busy}
+                        onChange={(mode) => onMode(row.id, mode)}
+                      />
+                    )}
                     <select
                       aria-label="Rattacher à une mission"
                       className="h-8 rounded-md border border-input bg-transparent px-2 text-sm md:w-80"

@@ -46,6 +46,7 @@ const PILOT_CA_COLUMNS = new Set([
   "intervention_type",
   "*",
   "subcontractor_mission_id",
+  "sst_mode",
 ]);
 
 type Row = Record<string, unknown>;
