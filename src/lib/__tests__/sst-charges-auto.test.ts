@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { hasSstPrefix, linkChargesToMissions, shouldAutoClassifySst } from "@/lib/sst-charges";
+import {
+  hasSstPrefix,
+  isSstCharge,
+  linkChargesToMissions,
+  shouldAutoClassifySst,
+} from "@/lib/sst-charges";
 import type { SubcontractorMission } from "@/lib/subcontractors";
 
 const mission = (id: string, date: string, cost: number, archived = false) =>
@@ -108,5 +113,22 @@ describe("qualification de la charge SST", () => {
       [mission("m1", "2026-03-12", 300)],
     );
     expect(links.get("c1")?.missionId).toBe("m1");
+  });
+});
+
+describe("règle SST : toute charge mentionnant SST est comptée", () => {
+  it("désignation ou type SST suffisent, investissements et rémunérations exclus", () => {
+    const base = { kind: "charge", is_investment: false };
+    expect(isSstCharge({ ...base, designation: "SST Junca", charge_category: "Achats" })).toBe(
+      true,
+    );
+    expect(isSstCharge({ ...base, designation: "Carburant", charge_category: "SST" })).toBe(true);
+    expect(isSstCharge({ ...base, designation: "Carburant", charge_category: "Achats" })).toBe(
+      false,
+    );
+    expect(isSstCharge({ ...base, designation: "SST Junca", is_investment: true })).toBe(false);
+    expect(isSstCharge({ kind: "remuneration", designation: "SST", charge_category: "SST" })).toBe(
+      false,
+    );
   });
 });
