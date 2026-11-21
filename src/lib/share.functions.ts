@@ -7,7 +7,6 @@ function assertNotApercu() {
     throw new Error("Aperçu en lecture seule : aucune modification n'est enregistrée.");
   }
 }
-import { createClient } from "@supabase/supabase-js";
 import type { PremiumPlanningDb } from "@/lib/premium-planning-import.server";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPremiumClientName } from "@/lib/premium-client-name";
@@ -137,10 +136,13 @@ export interface SharedPremiumWorkCalendarItem {
 
 const BUCKET = "chantier-photos";
 
-function publicClient() {
-  return createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+/**
+ * Accès serveur uniquement (service role) : les fonctions à jeton ne sont plus exécutables
+ * par le navigateur ni par anon. Le jeton est toujours vérifié dans la fonction SQL.
+ */
+async function serviceDb() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
 }
 
 export interface ClientMessage {
@@ -174,7 +176,9 @@ export const markSharedRead = createServerFn({ method: "POST" })
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
-    const { error } = await publicClient().rpc("mark_shared_read", {
+    const { error } = await (
+      await serviceDb()
+    ).rpc("mark_shared_read", {
       p_token: data.token,
       p_user_agent: ua ?? undefined,
       p_ip: ip ?? undefined,
@@ -193,7 +197,9 @@ export const markRecommendationsViewed = createServerFn({ method: "POST" })
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
-    const { error } = await publicClient().rpc("mark_recommendations_viewed", {
+    const { error } = await (
+      await serviceDb()
+    ).rpc("mark_recommendations_viewed", {
       p_token: data.token,
       p_user_agent: ua ?? undefined,
       p_ip: ip ?? undefined,
@@ -211,7 +217,7 @@ export const markGardenerMessagesRead = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     assertNotApercu();
     // Fonction absente des types générés (migration 20261117140000)
-    const untyped = publicClient() as unknown as {
+    const untyped = (await serviceDb()) as unknown as {
       rpc: (fn: string, args: object) => Promise<{ error: unknown }>;
     };
     const { error } = await untyped.rpc("mark_gardener_messages_read", {
@@ -227,7 +233,9 @@ export const getSharedMessages = createServerFn({ method: "GET" })
     return { token: data.token };
   })
   .handler(async ({ data }): Promise<ClientMessage[]> => {
-    const { data: rows, error } = await publicClient().rpc("get_shared_messages", {
+    const { data: rows, error } = await (
+      await serviceDb()
+    ).rpc("get_shared_messages", {
       p_token: data.token,
     });
     if (error) throw error;
@@ -295,7 +303,9 @@ export const addClientMessage = createServerFn({ method: "POST" })
       }
     };
 
-    const { data: msgId, error } = await publicClient().rpc("add_client_message", {
+    const { data: msgId, error } = await (
+      await serviceDb()
+    ).rpc("add_client_message", {
       p_token: data.token,
       p_intervention_id: data.interventionId as string,
       p_kind: data.kind,
@@ -325,7 +335,9 @@ export const addClientMessage = createServerFn({ method: "POST" })
         );
       }
       // Classé aussi dans « Photos et Documents » ; un échec ici ne bloque pas le message.
-      await publicClient().rpc("add_client_premium_document", {
+      await (
+        await serviceDb()
+      ).rpc("add_client_premium_document", {
         p_token: data.token,
         p_title: `Pièce jointe — ${attachment.filename}`.slice(0, 200),
         p_filename: attachment.filename,
@@ -426,7 +438,9 @@ export const setRecommendationInterest = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     assertNotApercu();
-    const { error } = await publicClient().rpc("set_recommendation_interest", {
+    const { error } = await (
+      await serviceDb()
+    ).rpc("set_recommendation_interest", {
       p_token: data.token,
       p_reco_id: data.recoId,
       p_interest: data.interest,
@@ -441,11 +455,7 @@ export const getSharedClient = createServerFn({ method: "GET" })
     return { token: data.token };
   })
   .handler(async ({ data }): Promise<SharedClientData | null> => {
-    const publicClient = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
+    const publicClient = await serviceDb();
 
     const { data: payload, error } = await publicClient.rpc("get_shared_client", {
       p_token: data.token,
@@ -584,7 +594,9 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!client || client.contract_type !== "Entretien annuel") return null;
 
-    const { data: payload, error } = await publicClient().rpc("get_shared_premium", {
+    const { data: payload, error } = await (
+      await serviceDb()
+    ).rpc("get_shared_premium", {
       p_token: data.token,
     });
     if (error) throw error;
@@ -803,7 +815,9 @@ export const getSharedInterventionPdfUrl = createServerFn({ method: "POST" })
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
-    const { data: payload, error } = await publicClient().rpc("record_shared_report_view", {
+    const { data: payload, error } = await (
+      await serviceDb()
+    ).rpc("record_shared_report_view", {
       p_token: data.token,
       p_intervention_id: data.interventionId,
       p_user_agent: ua ?? undefined,
@@ -1110,7 +1124,9 @@ export const finalizeSharedPremiumDocumentUpload = createServerFn({ method: "POS
       throw new Error("Le fichier n'a pas été reçu par le stockage");
     }
 
-    const { error } = await publicClient().rpc("add_client_premium_document", {
+    const { error } = await (
+      await serviceDb()
+    ).rpc("add_client_premium_document", {
       p_token: data.token,
       p_title: data.title,
       p_filename: data.filename,
