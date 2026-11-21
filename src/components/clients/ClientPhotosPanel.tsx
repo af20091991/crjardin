@@ -156,15 +156,20 @@ export function ClientPhotosPanel({
     mutationFn: async (name: string) => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error("Non authentifié");
+      const id = crypto.randomUUID();
       const { error } = await db()
         .from("client_photo_albums")
-        .insert({ client_id: clientId, user_id: auth.user.id, name });
+        .insert({ id, client_id: clientId, user_id: auth.user.id, name });
       if (error) throw new Error(error.message);
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: async (id) => {
       setAlbumName("");
-      toast.success("Album créé.");
+      toast.success("Album créé. Vous pouvez y importer des photos.");
       refresh();
+      // Attendre la liste à jour, sinon l'effet de vue revient sur « Toutes les photos ».
+      await qc.invalidateQueries({ queryKey: albumsKey });
+      setView(id);
     },
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Création impossible."),
@@ -448,7 +453,7 @@ export function ClientPhotosPanel({
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
             <Upload className="mr-1.5 h-4 w-4" />
-            Importer des photos
+            {currentAlbum ? `Importer dans « ${currentAlbum.name} »` : "Importer des photos"}
           </Button>
           <input
             ref={fileInput}
