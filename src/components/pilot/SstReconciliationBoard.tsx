@@ -9,13 +9,8 @@ import { createCaEntry, listCaEntries, updateCaEntry } from "@/lib/pilot-ca";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { listClients } from "@/lib/clients";
 import { listMissions, listSubcontractors, type SubcontractorMission } from "@/lib/subcontractors";
-import {
-  NO_SHEET_STATUS,
-  RECONCILIATION_YEAR,
-  sstMissionCost,
-  sstReconciliation,
-} from "@/lib/sst-accounting-gap";
-import { shouldAutoClassifySst } from "@/lib/sst-charges";
+import { RECONCILIATION_YEAR, sstMissionCost, sstReconciliation } from "@/lib/sst-accounting-gap";
+import { isSstCharge } from "@/lib/sst-charges";
 
 function isoDateFr(iso: string): string {
   const [y, mo, d] = iso.slice(0, 10).split("-");
@@ -82,34 +77,29 @@ export function SstReconciliationBoard({ year = RECONCILIATION_YEAR }: { year?: 
   );
 
   const kpi = useMemo(() => {
-    const missionCount = yearMissions.length;
     const missionTotal = yearMissions.reduce((s, m) => s + sstMissionCost(m), 0);
-    const sstCharges = charges.filter(
-      (r) =>
-        r.kind === "charge" &&
-        !r.is_investment &&
-        (r.charge_category === "SST" || shouldAutoClassifySst(r)),
-    );
+    const sstCharges = charges.filter((r) => isSstCharge(r) && r.year === year);
     const chargeTotal = sstCharges.reduce((s, r) => s + (Number(r.amount_ht) || 0), 0);
+    const toQualify = sstCharges.filter((r) => !r.sst_mode || !r.client_id).length;
     const missingTotal = reconciliation.missingMissions.reduce((s, m) => s + sstMissionCost(m), 0);
     const noClientPrice = yearMissions.filter((m) => !Number(m.client_price)).length;
     return {
-      missionCount,
+      missionCount: yearMissions.length,
       missionTotal,
       chargeCount: sstCharges.length,
       chargeTotal,
+      toQualify,
       missingTotal,
       noClientPrice,
     };
-  }, [yearMissions, charges, reconciliation]);
+  }, [yearMissions, charges, reconciliation, year]);
 
   if (year !== RECONCILIATION_YEAR) return null;
   if (missionsQ.isLoading || entriesQ.isLoading) {
     return <p className="text-sm text-muted-foreground">Chargement du rapprochement SST…</p>;
   }
 
-  const settled =
-    reconciliation.unlinkedCharges.length === 0 && reconciliation.missingMissions.length === 0;
+  const settled = reconciliation.missingMissions.length === 0;
 
   return (
     <div className="space-y-4">
@@ -117,7 +107,8 @@ export function SstReconciliationBoard({ year = RECONCILIATION_YEAR }: { year?: 
         <div>
           <h3 className="font-serif text-lg font-semibold">Rapprochement SST {year}</h3>
           <p className="text-xs text-muted-foreground">
-            Objectif : chaque mission et chaque charge SST comptée une seule fois.
+            Toute charge SST du Chiffre d'affaires est comptée. Il ne reste qu'à ajouter les
+            missions absentes des charges.
           </p>
         </div>
         {settled ? (
@@ -125,7 +116,7 @@ export function SstReconciliationBoard({ year = RECONCILIATION_YEAR }: { year?: 
             Tout est comptabilisé
           </Badge>
         ) : (
-          <Badge variant="secondary">Décisions à prendre</Badge>
+          <Badge variant="secondary">À finaliser</Badge>
         )}
       </div>
 
@@ -163,31 +154,27 @@ export function SstReconciliationBoard({ year = RECONCILIATION_YEAR }: { year?: 
             <p className="text-xs text-muted-foreground">Absentes des charges</p>
           </CardContent>
         </Card>
-        <Card className={kpi.noClientPrice > 0 ? "border-amber-300" : undefined}>
+        <Card className={kpi.toQualify > 0 ? "border-amber-300" : undefined}>
           <CardHeader className="pb-1">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Missions sans prix client ({kpi.noClientPrice})
+              Charges à qualifier
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-semibold">{kpi.noClientPrice}</div>
-            <p className="text-xs text-muted-foreground">Marge incomplète tant que non renseigné</p>
+            <div className="text-xl font-semibold">{kpi.toQualify}</div>
+            <p className="text-xs text-muted-foreground">
+              Autonomie ou client manquant (fenêtre dans Chiffre d'affaires) · {kpi.noClientPrice}{" "}
+              mission(s) sans prix client
+            </p>
           </CardContent>
         </Card>
       </div>
 
       <SstReconciliationCard
         year={year}
-        reconciliation={reconciliation}
-        chargeLabel={(row) =>
-          `${String(row.month).padStart(2, "0")}/${row.year} · ${row.designation ?? "Charge SST"}`
-        }
+        missingMissions={reconciliation.missingMissions}
         missionLabel={missionLabel}
-        busy={updateMut.isPending || createMut.isPending}
-        onMode={(chargeId, mode) => updateMut.mutate({ id: chargeId, input: { sst_mode: mode } })}
-        onNoSheet={(chargeId) =>
-          updateMut.mutate({ id: chargeId, input: { match_status: NO_SHEET_STATUS } })
-        }
+        busy={createMut.isPending}
         onAddCharge={(m) => {
           const [y, mo] = m.mission_date.slice(0, 10).split("-").map(Number);
           createMut.mutate({

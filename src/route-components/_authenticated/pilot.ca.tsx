@@ -4,7 +4,7 @@ import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRole } from "@/hooks/use-role";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
-import { linkChargesToMissions, shouldAutoClassifySst } from "@/lib/sst-charges";
+import { isSstCharge, linkChargesToMissions, shouldAutoClassifySst } from "@/lib/sst-charges";
 import { NO_SHEET_STATUS } from "@/lib/sst-accounting-gap";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -488,7 +488,7 @@ function CaPage() {
           e.kind === "charge" &&
           !e.is_investment &&
           !e.is_fixed &&
-          (e.charge_category === "SST" || shouldAutoClassifySst(e)) &&
+          isSstCharge(e) &&
           (!e.sst_mode || !e.client_id),
       ),
     [entries],
@@ -532,9 +532,7 @@ function CaPage() {
   // Liaison charges SST ↔ missions SST (même mois, même montant) avec détection des doublons.
   const sstChargeLinks = useMemo(() => {
     const sstCharges = entries
-      .filter(
-        (e) => e.kind === "charge" && (e.charge_category === "SST" || shouldAutoClassifySst(e)),
-      )
+      .filter((e) => isSstCharge(e))
       .map((e) => ({
         id: e.id,
         year: e.year,

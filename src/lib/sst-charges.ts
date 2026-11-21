@@ -46,6 +46,22 @@ export function shouldAutoClassifySst(row: {
   return !PROTECTED_CATEGORIES.has((row.charge_category ?? "").trim());
 }
 
+/**
+ * Règle SST : une charge du Chiffre d'affaires est SST dès que sa désignation ou son type
+ * (« Charge SST ») la mentionne. Elle est comptabilisée telle quelle, sans rattachement.
+ * Les charges d'investissement et de rémunération sont exclues.
+ */
+export function isSstCharge(row: {
+  kind?: string | null;
+  designation?: string | null;
+  charge_category?: string | null;
+  is_investment?: boolean | null;
+}): boolean {
+  if (row.kind && row.kind !== "charge") return false;
+  if (row.is_investment) return false;
+  return mentionsSst(row.designation) || (row.charge_category ?? "").trim() === "SST";
+}
+
 export interface SstChargeMissionLink {
   missionId: string | null;
   /** Conservé pour compatibilité : une charge n'est jamais exclue, même si sa mission est déjà rattachée. */
@@ -181,10 +197,7 @@ export function sstChargeLines(params: {
   );
 
   return chargeRows
-    .filter(
-      (r) =>
-        !r.is_investment && (isSubcontractingLabel(r.designation) || r.charge_category === "SST"),
-    )
+    .filter((r) => isSstCharge(r))
     .filter((r) => (year === "all" ? true : r.year === year))
     .map((r) => {
       const designation = r.designation ?? "";

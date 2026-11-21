@@ -1,5 +1,5 @@
 import type { SubcontractorMission } from "@/lib/subcontractors";
-import { shouldAutoClassifySst, linkChargesToMissions } from "@/lib/sst-charges";
+import { isSstCharge, linkChargesToMissions } from "@/lib/sst-charges";
 
 /** Exercice suivi pour le rapprochement SST. */
 export const RECONCILIATION_YEAR = 2026;
@@ -83,11 +83,7 @@ export function sstReconciliation(params: {
     (m) => !m.archived_at && Number(m.mission_date.slice(0, 4)) === year,
   );
   const sstCharges = charges.filter(
-    (r) =>
-      r.kind === "charge" &&
-      !r.is_investment &&
-      r.year === year &&
-      (r.charge_category === "SST" || shouldAutoClassifySst(r)),
+    (r) => r.kind === "charge" && !r.is_investment && r.year === year && isSstCharge(r),
   );
   const auto = linkChargesToMissions(
     sstCharges.map((r) => ({
