@@ -507,15 +507,14 @@ function CaPage() {
       .filter(
         (e) => e.kind === "charge" && (e.charge_category === "SST" || shouldAutoClassifySst(e)),
       )
-      .map((e) => ({ id: e.id, year: e.year, month: e.month, amount: Number(e.amount_ht) || 0 }));
-    const links = linkChargesToMissions(sstCharges, sstMissionsQ.data ?? []);
-    // Un rattachement manuel prime sur la correspondance automatique (mois + montant).
-    for (const e of entries) {
-      if (e.subcontractor_mission_id && links.has(e.id)) {
-        links.set(e.id, { missionId: e.subcontractor_mission_id, duplicate: false });
-      }
-    }
-    return links;
+      .map((e) => ({
+        id: e.id,
+        year: e.year,
+        month: e.month,
+        amount: Number(e.amount_ht) || 0,
+        manualMissionId: e.subcontractor_mission_id ?? null,
+      }));
+    return linkChargesToMissions(sstCharges, sstMissionsQ.data ?? []);
   }, [entries, sstMissionsQ.data]);
   const sstMissionLabel = (missionId: string) => {
     const m = (sstMissionsQ.data ?? []).find((x) => x.id === missionId);

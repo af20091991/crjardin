@@ -94,6 +94,7 @@ export function sstReconciliation(params: {
       year: r.year,
       month: r.month,
       amount: Number(r.amount_ht) || 0,
+      manualMissionId: r.subcontractor_mission_id ?? null,
     })),
     yearMissions,
   );
