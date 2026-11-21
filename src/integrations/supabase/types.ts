@@ -2444,6 +2444,7 @@ export type Database = {
           month: number;
           net_amount_ht: number | null;
           subcontractor_mission_id: string | null;
+          sst_mode: string | null;
           note: string | null;
           position: number;
           raw_category: string | null;
@@ -2484,6 +2485,7 @@ export type Database = {
           month: number;
           net_amount_ht?: number | null;
           subcontractor_mission_id?: string | null;
+          sst_mode?: string | null;
           note?: string | null;
           position?: number;
           raw_category?: string | null;
@@ -2524,6 +2526,7 @@ export type Database = {
           month?: number;
           net_amount_ht?: number | null;
           subcontractor_mission_id?: string | null;
+          sst_mode?: string | null;
           note?: string | null;
           position?: number;
           raw_category?: string | null;

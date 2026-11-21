@@ -92,3 +92,21 @@ describe("sous-traitance accompagnée", () => {
     expect(links.get("c1")).toEqual({ missionId: null, duplicate: false });
   });
 });
+
+describe("qualification de la charge SST", () => {
+  it("une charge « chantier » (accompagnée) ne se rattache jamais à une mission", () => {
+    const links = linkChargesToMissions(
+      [{ id: "c1", year: 2026, month: 3, amount: 300, sstMode: "accompagnee" }],
+      [mission("m1", "2026-03-12", 300)],
+    );
+    expect(links.get("c1")).toEqual({ missionId: null, duplicate: false });
+  });
+
+  it("une charge autonome se rattache à la mission du même mois", () => {
+    const links = linkChargesToMissions(
+      [{ id: "c1", year: 2026, month: 3, amount: 300, sstMode: "autonome" }],
+      [mission("m1", "2026-03-12", 300)],
+    );
+    expect(links.get("c1")?.missionId).toBe("m1");
+  });
+});

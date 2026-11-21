@@ -68,6 +68,8 @@ export interface CaEntry {
   match_status?: MatchStatusValue | null;
   /** Mission SST rattachée à la ligne de charge (rapprochement SST). */
   subcontractor_mission_id?: string | null;
+  /** Qualification SST : autonome (prestataire seul) ou chantier. null = à qualifier. */
+  sst_mode?: "autonome" | "accompagnee" | null;
   sale_status?: SaleStatusValue;
   /** Classification de charge utilisée par la page Chiffre d'affaires. */
   charge_category?: string | null;
@@ -97,6 +99,7 @@ export type CaEntryInput = {
   is_investment?: boolean | null;
   match_status?: MatchStatusValue | null;
   subcontractor_mission_id?: string | null;
+  sst_mode?: "autonome" | "accompagnee" | null;
 };
 
 /**

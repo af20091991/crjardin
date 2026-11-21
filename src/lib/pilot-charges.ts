@@ -40,6 +40,8 @@ export interface ChargeRow {
   is_investment: boolean;
   /** Mission SST rattachée explicitement à la ligne (rapprochement SST). */
   subcontractor_mission_id?: string | null;
+  /** Qualification SST de la charge : autonome, chantier, ou null (à qualifier). */
+  sst_mode?: string | null;
 }
 
 type RawRow = {
@@ -53,6 +55,7 @@ type RawRow = {
   charge_category: string | null;
   is_investment?: boolean | null;
   subcontractor_mission_id?: string | null;
+  sst_mode?: string | null;
 };
 
 async function fetchAll(kinds: string[]): Promise<RawRow[]> {
@@ -65,7 +68,7 @@ async function fetchAll(kinds: string[]): Promise<RawRow[]> {
       .select(
         // pilot_ca_entries ne possède PAS de colonne entry_date : la date de
         // référence d'une charge est son couple year/month (règle centrale).
-        "id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment,subcontractor_mission_id",
+        "id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment,subcontractor_mission_id,sst_mode",
       )
       .in("kind", kinds)
       .range(from, from + pageSize - 1);
@@ -93,6 +96,7 @@ export async function listChargeRows(): Promise<ChargeRow[]> {
     kind: r.kind === "remuneration" ? "remuneration" : "charge",
     is_investment: Boolean(r.is_investment),
     subcontractor_mission_id: r.subcontractor_mission_id ?? null,
+    sst_mode: r.sst_mode ?? null,
   }));
 }
 

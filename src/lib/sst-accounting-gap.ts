@@ -58,6 +58,7 @@ export interface SstReconciliationCharge {
   charge_category?: string | null;
   subcontractor_mission_id?: string | null;
   match_status?: string | null;
+  sst_mode?: string | null;
 }
 
 export interface SstReconciliation {
@@ -95,6 +96,7 @@ export function sstReconciliation(params: {
       month: r.month,
       amount: Number(r.amount_ht) || 0,
       manualMissionId: r.subcontractor_mission_id ?? null,
+      sstMode: (r.sst_mode as "autonome" | "accompagnee" | null) ?? null,
     })),
     yearMissions,
   );

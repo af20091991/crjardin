@@ -50,6 +50,8 @@ import {
 import { investmentsTotal, resultAfterInvestments } from "@/lib/pilot-ca-investments";
 import { CaSection } from "@/components/pilot/CaSection";
 import { ClientPicker } from "@/components/pilot/ClientPicker";
+import { SstModeToggle } from "@/components/pilot/SstModeToggle";
+import { SstChargeDialog } from "@/components/pilot/SstChargeDialog";
 import { listClients } from "@/lib/clients";
 import {
   INTERVENTION_KINDS,
@@ -474,6 +476,8 @@ function CaPage() {
     return null;
   };
 
+  // Fenêtre SST : ouverte quand une charge reçoit la catégorie « SST ».
+  const [sstDialogRow, setSstDialogRow] = useState<CaEntry | null>(null);
   const saveChargeType = (
     row: CaEntry & { charge_category?: string | null; charge_class?: string | null },
     type: ChargeType,
@@ -513,6 +517,7 @@ function CaPage() {
         month: e.month,
         amount: Number(e.amount_ht) || 0,
         manualMissionId: e.subcontractor_mission_id ?? null,
+        sstMode: e.sst_mode ?? null,
       }));
     return linkChargesToMissions(sstCharges, sstMissionsQ.data ?? []);
   }, [entries, sstMissionsQ.data]);
@@ -775,6 +780,30 @@ function CaPage() {
             }
           />
         </div>
+      )}
+
+      {sstDialogRow && (
+        <SstChargeDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setSstDialogRow(null);
+          }}
+          designation={sstDialogRow.designation}
+          clients={clients}
+          initialClientId={sstDialogRow.client_id ?? null}
+          initialMode={sstDialogRow.sst_mode ?? null}
+          onConfirm={({ sst_mode, client_id }) => {
+            const meta = CHARGE_TYPE_META.SST;
+            save(sstDialogRow.id, {
+              charge_category: "SST",
+              charge_class: meta.charge_class,
+              is_investment: meta.is_investment,
+              sst_mode,
+              client_id,
+            });
+            setSstDialogRow(null);
+          }}
+        />
       )}
 
       {/*
@@ -1392,7 +1421,7 @@ function CaPage() {
                                         </DropdownMenuSub>
                                         <DropdownMenuItem
                                           title="Sous-traitance : classée automatiquement quand la désignation commence par « SST »."
-                                          onSelect={() => saveChargeType(typedRow, "SST")}
+                                          onSelect={() => setSstDialogRow(typedRow)}
                                         >
                                           SST
                                         </DropdownMenuItem>
@@ -1432,6 +1461,13 @@ function CaPage() {
                                         Aucune mission SST correspondante
                                       </p>
                                     ) : null}
+                                    {selectedType === "SST" && (
+                                      <SstModeToggle
+                                        value={row.sst_mode}
+                                        disabled={!canEditCa}
+                                        onChange={(mode) => save(row.id, { sst_mode: mode })}
+                                      />
+                                    )}
                                   </div>
                                 );
                               })()
