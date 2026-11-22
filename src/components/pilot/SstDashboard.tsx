@@ -381,62 +381,6 @@ export function SstDashboard() {
         </Button>
       </div>
 
-      {/* À traiter */}
-      {todoCount === 0 ? (
-        <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50/60 px-4 py-2 text-sm text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300">
-          <CheckCircle2 className="h-4 w-4" /> Aucune donnée SST à traiter.
-        </div>
-      ) : (
-        <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />À traiter ({todoCount})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-5">
-            <TodoItem
-              label="Missions non comptabilisées"
-              count={reconciliation.missingMissions.length}
-              amount={missingTotal}
-              hint={year === RECONCILIATION_YEAR ? "Rapprochement ci-dessous" : undefined}
-            />
-            <TodoItem
-              label="Charges à qualifier"
-              count={toQualify}
-              hint="Autonomie et client : fenêtre dans Chiffre d'affaires"
-            />
-            <TodoItem
-              label="Missions sans client"
-              count={pendingClients.length}
-              amount={pendingClientsTotal}
-              hint="Rattachez le client dans la fiche mission"
-            />
-            <TodoItem
-              label="Doublons possibles"
-              count={duplicates.length}
-              amount={duplicatesTotal}
-              hint="Même libellé et montant sur plusieurs années"
-            />
-            <TodoItem
-              label="Charges sans fiche"
-              count={orphanLines.length}
-              amount={orphanTotal}
-              hint="Comptées dans le coût, hors marge"
-              action={
-                orphanLines.length > 0 ? (
-                  <Button size="sm" variant="outline" onClick={() => setCreateOpen(true)}>
-                    <Plus className="mr-1 h-3.5 w-3.5" /> Créer une fiche
-                  </Button>
-                ) : undefined
-              }
-            />
-          </CardContent>
-        </Card>
-      )}
-      {year === RECONCILIATION_YEAR && reconciliation.missingMissions.length > 0 && (
-        <SstReconciliationBoard />
-      )}
-
       {!hasData && (
         <EmptyState
           title="Aucune mission SST sur cette période."
@@ -621,6 +565,62 @@ export function SstDashboard() {
           </CardContent>
         </Card>
       </section>
+
+      {/* À traiter */}
+      {todoCount === 0 ? (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50/60 px-4 py-2 text-sm text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300">
+          <CheckCircle2 className="h-4 w-4" /> Aucune donnée SST à traiter.
+        </div>
+      ) : (
+        <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />À traiter ({todoCount})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-5">
+            <TodoItem
+              label="Missions non comptabilisées"
+              count={reconciliation.missingMissions.length}
+              amount={missingTotal}
+              hint={year === RECONCILIATION_YEAR ? "Rapprochement ci-dessous" : undefined}
+            />
+            <TodoItem
+              label="Charges à qualifier"
+              count={toQualify}
+              hint="Autonomie et client : fenêtre dans Chiffre d'affaires"
+            />
+            <TodoItem
+              label="Missions sans client"
+              count={pendingClients.length}
+              amount={pendingClientsTotal}
+              hint="Rattachez le client dans la fiche mission"
+            />
+            <TodoItem
+              label="Doublons possibles"
+              count={duplicates.length}
+              amount={duplicatesTotal}
+              hint="Même libellé et montant sur plusieurs années"
+            />
+            <TodoItem
+              label="Charges sans fiche"
+              count={orphanLines.length}
+              amount={orphanTotal}
+              hint="Comptées dans le coût, hors marge"
+              action={
+                orphanLines.length > 0 ? (
+                  <Button size="sm" variant="outline" onClick={() => setCreateOpen(true)}>
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Créer une fiche
+                  </Button>
+                ) : undefined
+              }
+            />
+          </CardContent>
+        </Card>
+      )}
+      {year === RECONCILIATION_YEAR && reconciliation.missingMissions.length > 0 && (
+        <SstReconciliationBoard />
+      )}
 
       <SstCreateMissionDialog
         open={createOpen}
