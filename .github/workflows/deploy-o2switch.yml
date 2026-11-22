@@ -11,6 +11,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -42,6 +43,10 @@ jobs:
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
             set ssl:verify-certificate no;
+            set ftp:passive-mode true;
+            set net:timeout 30;
+            set net:max-retries 3;
+            set cmd:fail-exit true;
             open -u '$FTP_USER','$FTP_PASSWORD' ftp://$FTP_HOST:21;
-            mirror -R --verbose .output/ ${FTP_DIR:-/};
+            mirror -R --verbose --parallel=2 --only-newer .output/ ${FTP_DIR:-/};
             bye"
