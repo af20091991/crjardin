@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Plus } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +89,62 @@ function Kpi({
   );
 }
 
+type ProviderSortKey =
+  | "name"
+  | "missions"
+  | "cost"
+  | "orphan"
+  | "total"
+  | "revenue"
+  | "margin"
+  | "marginPct";
+type SortDir = "asc" | "desc";
+
+const SORT_COLUMNS: { key: ProviderSortKey; label: string; align: "left" | "right" }[] = [
+  { key: "name", label: "Sous-traitant", align: "left" },
+  { key: "missions", label: "Missions", align: "right" },
+  { key: "cost", label: "Coût fiches", align: "right" },
+  { key: "orphan", label: "Sans fiche", align: "right" },
+  { key: "total", label: "Coût total", align: "right" },
+  { key: "revenue", label: "CA client", align: "right" },
+  { key: "margin", label: "Marge", align: "right" },
+  { key: "marginPct", label: "Taux", align: "right" },
+];
+
+function SortHeader({
+  label,
+  align,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string;
+  align: "left" | "right";
+  active: boolean;
+  dir: SortDir;
+  onClick: () => void;
+}) {
+  const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+      className={`px-3 py-3 font-medium first:pl-5 last:pr-5 ${align === "right" ? "text-right" : "text-left"}`}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        className={`inline-flex items-center gap-1 rounded hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${align === "right" ? "w-full justify-end" : ""}`}
+      >
+        {label}
+        <Icon
+          className={`h-3.5 w-3.5 ${active ? "text-primary" : "opacity-40"}`}
+          aria-hidden="true"
+        />
+      </button>
+    </th>
+  );
+}
+
 const INSIGHT_ICON: Record<SstInsight["tone"], string> = {
   positive: "bg-emerald-500",
   warning: "bg-amber-500",
@@ -98,6 +154,10 @@ const INSIGHT_ICON: Record<SstInsight["tone"], string> = {
 export function SstDashboard() {
   const { year, mode, period } = usePilotScope();
   const [createOpen, setCreateOpen] = useState(false);
+  const [providerSort, setProviderSort] = useState<{ key: ProviderSortKey; dir: SortDir }>({
+    key: "total",
+    dir: "desc",
+  });
 
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const sstsQ = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
@@ -202,6 +262,29 @@ export function SstDashboard() {
       }))
       .sort((a, b) => b.total - a.total);
   }, [scopedRows, orphanStats]);
+
+  const sortedProviders = useMemo(() => {
+    const { key, dir } = providerSort;
+    const sign = dir === "asc" ? 1 : -1;
+    return [...providerTable].sort((a, b) => {
+      if (key === "name") return sign * a.name.localeCompare(b.name, "fr");
+      if (key === "marginPct") {
+        // Les taux absents restent en bas, quel que soit le sens.
+        if (a.marginPct == null && b.marginPct == null) return 0;
+        if (a.marginPct == null) return 1;
+        if (b.marginPct == null) return -1;
+        return sign * (a.marginPct - b.marginPct);
+      }
+      return sign * (a[key] - b[key]);
+    });
+  }, [providerTable, providerSort]);
+
+  const toggleProviderSort = (key: ProviderSortKey) =>
+    setProviderSort((cur) =>
+      cur.key === key
+        ? { key, dir: cur.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: key === "name" ? "asc" : "desc" },
+    );
 
   const monthly = useMemo(() => {
     const map = new Map<
@@ -597,18 +680,20 @@ export function SstDashboard() {
                 <table className="w-full text-sm">
                   <thead className="border-b bg-muted/30">
                     <tr>
-                      <th className="px-5 py-3 text-left">Sous-traitant</th>
-                      <th className="px-3 py-3 text-right">Missions</th>
-                      <th className="px-3 py-3 text-right">Coût fiches</th>
-                      <th className="px-3 py-3 text-right">Sans fiche</th>
-                      <th className="px-3 py-3 text-right">Coût total</th>
-                      <th className="px-3 py-3 text-right">CA client</th>
-                      <th className="px-3 py-3 text-right">Marge</th>
-                      <th className="px-5 py-3 text-right">Taux</th>
+                      {SORT_COLUMNS.map((c) => (
+                        <SortHeader
+                          key={c.key}
+                          label={c.label}
+                          align={c.align}
+                          active={providerSort.key === c.key}
+                          dir={providerSort.dir}
+                          onClick={() => toggleProviderSort(c.key)}
+                        />
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {providerTable.map((p) => (
+                    {sortedProviders.map((p) => (
                       <tr key={p.name} className="border-b last:border-0">
                         <td className="px-5 py-3 font-medium">{p.name}</td>
                         <td className="px-3 py-3 text-right tabular-nums">{p.missions}</td>
