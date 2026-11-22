@@ -38,9 +38,10 @@ jobs:
           FTP_DIR: ${{ secrets.FTP_DIR }}
         run: |
           test -f .output/server/index.mjs || { echo "Build introuvable : .output/server/index.mjs"; exit 1; }
-          lftp -u "$FTP_USER","$FTP_PASSWORD" -e "
+          lftp -e "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
             set ssl:verify-certificate yes;
+            open -u \"$FTP_USER\",\"$FTP_PASSWORD\" ftp://$FTP_HOST:21;
             mirror -R --verbose .output/ ${FTP_DIR:-/};
-            bye" "ftp://$FTP_HOST:21"
+            bye"
