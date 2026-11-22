@@ -233,8 +233,6 @@ export function SstDashboard() {
         .slice(0, 10),
     [scopedRows],
   );
-  const prestations = useMemo(() => byPrestation(scopedRows).slice(0, 10), [scopedRows]);
-
   const autonomy = useMemo(() => {
     let autonome = 0;
     let chantier = 0;
@@ -317,28 +315,6 @@ export function SstDashboard() {
     [monthly],
   );
 
-  const providerDatasets = useMemo<FlexDataset[]>(
-    () => [
-      {
-        id: "cout-sous-traitant",
-        label: "Coût par sous-traitant",
-        unit: "euro",
-        categoryLabel: "Sous-traitant",
-        series: [
-          { key: "fiches", label: "Sur fiches", color: PP_COLORS.charges },
-          { key: "orphan", label: "Charges sans fiche", color: PP_COLORS.warning },
-        ],
-        rows: providerTable.slice(0, 12).map((p) => ({
-          name: p.name,
-          fiches: p.cost,
-          orphan: p.orphan,
-        })),
-        note: "Coût SST total par sous-traitant : missions avec fiche et charges sans fiche.",
-      },
-    ],
-    [providerTable],
-  );
-
   const clientDatasets = useMemo<FlexDataset[]>(
     () => [
       {
@@ -357,25 +333,6 @@ export function SstDashboard() {
     [clientsTop],
   );
 
-  const prestationDatasets = useMemo<FlexDataset[]>(
-    () => [
-      {
-        id: "prestations",
-        label: "Coût et marge par prestation",
-        unit: "euro",
-        categoryLabel: "Prestation",
-        series: [
-          { key: "cost", label: "Coût SST", color: PP_COLORS.charges },
-          { key: "margin", label: "Marge", color: PP_COLORS.primary },
-        ],
-        rows: prestations.map((p) => ({ name: p.key, cost: p.cost, margin: p.margin })),
-        note: "Les 10 prestations les plus coûteuses. Coût des fiches uniquement.",
-      },
-    ],
-    [prestations],
-  );
-
-  // Toutes années : évolution annuelle et répartition hors filtre d'exercice.
   const allChargeLines = useMemo(
     () => sstChargeLines({ chargeRows: chargeRowsQ.data ?? [], missions, clients, year: "all" }),
     [chargeRowsQ.data, missions, clients],
@@ -474,48 +431,6 @@ export function SstDashboard() {
       },
     ],
     [missionsByMonth],
-  );
-
-  const modeDatasets = useMemo<FlexDataset[]>(
-    () => [
-      {
-        id: "mode",
-        label: "Autonome / chantier",
-        unit: "nombre",
-        categoryLabel: "Mois",
-        series: [
-          { key: "autonome", label: "Autonome", color: PP_COLORS.primary },
-          { key: "chantier", label: "Chantier", color: PP_COLORS.warning },
-          { key: "nonClassee", label: "Non classée", color: PP_COLORS.neutral },
-        ],
-        rows: modeMix.map((m) => ({
-          name: monthLabel(m.key),
-          autonome: m.autonome,
-          chantier: m.chantier,
-          nonClassee: m.nonClassee,
-        })),
-        note: "Nombre de missions par mois selon le mode : autonome, accompagnée sur chantier, ou non encore classée.",
-      },
-    ],
-    [modeMix],
-  );
-
-  const hoursDatasets = useMemo<FlexDataset[]>(
-    () => [
-      {
-        id: "heures",
-        label: "Heures économisées / réalisées",
-        unit: "heure",
-        categoryLabel: "Sous-traitant",
-        series: [
-          { key: "saved", label: "Économisées", color: PP_COLORS.sales },
-          { key: "realized", label: "Réalisées par le SST", color: PP_COLORS.charges },
-        ],
-        rows: hoursBySub.map((h) => ({ name: h.name, saved: h.saved, realized: h.realized })),
-        note: "Heures économisées (saisies) face aux heures réalisées par chaque sous-traitant. Les 8 premiers par heures économisées.",
-      },
-    ],
-    [hoursBySub],
   );
 
   const loading = missionsQ.isLoading || sstsQ.isLoading || clientsQ.isLoading;
@@ -648,13 +563,6 @@ export function SstDashboard() {
           defaultType="courbe"
         />
         <PilotFlexChart
-          title="Coût par sous-traitant"
-          subtitle="Sur fiches et charges sans fiche"
-          datasets={providerDatasets}
-          storageKey="sst-dashboard:sous-traitants"
-          defaultType="barres_h"
-        />
-        <PilotFlexChart
           title="Clients les plus sous-traités"
           subtitle="CA et marge par client"
           datasets={clientDatasets}
@@ -662,32 +570,11 @@ export function SstDashboard() {
           defaultType="barres_h"
         />
         <PilotFlexChart
-          title="Coût et marge par prestation"
-          subtitle="Où la sous-traitance coûte le plus"
-          datasets={prestationDatasets}
-          storageKey="sst-dashboard:prestations"
-          defaultType="barres"
-        />
-        <PilotFlexChart
           title="Missions par mois et par sous-traitant"
           subtitle="Charge de travail sous-traitée"
           datasets={missionsMonthDatasets}
           storageKey="sst-dashboard:missions-mois"
           defaultType="barres_empilees"
-        />
-        <PilotFlexChart
-          title="Autonome / chantier dans le temps"
-          subtitle="Répartition mensuelle des missions"
-          datasets={modeDatasets}
-          storageKey="sst-dashboard:mode"
-          defaultType="barres_empilees"
-        />
-        <PilotFlexChart
-          title="Heures économisées vs réalisées"
-          subtitle="Par sous-traitant"
-          datasets={hoursDatasets}
-          storageKey="sst-dashboard:heures"
-          defaultType="barres_groupees"
         />
       </section>
 
@@ -766,6 +653,92 @@ export function SstDashboard() {
                   </div>
                 </div>
               ))
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Activité : répartition et heures en tableaux */}
+      <section aria-label="Activité" className="grid gap-5 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Autonome / chantier par mois</CardTitle>
+            <p className="text-xs text-muted-foreground">Nombre de missions, 12 derniers mois.</p>
+          </CardHeader>
+          <CardContent className="p-0">
+            {modeMix.length === 0 ? (
+              <p className="px-5 pb-5 text-sm text-muted-foreground">
+                Aucune mission sur la période.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-muted/30">
+                    <tr>
+                      <th className="px-5 py-3 text-left">Mois</th>
+                      <th className="px-3 py-3 text-right">Autonome</th>
+                      <th className="px-3 py-3 text-right">Chantier</th>
+                      <th className="px-5 py-3 text-right">Non classée</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modeMix
+                      .slice(-12)
+                      .reverse()
+                      .map((m) => (
+                        <tr key={m.key} className="border-b last:border-0">
+                          <td className="px-5 py-3 font-medium tabular-nums">
+                            {monthLabel(m.key)}
+                          </td>
+                          <td className="px-3 py-3 text-right tabular-nums">{m.autonome}</td>
+                          <td className="px-3 py-3 text-right tabular-nums">{m.chantier}</td>
+                          <td className="px-5 py-3 text-right tabular-nums">{m.nonClassee}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Heures économisées vs réalisées</CardTitle>
+            <p className="text-xs text-muted-foreground">Par sous-traitant, 8 premiers.</p>
+          </CardHeader>
+          <CardContent className="p-0">
+            {hoursBySub.length === 0 ? (
+              <p className="px-5 pb-5 text-sm text-muted-foreground">
+                Aucune heure saisie sur la période.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-muted/30">
+                    <tr>
+                      <th className="px-5 py-3 text-left">Sous-traitant</th>
+                      <th className="px-3 py-3 text-right">Missions</th>
+                      <th className="px-3 py-3 text-right">Économisées</th>
+                      <th className="px-5 py-3 text-right">Réalisées</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hoursBySub.map((h) => (
+                      <tr key={h.name} className="border-b last:border-0">
+                        <td className="px-5 py-3 font-medium">{h.name}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{h.missions}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {formatHours(h.saved)}
+                        </td>
+                        <td className="px-5 py-3 text-right tabular-nums">
+                          {formatHours(h.realized)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>
