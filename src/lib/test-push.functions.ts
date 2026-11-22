@@ -40,8 +40,9 @@ export const sendTestPush = createServerFn({ method: "POST" })
 
     const { sent, invalid } = await sendPush(sa, tokens, {
       title: "Test de notification APK PUSH",
-      body: "Si vous voyez ceci sur votre téléphone, les notifications fonctionnent.",
-      url: "/",
+      body: "Touchez cette notification : l'application doit ouvrir la page SST.",
+      // Page distincte de l'accueil : si l'app était déjà sur « / », le toucher ne se voit pas.
+      url: "/pilot/sst",
     });
     if (invalid.length > 0) {
       await db.from("push_tokens").delete().in("token", invalid);
