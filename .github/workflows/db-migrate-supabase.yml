@@ -1,0 +1,29 @@
+name: DB migrations (Supabase wdygs)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: db-migrate-supabase
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: wdygsbmivqxvgkgpbrqc
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Lier le projet
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Appliquer toutes les migrations (dans l'ordre, celles non encore appliquées)
+        run: supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
