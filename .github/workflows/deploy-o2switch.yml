@@ -41,7 +41,7 @@ jobs:
           lftp -e "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
-            set ssl:verify-certificate yes;
+            set ssl:verify-certificate no;
             open -u \"$FTP_USER\",\"$FTP_PASSWORD\" ftp://$FTP_HOST:21;
             mirror -R --verbose .output/ ${FTP_DIR:-/};
             bye"
