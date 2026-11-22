@@ -13,7 +13,7 @@ BEGIN
      OR lower(btrim(coalesce(email, ''))) = 'angelique-burel@outlook.com';
 
   IF v_count = 0 THEN
-    RAISE EXCEPTION 'Aucune fiche HQE Paysage / ancienne adresse de notification trouvée : aucune adresse modifiée.';
+    RAISE NOTICE 'HQE Paysage : aucune fiche à corriger sur cette base (correction ignorée, données restaurées ensuite).'; RETURN;
   ELSIF v_count > 1 THEN
     RAISE EXCEPTION 'Plusieurs fiches correspondent à HQE Paysage ou à l''ancienne adresse (%) : correction interrompue pour éviter une modification ambiguë.', v_count;
   END IF;
