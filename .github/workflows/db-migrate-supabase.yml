@@ -27,4 +27,4 @@ jobs:
         run: |
           PASS_ENC=$(python3 -c 'import urllib.parse,os;print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"],safe=""))')
           DB_URL="postgresql://postgres.${SUPABASE_PROJECT_REF}:${PASS_ENC}@${SUPABASE_POOLER_HOST}:5432/postgres"
-          supabase db push --db-url "$DB_URL" --include-all
+          supabase db push --db-url "$DB_URL" --include-all --yes
