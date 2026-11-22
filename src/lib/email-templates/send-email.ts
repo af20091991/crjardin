@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render } from '@react-email/render'
-import { EmailAPIError, sendLovableEmail } from '@lovable.dev/email-js'
+import { EmailAPIError, sendLovableEmail } from "@/lib/mail/send-mail"
 import { TEMPLATES } from './registry'
 
 // Server-only: reads LOVABLE_API_KEY. Never import from client components.

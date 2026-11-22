@@ -1,6 +1,6 @@
 import { render } from "@react-email/render";
 import React from "react";
-import { sendLovableEmail, EmailAPIError } from "@lovable.dev/email-js";
+import { sendLovableEmail, EmailAPIError } from "@/lib/mail/send-mail";
 import { resolvePremiumClientIdentity } from "@/lib/premium-client-name";
 
 const FROM = "De la graine au jardin <contact@delagraineaujardin.com>";
