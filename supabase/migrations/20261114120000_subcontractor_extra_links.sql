@@ -28,7 +28,11 @@ REVOKE ALL ON FUNCTION public.auth_subcontractor_ids(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.auth_subcontractor_ids(uuid) TO authenticated;
 
 -- Compte commercial@delagraineaujardin.com : vue cumulée Chloé + Fanny
-INSERT INTO public.subcontractor_extra_links (auth_user_id, subcontractor_id) VALUES
-  ('9114e931-9283-405c-ba23-12f872b31c0b', 'b068eca5-e7f9-4de4-a84c-f85aa21b238b'),
-  ('9114e931-9283-405c-ba23-12f872b31c0b', 'ebe0a4dc-5904-4902-882b-5894ca8a0d8d')
+INSERT INTO public.subcontractor_extra_links (auth_user_id, subcontractor_id)
+SELECT v.a, v.s FROM (VALUES
+  ('9114e931-9283-405c-ba23-12f872b31c0b'::uuid, 'b068eca5-e7f9-4de4-a84c-f85aa21b238b'::uuid),
+  ('9114e931-9283-405c-ba23-12f872b31c0b'::uuid, 'ebe0a4dc-5904-4902-882b-5894ca8a0d8d'::uuid)
+) AS v(a, s)
+WHERE EXISTS (SELECT 1 FROM auth.users u WHERE u.id = v.a)
+  AND EXISTS (SELECT 1 FROM public.subcontractors x WHERE x.id = v.s)
 ON CONFLICT DO NOTHING;
