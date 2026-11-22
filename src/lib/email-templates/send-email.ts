@@ -19,7 +19,7 @@ export type SendTemplateEmailResult =
   | { sent: false; reason: "recipient_suppressed" };
 
 export interface SendTemplateEmailOptions {
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>;
   /** Dedupes retries of the same logical send; defaults to a random UUID (no dedupe). */
   idempotencyKey?: string;
   replyTo?: string;
