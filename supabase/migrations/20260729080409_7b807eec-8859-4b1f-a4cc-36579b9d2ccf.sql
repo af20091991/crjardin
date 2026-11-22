@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS public.sst_lists (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.sst_lists TO authenticated;
 GRANT ALL ON public.sst_lists TO service_role;
 ALTER TABLE public.sst_lists ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "sst_lists_own" ON public.sst_lists;
 CREATE POLICY "sst_lists_own" ON public.sst_lists FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS public.sst_audit_log (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.sst_audit_log TO authenticated;
 GRANT ALL ON public.sst_audit_log TO service_role;
 ALTER TABLE public.sst_audit_log ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "sst_audit_own" ON public.sst_audit_log;
 CREATE POLICY "sst_audit_own" ON public.sst_audit_log FOR ALL TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 

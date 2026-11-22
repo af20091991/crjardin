@@ -21,8 +21,11 @@ alter table public.radar_snapshots enable row level security;
 alter table public.radar_alerts enable row level security;
 alter table public.radar_reports enable row level security;
 
-create policy "Admins lisent les instantanés du radar" on public.radar_snapshots for select using (public.has_role(auth.uid(), 'admin'));
-create policy "Admins lisent les alertes du radar" on public.radar_alerts for select using (public.has_role(auth.uid(), 'admin'));
-create policy "Admins lisent les rapports du radar" on public.radar_reports for select using (public.has_role(auth.uid(), 'admin'));
+DROP POLICY IF EXISTS "Admins lisent les instantanés du radar" ON public.radar_snapshots;
+CREATE POLICY "Admins lisent les instantanés du radar" ON public.radar_snapshots for select using (public.has_role(auth.uid(), 'admin'));
+DROP POLICY IF EXISTS "Admins lisent les alertes du radar" ON public.radar_alerts;
+CREATE POLICY "Admins lisent les alertes du radar" ON public.radar_alerts for select using (public.has_role(auth.uid(), 'admin'));
+DROP POLICY IF EXISTS "Admins lisent les rapports du radar" ON public.radar_reports;
+CREATE POLICY "Admins lisent les rapports du radar" ON public.radar_reports for select using (public.has_role(auth.uid(), 'admin'));
 
 notify pgrst, 'reload schema';

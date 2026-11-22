@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS public.ceev_contracts (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ceev_contracts TO authenticated;
 GRANT ALL ON public.ceev_contracts TO service_role;
 ALTER TABLE public.ceev_contracts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ceev_contracts_own" ON public.ceev_contracts;
 CREATE POLICY "ceev_contracts_own" ON public.ceev_contracts FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE INDEX IF NOT EXISTS ceev_contracts_user_year_idx ON public.ceev_contracts (user_id, year);
@@ -49,6 +50,7 @@ CREATE TABLE IF NOT EXISTS public.pilot_alert_feedback (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pilot_alert_feedback TO authenticated;
 GRANT ALL ON public.pilot_alert_feedback TO service_role;
 ALTER TABLE public.pilot_alert_feedback ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "pilot_alert_feedback_own" ON public.pilot_alert_feedback;
 CREATE POLICY "pilot_alert_feedback_own" ON public.pilot_alert_feedback FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE TRIGGER pilot_alert_feedback_updated_at BEFORE UPDATE ON public.pilot_alert_feedback

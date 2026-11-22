@@ -1,4 +1,4 @@
-CREATE TABLE public.email_settings (
+CREATE TABLE IF NOT EXISTS public.email_settings (
   key TEXT PRIMARY KEY,
   subject TEXT NOT NULL,
   body TEXT NOT NULL,
@@ -11,15 +11,15 @@ GRANT ALL ON public.email_settings TO service_role;
 
 ALTER TABLE public.email_settings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated can read email settings"
-ON public.email_settings FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated can read email settings" ON public.email_settings;
+CREATE POLICY "Authenticated can read email settings" ON public.email_settings FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY "Admins can insert email settings"
-ON public.email_settings FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Admins can insert email settings" ON public.email_settings;
+CREATE POLICY "Admins can insert email settings" ON public.email_settings FOR INSERT TO authenticated
 WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
-CREATE POLICY "Admins can update email settings"
-ON public.email_settings FOR UPDATE TO authenticated
+DROP POLICY IF EXISTS "Admins can update email settings" ON public.email_settings;
+CREATE POLICY "Admins can update email settings" ON public.email_settings FOR UPDATE TO authenticated
 USING (public.has_role(auth.uid(), 'admin'))
 WITH CHECK (public.has_role(auth.uid(), 'admin'));
 

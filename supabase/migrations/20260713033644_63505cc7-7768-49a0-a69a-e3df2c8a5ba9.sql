@@ -1,4 +1,4 @@
-CREATE TABLE public.pilot_goals (
+CREATE TABLE IF NOT EXISTS public.pilot_goals (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   theme text NOT NULL,
@@ -18,6 +18,7 @@ GRANT ALL ON public.pilot_goals TO service_role;
 
 ALTER TABLE public.pilot_goals ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage their own goals" ON public.pilot_goals;
 CREATE POLICY "Users manage their own goals" ON public.pilot_goals
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 

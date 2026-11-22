@@ -13,12 +13,12 @@ create table if not exists public.local_pages (
 
 alter table public.local_pages enable row level security;
 
-create policy "Admins lisent le registre des pages locales"
-  on public.local_pages for select
+DROP POLICY IF EXISTS "Admins lisent le registre des pages locales" ON public.local_pages;
+CREATE POLICY "Admins lisent le registre des pages locales" ON public.local_pages for select
   using (public.has_role(auth.uid(), 'admin'));
 
-create policy "Admins ajoutent au registre des pages locales"
-  on public.local_pages for insert
+DROP POLICY IF EXISTS "Admins ajoutent au registre des pages locales" ON public.local_pages;
+CREATE POLICY "Admins ajoutent au registre des pages locales" ON public.local_pages for insert
   with check (public.has_role(auth.uid(), 'admin') and created_by = auth.uid());
 
 notify pgrst, 'reload schema';

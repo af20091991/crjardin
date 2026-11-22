@@ -28,15 +28,15 @@ grant all on public.premium_email_log to service_role;
 alter table public.premium_email_log enable row level security;
 
 drop policy if exists "Admins can read premium email log" on public.premium_email_log;
-create policy "Admins can read premium email log"
-on public.premium_email_log
+DROP POLICY IF EXISTS "Admins can read premium email log" ON public.premium_email_log;
+CREATE POLICY "Admins can read premium email log" ON public.premium_email_log
 for select
 to authenticated
 using (public.has_role(auth.uid(), 'admin'));
 
 drop policy if exists "Service role manages premium email log" on public.premium_email_log;
-create policy "Service role manages premium email log"
-on public.premium_email_log
+DROP POLICY IF EXISTS "Service role manages premium email log" ON public.premium_email_log;
+CREATE POLICY "Service role manages premium email log" ON public.premium_email_log
 for all
 to service_role
 using (true)

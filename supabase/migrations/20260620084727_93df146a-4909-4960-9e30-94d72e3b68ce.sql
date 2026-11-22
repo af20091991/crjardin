@@ -2,8 +2,8 @@
 -- 1. Gardener replies on client messages
 ALTER TABLE public.client_messages ADD COLUMN IF NOT EXISTS sender text NOT NULL DEFAULT 'client';
 
-CREATE POLICY "Owner insert client messages"
-ON public.client_messages FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Owner insert client messages" ON public.client_messages;
+CREATE POLICY "Owner insert client messages" ON public.client_messages FOR INSERT TO authenticated
 WITH CHECK (
   EXISTS (SELECT 1 FROM public.clients c WHERE c.id = client_messages.client_id AND c.user_id = auth.uid())
 );
@@ -103,7 +103,7 @@ ALTER TABLE public.intervention_photos ADD COLUMN IF NOT EXISTS lat double preci
 ALTER TABLE public.intervention_photos ADD COLUMN IF NOT EXISTS lng double precision;
 
 -- 4. Reminders / planned tasks for gardener
-CREATE TABLE public.reminders (
+CREATE TABLE IF NOT EXISTS public.reminders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   client_id uuid REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -116,13 +116,14 @@ CREATE TABLE public.reminders (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.reminders TO authenticated;
 GRANT ALL ON public.reminders TO service_role;
 ALTER TABLE public.reminders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Owner manage reminders" ON public.reminders;
 CREATE POLICY "Owner manage reminders" ON public.reminders FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE TRIGGER update_reminders_updated_at BEFORE UPDATE ON public.reminders
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- 5. Report templates for gardener
-CREATE TABLE public.report_templates (
+CREATE TABLE IF NOT EXISTS public.report_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name text NOT NULL,
@@ -135,6 +136,7 @@ CREATE TABLE public.report_templates (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.report_templates TO authenticated;
 GRANT ALL ON public.report_templates TO service_role;
 ALTER TABLE public.report_templates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Owner manage templates" ON public.report_templates;
 CREATE POLICY "Owner manage templates" ON public.report_templates FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE TRIGGER update_report_templates_updated_at BEFORE UPDATE ON public.report_templates

@@ -4,8 +4,8 @@
 
 -- Calendrier partagé : autoriser les prestataires actifs même s'ils n'ont pas de rôle interne.
 DROP POLICY IF EXISTS "Active subcontractors read SST availability" ON public.sst_availability_calendar;
-CREATE POLICY "Active subcontractors read SST availability"
-  ON public.sst_availability_calendar FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Active subcontractors read SST availability" ON public.sst_availability_calendar;
+CREATE POLICY "Active subcontractors read SST availability" ON public.sst_availability_calendar FOR SELECT TO authenticated
   USING (
     public.is_approved_member(auth.uid())
     OR EXISTS (
@@ -16,8 +16,8 @@ CREATE POLICY "Active subcontractors read SST availability"
 
 -- Lecture seule des missions assignées au prestataire connecté.
 DROP POLICY IF EXISTS "Assigned subcontractors read own missions" ON public.subcontractor_missions;
-CREATE POLICY "Assigned subcontractors read own missions"
-  ON public.subcontractor_missions FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Assigned subcontractors read own missions" ON public.subcontractor_missions;
+CREATE POLICY "Assigned subcontractors read own missions" ON public.subcontractor_missions FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.subcontractors s
@@ -28,8 +28,8 @@ CREATE POLICY "Assigned subcontractors read own missions"
 
 -- Lecture seule des fiches de chantier explicitement liées à ses missions.
 DROP POLICY IF EXISTS "Assigned subcontractors read linked worksite sheets" ON public.worksite_sheets;
-CREATE POLICY "Assigned subcontractors read linked worksite sheets"
-  ON public.worksite_sheets FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Assigned subcontractors read linked worksite sheets" ON public.worksite_sheets;
+CREATE POLICY "Assigned subcontractors read linked worksite sheets" ON public.worksite_sheets FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1
@@ -42,8 +42,8 @@ CREATE POLICY "Assigned subcontractors read linked worksite sheets"
 
 -- Lecture seule des photos des missions qui lui sont attribuées.
 DROP POLICY IF EXISTS "Assigned subcontractors read own mission photos" ON public.subcontractor_mission_photos;
-CREATE POLICY "Assigned subcontractors read own mission photos"
-  ON public.subcontractor_mission_photos FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Assigned subcontractors read own mission photos" ON public.subcontractor_mission_photos;
+CREATE POLICY "Assigned subcontractors read own mission photos" ON public.subcontractor_mission_photos FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1

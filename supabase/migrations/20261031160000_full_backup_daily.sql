@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.pp_full_backup_runs (
 );
 ALTER TABLE public.pp_full_backup_runs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins lisent les sauvegardes" ON public.pp_full_backup_runs;
+DROP POLICY IF EXISTS "Admins lisent les sauvegardes" ON public.pp_full_backup_runs;
 CREATE POLICY "Admins lisent les sauvegardes" ON public.pp_full_backup_runs
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
 

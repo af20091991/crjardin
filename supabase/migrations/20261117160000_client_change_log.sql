@@ -17,8 +17,8 @@ alter table public.client_change_log enable row level security;
 grant select on public.client_change_log to authenticated;
 
 drop policy if exists "admins lisent le journal client" on public.client_change_log;
-create policy "admins lisent le journal client"
-  on public.client_change_log
+DROP POLICY IF EXISTS "admins lisent le journal client" ON public.client_change_log;
+CREATE POLICY "admins lisent le journal client" ON public.client_change_log
   for select
   to authenticated
   using (public.has_role(auth.uid(), 'admin'::app_role));

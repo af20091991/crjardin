@@ -1,4 +1,4 @@
-CREATE TABLE public.ceev_agreements (
+CREATE TABLE IF NOT EXISTS public.ceev_agreements (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -21,14 +21,14 @@ CREATE TABLE public.ceev_agreements (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ceev_agreements TO authenticated;
 GRANT ALL ON public.ceev_agreements TO service_role;
 ALTER TABLE public.ceev_agreements ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage their own ceev agreements"
-  ON public.ceev_agreements FOR ALL TO authenticated
+DROP POLICY IF EXISTS "Users manage their own ceev agreements" ON public.ceev_agreements;
+CREATE POLICY "Users manage their own ceev agreements" ON public.ceev_agreements FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE INDEX ceev_agreements_client_idx ON public.ceev_agreements(client_id);
-CREATE INDEX ceev_agreements_user_idx ON public.ceev_agreements(user_id);
+CREATE INDEX IF NOT EXISTS ceev_agreements_client_idx ON public.ceev_agreements(client_id);
+CREATE INDEX IF NOT EXISTS ceev_agreements_user_idx ON public.ceev_agreements(user_id);
 
-CREATE TABLE public.ceev_agreement_events (
+CREATE TABLE IF NOT EXISTS public.ceev_agreement_events (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   agreement_id UUID NOT NULL REFERENCES public.ceev_agreements(id) ON DELETE CASCADE,
@@ -42,11 +42,11 @@ CREATE TABLE public.ceev_agreement_events (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ceev_agreement_events TO authenticated;
 GRANT ALL ON public.ceev_agreement_events TO service_role;
 ALTER TABLE public.ceev_agreement_events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage their own ceev events"
-  ON public.ceev_agreement_events FOR ALL TO authenticated
+DROP POLICY IF EXISTS "Users manage their own ceev events" ON public.ceev_agreement_events;
+CREATE POLICY "Users manage their own ceev events" ON public.ceev_agreement_events FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE INDEX ceev_agreement_events_agreement_idx ON public.ceev_agreement_events(agreement_id);
+CREATE INDEX IF NOT EXISTS ceev_agreement_events_agreement_idx ON public.ceev_agreement_events(agreement_id);
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql SET search_path = public;

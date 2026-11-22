@@ -2,7 +2,7 @@
 -- (distinct du suivi des CR chantiers, qui passe par le service email natif Lovable
 -- et alimente déjà public.email_send_log / public.email_opens).
 
-CREATE TABLE public.brevo_email_log (
+CREATE TABLE IF NOT EXISTS public.brevo_email_log (
   message_id text PRIMARY KEY,
   sender_email text,
   recipient_email text NOT NULL,
@@ -27,11 +27,11 @@ GRANT SELECT ON public.brevo_email_log TO authenticated;
 
 ALTER TABLE public.brevo_email_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Admins can read brevo email log"
-ON public.brevo_email_log FOR SELECT
+DROP POLICY IF EXISTS "Admins can read brevo email log" ON public.brevo_email_log;
+CREATE POLICY "Admins can read brevo email log" ON public.brevo_email_log FOR SELECT
 TO authenticated
 USING (public.has_role(auth.uid(), 'admin'));
 
-CREATE INDEX idx_brevo_email_log_sender ON public.brevo_email_log (sender_email);
-CREATE INDEX idx_brevo_email_log_recipient ON public.brevo_email_log (recipient_email);
-CREATE INDEX idx_brevo_email_log_sent_at ON public.brevo_email_log (sent_at DESC);
+CREATE INDEX IF NOT EXISTS idx_brevo_email_log_sender ON public.brevo_email_log (sender_email);
+CREATE INDEX IF NOT EXISTS idx_brevo_email_log_recipient ON public.brevo_email_log (recipient_email);
+CREATE INDEX IF NOT EXISTS idx_brevo_email_log_sent_at ON public.brevo_email_log (sent_at DESC);

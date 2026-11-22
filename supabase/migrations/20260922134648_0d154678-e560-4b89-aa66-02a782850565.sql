@@ -17,16 +17,16 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.is_approved_member(uuid) FROM anon;
 
 DROP POLICY IF EXISTS "Authenticated can read availabilities" ON public.sst_availability_calendar;
-CREATE POLICY "Members can read availabilities"
-  ON public.sst_availability_calendar FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Members can read availabilities" ON public.sst_availability_calendar;
+CREATE POLICY "Members can read availabilities" ON public.sst_availability_calendar FOR SELECT TO authenticated
   USING (public.is_approved_member(auth.uid()));
 
 DROP POLICY IF EXISTS "Authenticated read report history" ON public.intervention_report_history;
-CREATE POLICY "Members read report history"
-  ON public.intervention_report_history FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Members read report history" ON public.intervention_report_history;
+CREATE POLICY "Members read report history" ON public.intervention_report_history FOR SELECT TO authenticated
   USING (public.is_approved_member(auth.uid()));
 
 DROP POLICY IF EXISTS "Authenticated read all tasks" ON public.intervention_tasks;
-CREATE POLICY "Members read all tasks"
-  ON public.intervention_tasks FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Members read all tasks" ON public.intervention_tasks;
+CREATE POLICY "Members read all tasks" ON public.intervention_tasks FOR SELECT TO authenticated
   USING (public.is_approved_member(auth.uid()));

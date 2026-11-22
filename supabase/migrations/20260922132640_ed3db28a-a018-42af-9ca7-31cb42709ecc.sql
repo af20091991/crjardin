@@ -1,4 +1,4 @@
-CREATE TABLE public.calendar_participants (
+CREATE TABLE IF NOT EXISTS public.calendar_participants (
   user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   color TEXT NOT NULL DEFAULT '#94A3B8',
   icon TEXT NOT NULL DEFAULT 'user',
@@ -10,15 +10,15 @@ GRANT ALL ON public.calendar_participants TO service_role;
 
 ALTER TABLE public.calendar_participants ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated can read calendar participants"
-  ON public.calendar_participants FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated can read calendar participants" ON public.calendar_participants;
+CREATE POLICY "Authenticated can read calendar participants" ON public.calendar_participants FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY "Own or admin can insert calendar participant"
-  ON public.calendar_participants FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Own or admin can insert calendar participant" ON public.calendar_participants;
+CREATE POLICY "Own or admin can insert calendar participant" ON public.calendar_participants FOR INSERT TO authenticated
   WITH CHECK (auth.uid() = user_id OR public.has_role(auth.uid(), 'admin'));
 
-CREATE POLICY "Own or admin can update calendar participant"
-  ON public.calendar_participants FOR UPDATE TO authenticated
+DROP POLICY IF EXISTS "Own or admin can update calendar participant" ON public.calendar_participants;
+CREATE POLICY "Own or admin can update calendar participant" ON public.calendar_participants FOR UPDATE TO authenticated
   USING (auth.uid() = user_id OR public.has_role(auth.uid(), 'admin'))
   WITH CHECK (auth.uid() = user_id OR public.has_role(auth.uid(), 'admin'));
 

@@ -1,5 +1,5 @@
 -- Audit log table
-CREATE TABLE public.admin_audit_log (
+CREATE TABLE IF NOT EXISTS public.admin_audit_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   actor_id uuid,
   actor_name text,
@@ -12,6 +12,7 @@ CREATE TABLE public.admin_audit_log (
 GRANT SELECT ON public.admin_audit_log TO authenticated;
 GRANT ALL ON public.admin_audit_log TO service_role;
 ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins read audit log" ON public.admin_audit_log;
 CREATE POLICY "Admins read audit log" ON public.admin_audit_log
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
 

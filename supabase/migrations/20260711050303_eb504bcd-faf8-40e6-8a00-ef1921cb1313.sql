@@ -1,4 +1,4 @@
-CREATE TABLE public.pilot_ca_entries (
+CREATE TABLE IF NOT EXISTS public.pilot_ca_entries (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE,
   year SMALLINT NOT NULL,
@@ -18,12 +18,12 @@ GRANT ALL ON public.pilot_ca_entries TO service_role;
 
 ALTER TABLE public.pilot_ca_entries ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users manage their own CA entries"
-  ON public.pilot_ca_entries FOR ALL
+DROP POLICY IF EXISTS "Users manage their own CA entries" ON public.pilot_ca_entries;
+CREATE POLICY "Users manage their own CA entries" ON public.pilot_ca_entries FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-CREATE INDEX idx_pilot_ca_entries_user_period ON public.pilot_ca_entries (user_id, year, month);
+CREATE INDEX IF NOT EXISTS idx_pilot_ca_entries_user_period ON public.pilot_ca_entries (user_id, year, month);
 
 CREATE TRIGGER update_pilot_ca_entries_updated_at
   BEFORE UPDATE ON public.pilot_ca_entries

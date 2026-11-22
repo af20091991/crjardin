@@ -27,12 +27,14 @@ create index if not exists sst_calendar_changes_unsent_idx
 alter table public.sst_calendar_changes enable row level security;
 
 drop policy if exists "Admins read sst calendar changes" on public.sst_calendar_changes;
-create policy "Admins read sst calendar changes" on public.sst_calendar_changes
+DROP POLICY IF EXISTS "Admins read sst calendar changes" ON public.sst_calendar_changes;
+CREATE POLICY "Admins read sst calendar changes" ON public.sst_calendar_changes
   for select to authenticated
   using (public.has_role(auth.uid(), 'admin'));
 
 drop policy if exists "Admins acknowledge sst calendar changes" on public.sst_calendar_changes;
-create policy "Admins acknowledge sst calendar changes" on public.sst_calendar_changes
+DROP POLICY IF EXISTS "Admins acknowledge sst calendar changes" ON public.sst_calendar_changes;
+CREATE POLICY "Admins acknowledge sst calendar changes" ON public.sst_calendar_changes
   for update to authenticated
   using (public.has_role(auth.uid(), 'admin'))
   with check (public.has_role(auth.uid(), 'admin'));

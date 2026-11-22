@@ -1,5 +1,5 @@
 -- Favorite tasks
-CREATE TABLE public.favorite_tasks (
+CREATE TABLE IF NOT EXISTS public.favorite_tasks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   label text NOT NULL,
@@ -9,6 +9,7 @@ CREATE TABLE public.favorite_tasks (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.favorite_tasks TO authenticated;
 GRANT ALL ON public.favorite_tasks TO service_role;
 ALTER TABLE public.favorite_tasks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own favorite tasks" ON public.favorite_tasks;
 CREATE POLICY "Users manage own favorite tasks" ON public.favorite_tasks
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -26,7 +27,7 @@ ALTER TABLE public.profiles ADD COLUMN signature_data text;
 ALTER TABLE public.profiles ADD COLUMN hourly_rate numeric NOT NULL DEFAULT 70;
 
 -- Reference counter table (per user, per year)
-CREATE TABLE public.intervention_counters (
+CREATE TABLE IF NOT EXISTS public.intervention_counters (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   year int NOT NULL,
   last_seq int NOT NULL DEFAULT 0,
@@ -35,6 +36,7 @@ CREATE TABLE public.intervention_counters (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.intervention_counters TO authenticated;
 GRANT ALL ON public.intervention_counters TO service_role;
 ALTER TABLE public.intervention_counters ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users read own counters" ON public.intervention_counters;
 CREATE POLICY "Users read own counters" ON public.intervention_counters
   FOR SELECT USING (auth.uid() = user_id);
 

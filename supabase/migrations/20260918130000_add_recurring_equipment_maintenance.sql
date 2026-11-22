@@ -11,13 +11,17 @@ alter table public.maintenance_types enable row level security;
 alter table public.equipment_type_maintenance_types enable row level security;
 alter table public.equipment_maintenance_schedules enable row level security;
 drop policy if exists equipment_types_owner_all on public.equipment_types;
-create policy equipment_types_owner_all on public.equipment_types for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
+DROP POLICY IF EXISTS equipment_types_owner_all ON public.equipment_types;
+CREATE POLICY equipment_types_owner_all ON public.equipment_types for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
 drop policy if exists maintenance_types_owner_all on public.maintenance_types;
-create policy maintenance_types_owner_all on public.maintenance_types for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
+DROP POLICY IF EXISTS maintenance_types_owner_all ON public.maintenance_types;
+CREATE POLICY maintenance_types_owner_all ON public.maintenance_types for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
 drop policy if exists equipment_type_maintenance_types_owner_all on public.equipment_type_maintenance_types;
-create policy equipment_type_maintenance_types_owner_all on public.equipment_type_maintenance_types for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
+DROP POLICY IF EXISTS equipment_type_maintenance_types_owner_all ON public.equipment_type_maintenance_types;
+CREATE POLICY equipment_type_maintenance_types_owner_all ON public.equipment_type_maintenance_types for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
 drop policy if exists equipment_maintenance_schedules_owner_all on public.equipment_maintenance_schedules;
-create policy equipment_maintenance_schedules_owner_all on public.equipment_maintenance_schedules for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
+DROP POLICY IF EXISTS equipment_maintenance_schedules_owner_all ON public.equipment_maintenance_schedules;
+CREATE POLICY equipment_maintenance_schedules_owner_all ON public.equipment_maintenance_schedules for all using(auth.uid()=user_id) with check(auth.uid()=user_id);
 create or replace function public.sync_equipment_maintenance_schedules(p_equipment_id uuid) returns void language plpgsql security invoker set search_path=public as $$
 declare v_equipment public.equipment%rowtype;
 begin

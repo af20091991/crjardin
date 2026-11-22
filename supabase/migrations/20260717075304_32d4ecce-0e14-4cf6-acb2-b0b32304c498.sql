@@ -16,6 +16,7 @@ GRANT ALL ON public.pilot_client_notes TO service_role;
 
 ALTER TABLE public.pilot_client_notes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Own pilot client notes" ON public.pilot_client_notes;
 CREATE POLICY "Own pilot client notes" ON public.pilot_client_notes
   FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

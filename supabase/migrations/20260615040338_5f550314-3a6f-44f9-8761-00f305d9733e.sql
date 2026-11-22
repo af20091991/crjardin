@@ -11,7 +11,7 @@ END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
 -- ===== Profiles =====
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT,
   company_name TEXT,
@@ -21,13 +21,14 @@ CREATE TABLE public.profiles (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.profiles TO authenticated;
 GRANT ALL ON public.profiles TO service_role;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own profile" ON public.profiles;
 CREATE POLICY "Users manage own profile" ON public.profiles
   FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 CREATE TRIGGER trg_profiles_updated_at BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ===== User roles =====
-CREATE TABLE public.user_roles (
+CREATE TABLE IF NOT EXISTS public.user_roles (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   role app_role NOT NULL,
@@ -37,6 +38,7 @@ CREATE TABLE public.user_roles (
 GRANT SELECT ON public.user_roles TO authenticated;
 GRANT ALL ON public.user_roles TO service_role;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users read own roles" ON public.user_roles;
 CREATE POLICY "Users read own roles" ON public.user_roles
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -74,7 +76,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ===== Clients =====
-CREATE TABLE public.clients (
+CREATE TABLE IF NOT EXISTS public.clients (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -90,14 +92,15 @@ CREATE TABLE public.clients (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.clients TO authenticated;
 GRANT ALL ON public.clients TO service_role;
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own clients" ON public.clients;
 CREATE POLICY "Users manage own clients" ON public.clients
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE TRIGGER trg_clients_updated_at BEFORE UPDATE ON public.clients
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE INDEX idx_clients_user ON public.clients(user_id);
+CREATE INDEX IF NOT EXISTS idx_clients_user ON public.clients(user_id);
 
 -- ===== Interventions =====
-CREATE TABLE public.interventions (
+CREATE TABLE IF NOT EXISTS public.interventions (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -114,15 +117,16 @@ CREATE TABLE public.interventions (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.interventions TO authenticated;
 GRANT ALL ON public.interventions TO service_role;
 ALTER TABLE public.interventions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own interventions" ON public.interventions;
 CREATE POLICY "Users manage own interventions" ON public.interventions
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE TRIGGER trg_interventions_updated_at BEFORE UPDATE ON public.interventions
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE INDEX idx_interventions_client ON public.interventions(client_id);
-CREATE INDEX idx_interventions_user ON public.interventions(user_id);
+CREATE INDEX IF NOT EXISTS idx_interventions_client ON public.interventions(client_id);
+CREATE INDEX IF NOT EXISTS idx_interventions_user ON public.interventions(user_id);
 
 -- ===== Tâches d'intervention =====
-CREATE TABLE public.intervention_tasks (
+CREATE TABLE IF NOT EXISTS public.intervention_tasks (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   intervention_id UUID NOT NULL REFERENCES public.interventions(id) ON DELETE CASCADE,
@@ -135,12 +139,13 @@ CREATE TABLE public.intervention_tasks (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.intervention_tasks TO authenticated;
 GRANT ALL ON public.intervention_tasks TO service_role;
 ALTER TABLE public.intervention_tasks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own tasks" ON public.intervention_tasks;
 CREATE POLICY "Users manage own tasks" ON public.intervention_tasks
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE INDEX idx_tasks_intervention ON public.intervention_tasks(intervention_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_intervention ON public.intervention_tasks(intervention_id);
 
 -- ===== Photos d'intervention =====
-CREATE TABLE public.intervention_photos (
+CREATE TABLE IF NOT EXISTS public.intervention_photos (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   intervention_id UUID NOT NULL REFERENCES public.interventions(id) ON DELETE CASCADE,
@@ -153,12 +158,13 @@ CREATE TABLE public.intervention_photos (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.intervention_photos TO authenticated;
 GRANT ALL ON public.intervention_photos TO service_role;
 ALTER TABLE public.intervention_photos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own photos" ON public.intervention_photos;
 CREATE POLICY "Users manage own photos" ON public.intervention_photos
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE INDEX idx_photos_intervention ON public.intervention_photos(intervention_id);
+CREATE INDEX IF NOT EXISTS idx_photos_intervention ON public.intervention_photos(intervention_id);
 
 -- ===== Carnet de santé du jardin =====
-CREATE TABLE public.garden_health (
+CREATE TABLE IF NOT EXISTS public.garden_health (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -172,12 +178,13 @@ CREATE TABLE public.garden_health (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.garden_health TO authenticated;
 GRANT ALL ON public.garden_health TO service_role;
 ALTER TABLE public.garden_health ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own garden health" ON public.garden_health;
 CREATE POLICY "Users manage own garden health" ON public.garden_health
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE INDEX idx_health_client ON public.garden_health(client_id);
+CREATE INDEX IF NOT EXISTS idx_health_client ON public.garden_health(client_id);
 
 -- ===== Préconisations =====
-CREATE TABLE public.recommendations (
+CREATE TABLE IF NOT EXISTS public.recommendations (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -192,8 +199,9 @@ CREATE TABLE public.recommendations (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.recommendations TO authenticated;
 GRANT ALL ON public.recommendations TO service_role;
 ALTER TABLE public.recommendations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own recommendations" ON public.recommendations;
 CREATE POLICY "Users manage own recommendations" ON public.recommendations
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE TRIGGER trg_reco_updated_at BEFORE UPDATE ON public.recommendations
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE INDEX idx_reco_client ON public.recommendations(client_id);
+CREATE INDEX IF NOT EXISTS idx_reco_client ON public.recommendations(client_id);

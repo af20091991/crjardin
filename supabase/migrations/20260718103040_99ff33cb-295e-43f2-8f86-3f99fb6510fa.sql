@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- 1. CATALOGUE PRESTATIONS
 -- ============================================================
 
-CREATE TABLE public.service_categories (
+CREATE TABLE IF NOT EXISTS public.service_categories (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   code text NOT NULL,
@@ -21,13 +21,17 @@ CREATE TABLE public.service_categories (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.service_categories TO authenticated;
 GRANT ALL ON public.service_categories TO service_role;
 ALTER TABLE public.service_categories ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.service_categories FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.service_categories;
+CREATE POLICY "own read" ON public.service_categories FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.service_categories;
 CREATE POLICY "own insert" ON public.service_categories FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.service_categories;
 CREATE POLICY "own update" ON public.service_categories FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.service_categories;
 CREATE POLICY "own delete" ON public.service_categories FOR DELETE TO authenticated USING (auth.uid() = user_id);
 CREATE TRIGGER trg_service_categories_updated BEFORE UPDATE ON public.service_categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-CREATE TABLE public.services (
+CREATE TABLE IF NOT EXISTS public.services (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   category_id uuid NOT NULL REFERENCES public.service_categories(id) ON DELETE RESTRICT,
@@ -44,17 +48,21 @@ CREATE TABLE public.services (
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, code)
 );
-CREATE INDEX idx_services_category ON public.services(category_id);
+CREATE INDEX IF NOT EXISTS idx_services_category ON public.services(category_id);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.services TO authenticated;
 GRANT ALL ON public.services TO service_role;
 ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.services FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.services;
+CREATE POLICY "own read" ON public.services FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.services;
 CREATE POLICY "own insert" ON public.services FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.services;
 CREATE POLICY "own update" ON public.services FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.services;
 CREATE POLICY "own delete" ON public.services FOR DELETE TO authenticated USING (auth.uid() = user_id);
 CREATE TRIGGER trg_services_updated BEFORE UPDATE ON public.services FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-CREATE TABLE public.service_prices (
+CREATE TABLE IF NOT EXISTS public.service_prices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   service_id uuid NOT NULL REFERENCES public.services(id) ON DELETE CASCADE,
@@ -71,16 +79,20 @@ CREATE TABLE public.service_prices (
     daterange(valid_from, COALESCE(valid_to, DATE '9999-12-31'), '[)') WITH &&
   )
 );
-CREATE INDEX idx_service_prices_service ON public.service_prices(service_id, valid_from DESC);
+CREATE INDEX IF NOT EXISTS idx_service_prices_service ON public.service_prices(service_id, valid_from DESC);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.service_prices TO authenticated;
 GRANT ALL ON public.service_prices TO service_role;
 ALTER TABLE public.service_prices ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.service_prices FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.service_prices;
+CREATE POLICY "own read" ON public.service_prices FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.service_prices;
 CREATE POLICY "own insert" ON public.service_prices FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.service_prices;
 CREATE POLICY "own update" ON public.service_prices FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.service_prices;
 CREATE POLICY "own delete" ON public.service_prices FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
-CREATE TABLE public.service_seasonality (
+CREATE TABLE IF NOT EXISTS public.service_seasonality (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   scope text NOT NULL CHECK (scope IN ('category','service')),
@@ -95,14 +107,18 @@ CREATE TABLE public.service_seasonality (
     (scope = 'service'  AND service_id  IS NOT NULL AND category_id IS NULL)
   )
 );
-CREATE UNIQUE INDEX idx_seasonality_cat ON public.service_seasonality(user_id, category_id, month) WHERE scope='category';
-CREATE UNIQUE INDEX idx_seasonality_srv ON public.service_seasonality(user_id, service_id, month)  WHERE scope='service';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_seasonality_cat ON public.service_seasonality(user_id, category_id, month) WHERE scope='category';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_seasonality_srv ON public.service_seasonality(user_id, service_id, month)  WHERE scope='service';
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.service_seasonality TO authenticated;
 GRANT ALL ON public.service_seasonality TO service_role;
 ALTER TABLE public.service_seasonality ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.service_seasonality FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.service_seasonality;
+CREATE POLICY "own read" ON public.service_seasonality FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.service_seasonality;
 CREATE POLICY "own insert" ON public.service_seasonality FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.service_seasonality;
 CREATE POLICY "own update" ON public.service_seasonality FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.service_seasonality;
 CREATE POLICY "own delete" ON public.service_seasonality FOR DELETE TO authenticated USING (auth.uid() = user_id);
 CREATE TRIGGER trg_service_seasonality_updated BEFORE UPDATE ON public.service_seasonality FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
@@ -110,7 +126,7 @@ CREATE TRIGGER trg_service_seasonality_updated BEFORE UPDATE ON public.service_s
 -- 2. REFERENTIEL TEMPS
 -- ============================================================
 
-CREATE TABLE public.time_categories (
+CREATE TABLE IF NOT EXISTS public.time_categories (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   code text NOT NULL,
@@ -125,13 +141,17 @@ CREATE TABLE public.time_categories (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.time_categories TO authenticated;
 GRANT ALL ON public.time_categories TO service_role;
 ALTER TABLE public.time_categories ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.time_categories FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.time_categories;
+CREATE POLICY "own read" ON public.time_categories FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.time_categories;
 CREATE POLICY "own insert" ON public.time_categories FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.time_categories;
 CREATE POLICY "own update" ON public.time_categories FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.time_categories;
 CREATE POLICY "own delete" ON public.time_categories FOR DELETE TO authenticated USING (auth.uid() = user_id);
 CREATE TRIGGER trg_time_categories_updated BEFORE UPDATE ON public.time_categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-CREATE TABLE public.time_standards (
+CREATE TABLE IF NOT EXISTS public.time_standards (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   time_category_id uuid NOT NULL REFERENCES public.time_categories(id) ON DELETE CASCADE,
@@ -151,16 +171,20 @@ CREATE TABLE public.time_standards (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.time_standards TO authenticated;
 GRANT ALL ON public.time_standards TO service_role;
 ALTER TABLE public.time_standards ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.time_standards FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.time_standards;
+CREATE POLICY "own read" ON public.time_standards FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.time_standards;
 CREATE POLICY "own insert" ON public.time_standards FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.time_standards;
 CREATE POLICY "own update" ON public.time_standards FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.time_standards;
 CREATE POLICY "own delete" ON public.time_standards FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- ============================================================
 -- 3. REFERENTIEL CHARGES
 -- ============================================================
 
-CREATE TABLE public.charge_categories (
+CREATE TABLE IF NOT EXISTS public.charge_categories (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   code text NOT NULL,
@@ -174,13 +198,17 @@ CREATE TABLE public.charge_categories (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.charge_categories TO authenticated;
 GRANT ALL ON public.charge_categories TO service_role;
 ALTER TABLE public.charge_categories ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.charge_categories FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.charge_categories;
+CREATE POLICY "own read" ON public.charge_categories FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.charge_categories;
 CREATE POLICY "own insert" ON public.charge_categories FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.charge_categories;
 CREATE POLICY "own update" ON public.charge_categories FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.charge_categories;
 CREATE POLICY "own delete" ON public.charge_categories FOR DELETE TO authenticated USING (auth.uid() = user_id);
 CREATE TRIGGER trg_charge_categories_updated BEFORE UPDATE ON public.charge_categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-CREATE TABLE public.charges_recurring (
+CREATE TABLE IF NOT EXISTS public.charges_recurring (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   charge_category_id uuid NOT NULL REFERENCES public.charge_categories(id) ON DELETE RESTRICT,
@@ -194,17 +222,21 @@ CREATE TABLE public.charges_recurring (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CHECK (valid_to IS NULL OR valid_to > valid_from)
 );
-CREATE INDEX idx_charges_recurring_cat ON public.charges_recurring(charge_category_id);
+CREATE INDEX IF NOT EXISTS idx_charges_recurring_cat ON public.charges_recurring(charge_category_id);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.charges_recurring TO authenticated;
 GRANT ALL ON public.charges_recurring TO service_role;
 ALTER TABLE public.charges_recurring ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.charges_recurring FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.charges_recurring;
+CREATE POLICY "own read" ON public.charges_recurring FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.charges_recurring;
 CREATE POLICY "own insert" ON public.charges_recurring FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.charges_recurring;
 CREATE POLICY "own update" ON public.charges_recurring FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.charges_recurring;
 CREATE POLICY "own delete" ON public.charges_recurring FOR DELETE TO authenticated USING (auth.uid() = user_id);
 CREATE TRIGGER trg_charges_recurring_updated BEFORE UPDATE ON public.charges_recurring FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-CREATE TABLE public.charges_variable_rates (
+CREATE TABLE IF NOT EXISTS public.charges_variable_rates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   charge_category_id uuid NOT NULL REFERENCES public.charge_categories(id) ON DELETE RESTRICT,
@@ -220,12 +252,16 @@ CREATE TABLE public.charges_variable_rates (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.charges_variable_rates TO authenticated;
 GRANT ALL ON public.charges_variable_rates TO service_role;
 ALTER TABLE public.charges_variable_rates ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.charges_variable_rates FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.charges_variable_rates;
+CREATE POLICY "own read" ON public.charges_variable_rates FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.charges_variable_rates;
 CREATE POLICY "own insert" ON public.charges_variable_rates FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.charges_variable_rates;
 CREATE POLICY "own update" ON public.charges_variable_rates FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.charges_variable_rates;
 CREATE POLICY "own delete" ON public.charges_variable_rates FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
-CREATE TABLE public.charges_one_off (
+CREATE TABLE IF NOT EXISTS public.charges_one_off (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   charge_category_id uuid NOT NULL REFERENCES public.charge_categories(id) ON DELETE RESTRICT,
@@ -237,13 +273,17 @@ CREATE TABLE public.charges_one_off (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_charges_one_off_cat ON public.charges_one_off(charge_category_id);
+CREATE INDEX IF NOT EXISTS idx_charges_one_off_cat ON public.charges_one_off(charge_category_id);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.charges_one_off TO authenticated;
 GRANT ALL ON public.charges_one_off TO service_role;
 ALTER TABLE public.charges_one_off ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "own read"   ON public.charges_one_off FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own read" ON public.charges_one_off;
+CREATE POLICY "own read" ON public.charges_one_off FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own insert" ON public.charges_one_off;
 CREATE POLICY "own insert" ON public.charges_one_off FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own update" ON public.charges_one_off;
 CREATE POLICY "own update" ON public.charges_one_off FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "own delete" ON public.charges_one_off;
 CREATE POLICY "own delete" ON public.charges_one_off FOR DELETE TO authenticated USING (auth.uid() = user_id);
 CREATE TRIGGER trg_charges_one_off_updated BEFORE UPDATE ON public.charges_one_off FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 

@@ -1,5 +1,5 @@
 
-CREATE TABLE public.pilot_ca_match_log (
+CREATE TABLE IF NOT EXISTS public.pilot_ca_match_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   entry_id uuid NOT NULL REFERENCES public.pilot_ca_entries(id) ON DELETE CASCADE,
   previous_client_id uuid NULL REFERENCES public.clients(id) ON DELETE SET NULL,
@@ -11,21 +11,21 @@ CREATE TABLE public.pilot_ca_match_log (
   decided_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX pilot_ca_match_log_entry_idx ON public.pilot_ca_match_log(entry_id, decided_at DESC);
-CREATE INDEX pilot_ca_match_log_decided_by_idx ON public.pilot_ca_match_log(decided_by, decided_at DESC);
+CREATE INDEX IF NOT EXISTS pilot_ca_match_log_entry_idx ON public.pilot_ca_match_log(entry_id, decided_at DESC);
+CREATE INDEX IF NOT EXISTS pilot_ca_match_log_decided_by_idx ON public.pilot_ca_match_log(decided_by, decided_at DESC);
 
 GRANT SELECT, INSERT ON public.pilot_ca_match_log TO authenticated;
 GRANT ALL ON public.pilot_ca_match_log TO service_role;
 
 ALTER TABLE public.pilot_ca_match_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users read own match log"
-  ON public.pilot_ca_match_log FOR SELECT
+DROP POLICY IF EXISTS "Users read own match log" ON public.pilot_ca_match_log;
+CREATE POLICY "Users read own match log" ON public.pilot_ca_match_log FOR SELECT
   TO authenticated
   USING (decided_by = auth.uid());
 
-CREATE POLICY "Users insert own match log"
-  ON public.pilot_ca_match_log FOR INSERT
+DROP POLICY IF EXISTS "Users insert own match log" ON public.pilot_ca_match_log;
+CREATE POLICY "Users insert own match log" ON public.pilot_ca_match_log FOR INSERT
   TO authenticated
   WITH CHECK (decided_by = auth.uid());
 

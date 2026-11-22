@@ -1,5 +1,5 @@
 -- 1. Email open tracking table
-CREATE TABLE public.email_opens (
+CREATE TABLE IF NOT EXISTS public.email_opens (
   message_id text PRIMARY KEY,
   opened_at timestamptz NOT NULL DEFAULT now(),
   open_count integer NOT NULL DEFAULT 1,
@@ -12,8 +12,8 @@ GRANT SELECT ON public.email_opens TO authenticated;
 
 ALTER TABLE public.email_opens ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Admins can read email opens"
-ON public.email_opens FOR SELECT
+DROP POLICY IF EXISTS "Admins can read email opens" ON public.email_opens;
+CREATE POLICY "Admins can read email opens" ON public.email_opens FOR SELECT
 TO authenticated
 USING (public.has_role(auth.uid(), 'admin'));
 

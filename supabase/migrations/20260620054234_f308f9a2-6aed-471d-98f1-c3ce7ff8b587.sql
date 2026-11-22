@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS public.share_access_log (
 GRANT SELECT ON public.share_access_log TO authenticated;
 GRANT ALL ON public.share_access_log TO service_role;
 ALTER TABLE public.share_access_log ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated read access log" ON public.share_access_log;
 CREATE POLICY "Authenticated read access log" ON public.share_access_log FOR SELECT TO authenticated USING (true);
 
 -- 4. Client messages (annotations / questions submitted from the share link)
@@ -54,8 +55,11 @@ CREATE TABLE IF NOT EXISTS public.client_messages (
 GRANT SELECT, UPDATE, DELETE ON public.client_messages TO authenticated;
 GRANT ALL ON public.client_messages TO service_role;
 ALTER TABLE public.client_messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated read client messages" ON public.client_messages;
 CREATE POLICY "Authenticated read client messages" ON public.client_messages FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated update client messages" ON public.client_messages;
 CREATE POLICY "Authenticated update client messages" ON public.client_messages FOR UPDATE TO authenticated USING (true);
+DROP POLICY IF EXISTS "Owner or admin delete client messages" ON public.client_messages;
 CREATE POLICY "Owner or admin delete client messages" ON public.client_messages FOR DELETE TO authenticated
   USING (public.has_role(auth.uid(), 'admin') OR EXISTS (SELECT 1 FROM public.clients c WHERE c.id = client_id AND c.user_id = auth.uid()));
 
@@ -74,8 +78,11 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 GRANT SELECT, UPDATE, DELETE ON public.notifications TO authenticated;
 GRANT ALL ON public.notifications TO service_role;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Read own notifications" ON public.notifications;
 CREATE POLICY "Read own notifications" ON public.notifications FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Update own notifications" ON public.notifications;
 CREATE POLICY "Update own notifications" ON public.notifications FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Delete own notifications" ON public.notifications;
 CREATE POLICY "Delete own notifications" ON public.notifications FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- 6. RPC: record a client read of the share link

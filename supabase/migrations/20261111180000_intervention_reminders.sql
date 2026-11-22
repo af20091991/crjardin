@@ -1,5 +1,5 @@
 -- Rappel d'intervention J-2 : journal d'envoi et de confirmation par intervention.
-CREATE TABLE public.intervention_reminders (
+CREATE TABLE IF NOT EXISTS public.intervention_reminders (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -17,8 +17,8 @@ GRANT ALL ON public.intervention_reminders TO service_role;
 
 ALTER TABLE public.intervention_reminders ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Approved members manage intervention reminders"
-  ON public.intervention_reminders
+DROP POLICY IF EXISTS "Approved members manage intervention reminders" ON public.intervention_reminders;
+CREATE POLICY "Approved members manage intervention reminders" ON public.intervention_reminders
   FOR ALL TO authenticated
   USING (public.is_approved_member(auth.uid()))
   WITH CHECK (public.is_approved_member(auth.uid()));

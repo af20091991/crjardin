@@ -34,15 +34,15 @@ GRANT ALL ON public.site_web_competitor_checks TO service_role;
 ALTER TABLE public.site_web_competitors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_web_competitor_checks ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated users manage competitors"
-  ON public.site_web_competitors
+DROP POLICY IF EXISTS "Authenticated users manage competitors" ON public.site_web_competitors;
+CREATE POLICY "Authenticated users manage competitors" ON public.site_web_competitors
   FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
-CREATE POLICY "Authenticated users read competitor checks"
-  ON public.site_web_competitor_checks
+DROP POLICY IF EXISTS "Authenticated users read competitor checks" ON public.site_web_competitor_checks;
+CREATE POLICY "Authenticated users read competitor checks" ON public.site_web_competitor_checks
   FOR SELECT
   TO authenticated
   USING (true);

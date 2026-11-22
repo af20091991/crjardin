@@ -1,5 +1,5 @@
 -- Table: heures de travail mensuelles (temps terrain + jours travaillés)
-CREATE TABLE public.pilot_hours (
+CREATE TABLE IF NOT EXISTS public.pilot_hours (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE,
   year INTEGER NOT NULL,
@@ -16,6 +16,7 @@ GRANT ALL ON public.pilot_hours TO service_role;
 
 ALTER TABLE public.pilot_hours ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage their own hours" ON public.pilot_hours;
 CREATE POLICY "Users manage their own hours" ON public.pilot_hours
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -24,7 +25,7 @@ CREATE TRIGGER update_pilot_hours_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Table: paramètres taux horaire / TJM (une ligne par utilisateur)
-CREATE TABLE public.pilot_tjm_settings (
+CREATE TABLE IF NOT EXISTS public.pilot_tjm_settings (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE UNIQUE,
   heures_gestion NUMERIC NOT NULL DEFAULT 60,
@@ -48,6 +49,7 @@ GRANT ALL ON public.pilot_tjm_settings TO service_role;
 
 ALTER TABLE public.pilot_tjm_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage their own tjm settings" ON public.pilot_tjm_settings;
 CREATE POLICY "Users manage their own tjm settings" ON public.pilot_tjm_settings
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 

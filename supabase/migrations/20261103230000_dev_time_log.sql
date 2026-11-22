@@ -14,6 +14,7 @@ GRANT SELECT ON public.dev_time_log TO authenticated;
 GRANT ALL ON public.dev_time_log TO service_role;
 
 DROP POLICY IF EXISTS "Authenticated read dev time log" ON public.dev_time_log;
+DROP POLICY IF EXISTS "Authenticated read dev time log" ON public.dev_time_log;
 CREATE POLICY "Authenticated read dev time log" ON public.dev_time_log
   FOR SELECT TO authenticated USING (true);
 

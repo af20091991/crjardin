@@ -2,8 +2,8 @@
 -- voient tous les changements du calendrier (lecture seule).
 
 DROP POLICY IF EXISTS "Members read all sst calendar changes" ON public.sst_calendar_changes;
-CREATE POLICY "Members read all sst calendar changes"
-  ON public.sst_calendar_changes FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Members read all sst calendar changes" ON public.sst_calendar_changes;
+CREATE POLICY "Members read all sst calendar changes" ON public.sst_calendar_changes FOR SELECT TO authenticated
   USING (
     public.is_approved_member(auth.uid())
     OR EXISTS (

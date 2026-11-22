@@ -1,4 +1,4 @@
-CREATE TABLE public.pilot_sst_label_map (
+CREATE TABLE IF NOT EXISTS public.pilot_sst_label_map (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   raw_label text NOT NULL,
@@ -15,8 +15,8 @@ GRANT ALL ON public.pilot_sst_label_map TO service_role;
 
 ALTER TABLE public.pilot_sst_label_map ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users manage their own SST label map"
-ON public.pilot_sst_label_map FOR ALL TO authenticated
+DROP POLICY IF EXISTS "Users manage their own SST label map" ON public.pilot_sst_label_map;
+CREATE POLICY "Users manage their own SST label map" ON public.pilot_sst_label_map FOR ALL TO authenticated
 USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE TRIGGER update_pilot_sst_label_map_updated_at

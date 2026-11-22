@@ -28,6 +28,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.predevis_suppliers TO authenticat
 GRANT ALL ON public.predevis_suppliers TO service_role;
 ALTER TABLE public.predevis_suppliers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins manage predevis_suppliers" ON public.predevis_suppliers;
+DROP POLICY IF EXISTS "Admins manage predevis_suppliers" ON public.predevis_suppliers;
 CREATE POLICY "Admins manage predevis_suppliers" ON public.predevis_suppliers
   FOR ALL TO authenticated
   USING (public.has_role(auth.uid(), 'admin'))
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS public.predevis_catalogue_imports (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.predevis_catalogue_imports TO authenticated;
 GRANT ALL ON public.predevis_catalogue_imports TO service_role;
 ALTER TABLE public.predevis_catalogue_imports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins manage predevis_catalogue_imports" ON public.predevis_catalogue_imports;
 DROP POLICY IF EXISTS "Admins manage predevis_catalogue_imports" ON public.predevis_catalogue_imports;
 CREATE POLICY "Admins manage predevis_catalogue_imports" ON public.predevis_catalogue_imports
   FOR ALL TO authenticated
@@ -82,6 +84,7 @@ CREATE INDEX IF NOT EXISTS predevis_products_norm_designation_idx
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.predevis_products TO authenticated;
 GRANT ALL ON public.predevis_products TO service_role;
 ALTER TABLE public.predevis_products ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins manage predevis_products" ON public.predevis_products;
 DROP POLICY IF EXISTS "Admins manage predevis_products" ON public.predevis_products;
 CREATE POLICY "Admins manage predevis_products" ON public.predevis_products
   FOR ALL TO authenticated
@@ -116,6 +119,7 @@ CREATE INDEX IF NOT EXISTS predevis_offers_supplier_idx ON public.predevis_offer
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.predevis_offers TO authenticated;
 GRANT ALL ON public.predevis_offers TO service_role;
 ALTER TABLE public.predevis_offers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins manage predevis_offers" ON public.predevis_offers;
 DROP POLICY IF EXISTS "Admins manage predevis_offers" ON public.predevis_offers;
 CREATE POLICY "Admins manage predevis_offers" ON public.predevis_offers
   FOR ALL TO authenticated

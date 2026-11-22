@@ -21,7 +21,9 @@ GRANT ALL ON public.ap_order_sends TO service_role;
 
 ALTER TABLE public.ap_order_sends ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Approved members read AP order sends" ON public.ap_order_sends;
 CREATE POLICY "Approved members read AP order sends" ON public.ap_order_sends
   FOR SELECT TO authenticated USING (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members insert AP order sends" ON public.ap_order_sends;
 CREATE POLICY "Approved members insert AP order sends" ON public.ap_order_sends
   FOR INSERT TO authenticated WITH CHECK (public.is_approved_member(auth.uid()) AND sent_by = auth.uid());

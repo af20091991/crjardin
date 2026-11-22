@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS public.pp_deleted_rows (
 CREATE INDEX IF NOT EXISTS pp_deleted_rows_table_idx ON public.pp_deleted_rows (table_name, deleted_at DESC);
 ALTER TABLE public.pp_deleted_rows ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins lisent la corbeille" ON public.pp_deleted_rows;
+DROP POLICY IF EXISTS "Admins lisent la corbeille" ON public.pp_deleted_rows;
 CREATE POLICY "Admins lisent la corbeille" ON public.pp_deleted_rows
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
 REVOKE INSERT, UPDATE, DELETE ON public.pp_deleted_rows FROM anon, authenticated;

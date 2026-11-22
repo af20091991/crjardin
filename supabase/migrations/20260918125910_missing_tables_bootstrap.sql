@@ -15,11 +15,14 @@ CREATE TABLE IF NOT EXISTS public.client_message_attachments (
 );
 ALTER TABLE public.client_message_attachments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Editors add gardener attachments" ON public.client_message_attachments;
+DROP POLICY IF EXISTS "Editors add gardener attachments" ON public.client_message_attachments;
 CREATE POLICY "Editors add gardener attachments" ON public.client_message_attachments FOR INSERT TO authenticated
   WITH CHECK (public.is_editor(auth.uid()) AND uploaded_by = 'gardener');
 DROP POLICY IF EXISTS "Editors delete chat attachments" ON public.client_message_attachments;
+DROP POLICY IF EXISTS "Editors delete chat attachments" ON public.client_message_attachments;
 CREATE POLICY "Editors delete chat attachments" ON public.client_message_attachments FOR DELETE TO authenticated
   USING (public.is_editor(auth.uid()));
+DROP POLICY IF EXISTS "Read chat attachments like messages" ON public.client_message_attachments;
 DROP POLICY IF EXISTS "Read chat attachments like messages" ON public.client_message_attachments;
 CREATE POLICY "Read chat attachments like messages" ON public.client_message_attachments FOR SELECT TO authenticated
   USING (
@@ -93,10 +96,14 @@ CREATE TABLE IF NOT EXISTS public.site_web_watchlist (
 );
 ALTER TABLE public.site_web_watchlist ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS site_web_watchlist_select_own ON public.site_web_watchlist;
+DROP POLICY IF EXISTS site_web_watchlist_select_own ON public.site_web_watchlist;
 CREATE POLICY site_web_watchlist_select_own ON public.site_web_watchlist FOR SELECT TO public USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS site_web_watchlist_insert_own ON public.site_web_watchlist;
 DROP POLICY IF EXISTS site_web_watchlist_insert_own ON public.site_web_watchlist;
 CREATE POLICY site_web_watchlist_insert_own ON public.site_web_watchlist FOR INSERT TO public WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS site_web_watchlist_update_own ON public.site_web_watchlist;
+DROP POLICY IF EXISTS site_web_watchlist_update_own ON public.site_web_watchlist;
 CREATE POLICY site_web_watchlist_update_own ON public.site_web_watchlist FOR UPDATE TO public USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS site_web_watchlist_delete_own ON public.site_web_watchlist;
 DROP POLICY IF EXISTS site_web_watchlist_delete_own ON public.site_web_watchlist;
 CREATE POLICY site_web_watchlist_delete_own ON public.site_web_watchlist FOR DELETE TO public USING (auth.uid() = user_id);

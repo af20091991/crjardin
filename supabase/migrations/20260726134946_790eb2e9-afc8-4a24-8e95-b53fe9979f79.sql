@@ -21,8 +21,8 @@ GRANT ALL ON public.pilot_charge_categories TO service_role;
 
 ALTER TABLE public.pilot_charge_categories ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users manage own pilot_charge_categories"
-  ON public.pilot_charge_categories FOR ALL
+DROP POLICY IF EXISTS "Users manage own pilot_charge_categories" ON public.pilot_charge_categories;
+CREATE POLICY "Users manage own pilot_charge_categories" ON public.pilot_charge_categories FOR ALL
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE TRIGGER update_pilot_charge_categories_updated_at

@@ -1,5 +1,5 @@
 -- ============ Assistant AP ============
-CREATE TABLE public.ap_worksites (
+CREATE TABLE IF NOT EXISTS public.ap_worksites (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   client_label TEXT NOT NULL,
   scheduled_date DATE,
@@ -10,7 +10,7 @@ CREATE TABLE public.ap_worksites (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE public.ap_supplies (
+CREATE TABLE IF NOT EXISTS public.ap_supplies (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   worksite_id UUID NOT NULL REFERENCES public.ap_worksites(id) ON DELETE CASCADE,
   supplier TEXT NOT NULL DEFAULT '',
@@ -25,10 +25,10 @@ CREATE TABLE public.ap_supplies (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX ap_supplies_worksite_idx ON public.ap_supplies(worksite_id);
-CREATE INDEX ap_worksites_date_idx ON public.ap_worksites(scheduled_date);
+CREATE INDEX IF NOT EXISTS ap_supplies_worksite_idx ON public.ap_supplies(worksite_id);
+CREATE INDEX IF NOT EXISTS ap_worksites_date_idx ON public.ap_worksites(scheduled_date);
 
-CREATE TABLE public.ap_reminder_log (
+CREATE TABLE IF NOT EXISTS public.ap_reminder_log (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   worksite_id UUID NOT NULL REFERENCES public.ap_worksites(id) ON DELETE CASCADE,
   offset_days INTEGER NOT NULL,
@@ -48,26 +48,35 @@ ALTER TABLE public.ap_worksites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ap_supplies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ap_reminder_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Approved members read AP worksites" ON public.ap_worksites;
 CREATE POLICY "Approved members read AP worksites" ON public.ap_worksites
   FOR SELECT TO authenticated USING (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members insert AP worksites" ON public.ap_worksites;
 CREATE POLICY "Approved members insert AP worksites" ON public.ap_worksites
   FOR INSERT TO authenticated WITH CHECK (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members update AP worksites" ON public.ap_worksites;
 CREATE POLICY "Approved members update AP worksites" ON public.ap_worksites
   FOR UPDATE TO authenticated USING (public.is_approved_member(auth.uid()))
   WITH CHECK (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members delete AP worksites" ON public.ap_worksites;
 CREATE POLICY "Approved members delete AP worksites" ON public.ap_worksites
   FOR DELETE TO authenticated USING (public.is_approved_member(auth.uid()));
 
+DROP POLICY IF EXISTS "Approved members read AP supplies" ON public.ap_supplies;
 CREATE POLICY "Approved members read AP supplies" ON public.ap_supplies
   FOR SELECT TO authenticated USING (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members insert AP supplies" ON public.ap_supplies;
 CREATE POLICY "Approved members insert AP supplies" ON public.ap_supplies
   FOR INSERT TO authenticated WITH CHECK (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members update AP supplies" ON public.ap_supplies;
 CREATE POLICY "Approved members update AP supplies" ON public.ap_supplies
   FOR UPDATE TO authenticated USING (public.is_approved_member(auth.uid()))
   WITH CHECK (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members delete AP supplies" ON public.ap_supplies;
 CREATE POLICY "Approved members delete AP supplies" ON public.ap_supplies
   FOR DELETE TO authenticated USING (public.is_approved_member(auth.uid()));
 
+DROP POLICY IF EXISTS "Approved members read AP reminder log" ON public.ap_reminder_log;
 CREATE POLICY "Approved members read AP reminder log" ON public.ap_reminder_log
   FOR SELECT TO authenticated USING (public.is_approved_member(auth.uid()));
 
@@ -89,13 +98,16 @@ CREATE TRIGGER ap_supplies_updated_at BEFORE UPDATE ON public.ap_supplies
 
 -- ============ Corrections de sécurité (lecture réservée aux comptes validés) ============
 DROP POLICY IF EXISTS "Authenticated can read planning notes" ON public.planning_notes;
+DROP POLICY IF EXISTS "Approved members read planning notes" ON public.planning_notes;
 CREATE POLICY "Approved members read planning notes" ON public.planning_notes
   FOR SELECT TO authenticated USING (public.is_approved_member(auth.uid()));
 
 DROP POLICY IF EXISTS "Authenticated can read referential audit log" ON public.referential_audit_log;
+DROP POLICY IF EXISTS "Approved members read referential audit log" ON public.referential_audit_log;
 CREATE POLICY "Approved members read referential audit log" ON public.referential_audit_log
   FOR SELECT TO authenticated USING (public.is_approved_member(auth.uid()));
 
 DROP POLICY IF EXISTS "Authenticated read all garden health" ON public.garden_health;
+DROP POLICY IF EXISTS "Approved members read garden health" ON public.garden_health;
 CREATE POLICY "Approved members read garden health" ON public.garden_health
   FOR SELECT TO authenticated USING (public.is_approved_member(auth.uid()));

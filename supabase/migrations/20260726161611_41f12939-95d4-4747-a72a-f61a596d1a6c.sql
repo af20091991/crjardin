@@ -19,8 +19,8 @@ GRANT ALL ON public.pilot_fixed_charges TO service_role;
 
 ALTER TABLE public.pilot_fixed_charges ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users manage their own fixed charges"
-  ON public.pilot_fixed_charges FOR ALL TO authenticated
+DROP POLICY IF EXISTS "Users manage their own fixed charges" ON public.pilot_fixed_charges;
+CREATE POLICY "Users manage their own fixed charges" ON public.pilot_fixed_charges FOR ALL TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()

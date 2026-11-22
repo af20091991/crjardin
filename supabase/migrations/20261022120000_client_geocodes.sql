@@ -14,15 +14,18 @@ grant all on public.client_geocodes to service_role;
 alter table public.client_geocodes enable row level security;
 
 drop policy if exists "Members read client geocodes" on public.client_geocodes;
-create policy "Members read client geocodes" on public.client_geocodes
+DROP POLICY IF EXISTS "Members read client geocodes" ON public.client_geocodes;
+CREATE POLICY "Members read client geocodes" ON public.client_geocodes
   for select to authenticated using (public.is_approved_member(auth.uid()));
 
 drop policy if exists "Members insert client geocodes" on public.client_geocodes;
-create policy "Members insert client geocodes" on public.client_geocodes
+DROP POLICY IF EXISTS "Members insert client geocodes" ON public.client_geocodes;
+CREATE POLICY "Members insert client geocodes" ON public.client_geocodes
   for insert to authenticated with check (public.is_approved_member(auth.uid()));
 
 drop policy if exists "Members update client geocodes" on public.client_geocodes;
-create policy "Members update client geocodes" on public.client_geocodes
+DROP POLICY IF EXISTS "Members update client geocodes" ON public.client_geocodes;
+CREATE POLICY "Members update client geocodes" ON public.client_geocodes
   for update to authenticated
   using (public.is_approved_member(auth.uid()))
   with check (public.is_approved_member(auth.uid()));

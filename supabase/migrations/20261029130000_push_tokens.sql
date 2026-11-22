@@ -16,12 +16,16 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.push_tokens TO authenticated;
 GRANT ALL ON public.push_tokens TO service_role;
 ALTER TABLE public.push_tokens ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Read own push tokens" ON public.push_tokens;
 CREATE POLICY "Read own push tokens" ON public.push_tokens
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Insert own push tokens" ON public.push_tokens;
 CREATE POLICY "Insert own push tokens" ON public.push_tokens
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Update own push tokens" ON public.push_tokens;
 CREATE POLICY "Update own push tokens" ON public.push_tokens
   FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Delete own push tokens" ON public.push_tokens;
 CREATE POLICY "Delete own push tokens" ON public.push_tokens
   FOR DELETE TO authenticated USING (auth.uid() = user_id);
 

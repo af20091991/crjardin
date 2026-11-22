@@ -9,8 +9,8 @@ DROP POLICY IF EXISTS "Authenticated read all clients" ON public.clients;
 DROP POLICY IF EXISTS "Staff et observateurs lisent les clients" ON public.clients;
 DROP POLICY IF EXISTS "Sous-traitants lisent les clients de leurs missions" ON public.clients;
 
-CREATE POLICY "Staff et observateurs lisent les clients"
-ON public.clients
+DROP POLICY IF EXISTS "Staff et observateurs lisent les clients" ON public.clients;
+CREATE POLICY "Staff et observateurs lisent les clients" ON public.clients
 FOR SELECT
 TO authenticated
 USING (
@@ -18,8 +18,8 @@ USING (
   OR public.has_role(auth.uid(), 'observateur')
 );
 
-CREATE POLICY "Sous-traitants lisent les clients de leurs missions"
-ON public.clients
+DROP POLICY IF EXISTS "Sous-traitants lisent les clients de leurs missions" ON public.clients;
+CREATE POLICY "Sous-traitants lisent les clients de leurs missions" ON public.clients
 FOR SELECT
 TO authenticated
 USING (

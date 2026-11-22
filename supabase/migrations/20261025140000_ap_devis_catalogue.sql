@@ -21,15 +21,19 @@ GRANT ALL ON public.ap_supplier_memory TO service_role;
 ALTER TABLE public.ap_supplier_memory ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Approved members read AP supplier memory" ON public.ap_supplier_memory;
+DROP POLICY IF EXISTS "Approved members read AP supplier memory" ON public.ap_supplier_memory;
 CREATE POLICY "Approved members read AP supplier memory" ON public.ap_supplier_memory
   FOR SELECT TO authenticated USING (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members insert AP supplier memory" ON public.ap_supplier_memory;
 DROP POLICY IF EXISTS "Approved members insert AP supplier memory" ON public.ap_supplier_memory;
 CREATE POLICY "Approved members insert AP supplier memory" ON public.ap_supplier_memory
   FOR INSERT TO authenticated WITH CHECK (public.is_approved_member(auth.uid()));
 DROP POLICY IF EXISTS "Approved members update AP supplier memory" ON public.ap_supplier_memory;
+DROP POLICY IF EXISTS "Approved members update AP supplier memory" ON public.ap_supplier_memory;
 CREATE POLICY "Approved members update AP supplier memory" ON public.ap_supplier_memory
   FOR UPDATE TO authenticated USING (public.is_approved_member(auth.uid()))
   WITH CHECK (public.is_approved_member(auth.uid()));
+DROP POLICY IF EXISTS "Approved members delete AP supplier memory" ON public.ap_supplier_memory;
 DROP POLICY IF EXISTS "Approved members delete AP supplier memory" ON public.ap_supplier_memory;
 CREATE POLICY "Approved members delete AP supplier memory" ON public.ap_supplier_memory
   FOR DELETE TO authenticated USING (public.is_approved_member(auth.uid()));

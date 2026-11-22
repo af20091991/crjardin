@@ -19,13 +19,13 @@ GRANT ALL ON public.pp_backup_runs TO service_role;
 ALTER TABLE public.pp_backup_runs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Admins read backup runs" ON public.pp_backup_runs;
-CREATE POLICY "Admins read backup runs"
-ON public.pp_backup_runs FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Admins read backup runs" ON public.pp_backup_runs;
+CREATE POLICY "Admins read backup runs" ON public.pp_backup_runs FOR SELECT TO authenticated
 USING (public.has_role(auth.uid(), 'admin'));
 
 DROP POLICY IF EXISTS "Admins create manual backup runs" ON public.pp_backup_runs;
-CREATE POLICY "Admins create manual backup runs"
-ON public.pp_backup_runs FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Admins create manual backup runs" ON public.pp_backup_runs;
+CREATE POLICY "Admins create manual backup runs" ON public.pp_backup_runs FOR INSERT TO authenticated
 WITH CHECK (
   public.has_role(auth.uid(), 'admin') AND trigger = 'manual' AND triggered_by = auth.uid()
 );
@@ -39,8 +39,8 @@ VALUES ('pp-backups', 'pp-backups', false, 20971520)
 ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "Admins manage PP backups" ON storage.objects;
-CREATE POLICY "Admins manage PP backups"
-ON storage.objects FOR ALL TO authenticated
+DROP POLICY IF EXISTS "Admins manage PP backups" ON storage.objects;
+CREATE POLICY "Admins manage PP backups" ON storage.objects FOR ALL TO authenticated
 USING (bucket_id = 'pp-backups' AND public.has_role(auth.uid(), 'admin'))
 WITH CHECK (bucket_id = 'pp-backups' AND public.has_role(auth.uid(), 'admin'));
 

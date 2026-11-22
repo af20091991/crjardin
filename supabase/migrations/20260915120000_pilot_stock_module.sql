@@ -6,7 +6,7 @@
 -- pour cette première version (saisie manuelle des mouvements).
 -- Accès réservé au rôle admin uniquement (lecture et écriture), à la demande.
 
-create table public.pilot_stock_items (
+CREATE TABLE IF NOT EXISTS public.pilot_stock_items (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   category text not null,
@@ -23,13 +23,13 @@ create table public.pilot_stock_items (
 comment on column public.pilot_stock_items.current_quantity is
   'Quantité dérivée des mouvements (pilot_stock_movements). Ne jamais écrire cette colonne directement depuis l''application : elle est maintenue par le trigger pilot_stock_apply_movement.';
 
-create index pilot_stock_items_category_idx on public.pilot_stock_items (category);
+CREATE INDEX IF NOT EXISTS pilot_stock_items_category_idx on public.pilot_stock_items (category);
 
 create trigger pilot_stock_items_updated_at
   before update on public.pilot_stock_items
   for each row execute function public.update_updated_at_column();
 
-create table public.pilot_stock_movements (
+CREATE TABLE IF NOT EXISTS public.pilot_stock_movements (
   id uuid primary key default gen_random_uuid(),
   item_id uuid not null references public.pilot_stock_items(id) on delete restrict,
   movement_type text not null check (movement_type in ('entree', 'sortie', 'ajustement')),
@@ -44,8 +44,8 @@ create table public.pilot_stock_movements (
 comment on column public.pilot_stock_movements.quantity is
   'Toujours positive. Le sens (entrée/sortie) est porté par movement_type ; ajustement peut représenter une correction dans un sens ou l''autre selon le contexte saisi.';
 
-create index pilot_stock_movements_item_id_idx on public.pilot_stock_movements (item_id);
-create index pilot_stock_movements_occurred_at_idx on public.pilot_stock_movements (occurred_at);
+CREATE INDEX IF NOT EXISTS pilot_stock_movements_item_id_idx on public.pilot_stock_movements (item_id);
+CREATE INDEX IF NOT EXISTS pilot_stock_movements_occurred_at_idx on public.pilot_stock_movements (occurred_at);
 
 -- Le grand livre des mouvements est immuable : on corrige par un nouveau
 -- mouvement d'ajustement, jamais en réécrivant l'historique.
@@ -78,7 +78,7 @@ create trigger pilot_stock_movements_apply
 -- Historique importé (inventaires Excel 2020-2025) : table de référence en
 -- lecture seule pour l'application, utilisée pour l'audit et le graphique
 -- d'évolution annuelle. N'alimente pas current_quantity.
-create table public.pilot_stock_import_snapshots (
+CREATE TABLE IF NOT EXISTS public.pilot_stock_import_snapshots (
   id uuid primary key default gen_random_uuid(),
   item_label text not null,
   category text,
@@ -93,29 +93,29 @@ create table public.pilot_stock_import_snapshots (
   created_at timestamptz not null default now()
 );
 
-create index pilot_stock_import_snapshots_date_idx on public.pilot_stock_import_snapshots (snapshot_date);
+CREATE INDEX IF NOT EXISTS pilot_stock_import_snapshots_date_idx on public.pilot_stock_import_snapshots (snapshot_date);
 
 alter table public.pilot_stock_items enable row level security;
 alter table public.pilot_stock_movements enable row level security;
 alter table public.pilot_stock_import_snapshots enable row level security;
 
-create policy "Admin can read stock items"
-  on public.pilot_stock_items for select
+DROP POLICY IF EXISTS "Admin can read stock items" ON public.pilot_stock_items;
+CREATE POLICY "Admin can read stock items" ON public.pilot_stock_items for select
   using (public.has_role(auth.uid(), 'admin'));
 
-create policy "Admin can write stock items"
-  on public.pilot_stock_items for all
+DROP POLICY IF EXISTS "Admin can write stock items" ON public.pilot_stock_items;
+CREATE POLICY "Admin can write stock items" ON public.pilot_stock_items for all
   using (public.has_role(auth.uid(), 'admin'))
   with check (public.has_role(auth.uid(), 'admin'));
 
-create policy "Admin can read stock movements"
-  on public.pilot_stock_movements for select
+DROP POLICY IF EXISTS "Admin can read stock movements" ON public.pilot_stock_movements;
+CREATE POLICY "Admin can read stock movements" ON public.pilot_stock_movements for select
   using (public.has_role(auth.uid(), 'admin'));
 
-create policy "Admin can insert stock movements"
-  on public.pilot_stock_movements for insert
+DROP POLICY IF EXISTS "Admin can insert stock movements" ON public.pilot_stock_movements;
+CREATE POLICY "Admin can insert stock movements" ON public.pilot_stock_movements for insert
   with check (public.has_role(auth.uid(), 'admin'));
 
-create policy "Admin can read stock import snapshots"
-  on public.pilot_stock_import_snapshots for select
+DROP POLICY IF EXISTS "Admin can read stock import snapshots" ON public.pilot_stock_import_snapshots;
+CREATE POLICY "Admin can read stock import snapshots" ON public.pilot_stock_import_snapshots for select
   using (public.has_role(auth.uid(), 'admin'));

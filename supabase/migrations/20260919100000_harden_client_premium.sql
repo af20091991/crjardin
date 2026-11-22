@@ -3,59 +3,75 @@
 -- explicitly shared Premium data through token-checked SECURITY DEFINER RPCs.
 
 drop policy if exists "Authenticated read client_premium" on public.client_premium;
-create policy "Editors read client_premium" on public.client_premium
+DROP POLICY IF EXISTS "Editors read client_premium" ON public.client_premium;
+CREATE POLICY "Editors read client_premium" ON public.client_premium
 for select to authenticated using (public.is_editor(auth.uid()));
 drop policy if exists "Editors insert client_premium" on public.client_premium;
-create policy "Editors insert client_premium" on public.client_premium
+DROP POLICY IF EXISTS "Editors insert client_premium" ON public.client_premium;
+CREATE POLICY "Editors insert client_premium" ON public.client_premium
 for insert to authenticated with check (public.is_editor(auth.uid()));
 drop policy if exists "Editors update client_premium" on public.client_premium;
-create policy "Editors update client_premium" on public.client_premium
+DROP POLICY IF EXISTS "Editors update client_premium" ON public.client_premium;
+CREATE POLICY "Editors update client_premium" ON public.client_premium
 for update to authenticated using (public.is_editor(auth.uid())) with check (public.is_editor(auth.uid()));
 drop policy if exists "Editors delete client_premium" on public.client_premium;
-create policy "Editors delete client_premium" on public.client_premium
+DROP POLICY IF EXISTS "Editors delete client_premium" ON public.client_premium;
+CREATE POLICY "Editors delete client_premium" ON public.client_premium
 for delete to authenticated using (public.is_editor(auth.uid()));
 
 drop policy if exists "Authenticated read premium documents" on public.client_premium_documents;
-create policy "Editors read premium documents" on public.client_premium_documents
+DROP POLICY IF EXISTS "Editors read premium documents" ON public.client_premium_documents;
+CREATE POLICY "Editors read premium documents" ON public.client_premium_documents
 for select to authenticated using (public.is_editor(auth.uid()));
 drop policy if exists "Editors insert premium documents" on public.client_premium_documents;
-create policy "Editors insert premium documents" on public.client_premium_documents
+DROP POLICY IF EXISTS "Editors insert premium documents" ON public.client_premium_documents;
+CREATE POLICY "Editors insert premium documents" ON public.client_premium_documents
 for insert to authenticated with check (public.is_editor(auth.uid()));
 drop policy if exists "Editors update premium documents" on public.client_premium_documents;
-create policy "Editors update premium documents" on public.client_premium_documents
+DROP POLICY IF EXISTS "Editors update premium documents" ON public.client_premium_documents;
+CREATE POLICY "Editors update premium documents" ON public.client_premium_documents
 for update to authenticated using (public.is_editor(auth.uid())) with check (public.is_editor(auth.uid()));
 drop policy if exists "Editors delete premium documents" on public.client_premium_documents;
-create policy "Editors delete premium documents" on public.client_premium_documents
+DROP POLICY IF EXISTS "Editors delete premium documents" ON public.client_premium_documents;
+CREATE POLICY "Editors delete premium documents" ON public.client_premium_documents
 for delete to authenticated using (public.is_editor(auth.uid()));
 
 drop policy if exists "Authenticated read premium planning" on public.client_premium_planning_items;
-create policy "Editors read premium planning" on public.client_premium_planning_items
+DROP POLICY IF EXISTS "Editors read premium planning" ON public.client_premium_planning_items;
+CREATE POLICY "Editors read premium planning" ON public.client_premium_planning_items
 for select to authenticated using (public.is_editor(auth.uid()));
 drop policy if exists "Editors insert premium planning" on public.client_premium_planning_items;
-create policy "Editors insert premium planning" on public.client_premium_planning_items
+DROP POLICY IF EXISTS "Editors insert premium planning" ON public.client_premium_planning_items;
+CREATE POLICY "Editors insert premium planning" ON public.client_premium_planning_items
 for insert to authenticated with check (public.is_editor(auth.uid()));
 drop policy if exists "Editors update premium planning" on public.client_premium_planning_items;
-create policy "Editors update premium planning" on public.client_premium_planning_items
+DROP POLICY IF EXISTS "Editors update premium planning" ON public.client_premium_planning_items;
+CREATE POLICY "Editors update premium planning" ON public.client_premium_planning_items
 for update to authenticated using (public.is_editor(auth.uid())) with check (public.is_editor(auth.uid()));
 drop policy if exists "Editors delete premium planning" on public.client_premium_planning_items;
-create policy "Editors delete premium planning" on public.client_premium_planning_items
+DROP POLICY IF EXISTS "Editors delete premium planning" ON public.client_premium_planning_items;
+CREATE POLICY "Editors delete premium planning" ON public.client_premium_planning_items
 for delete to authenticated using (public.is_editor(auth.uid()));
 
 drop policy if exists "Premium editor read" on storage.objects;
-create policy "Premium editor read" on storage.objects
+DROP POLICY IF EXISTS "Premium editor read" ON storage.objects;
+CREATE POLICY "Premium editor read" ON storage.objects
 for select to authenticated
 using (bucket_id = 'client-premium' and public.is_editor(auth.uid()));
 drop policy if exists "Premium editor insert" on storage.objects;
-create policy "Premium editor insert" on storage.objects
+DROP POLICY IF EXISTS "Premium editor insert" ON storage.objects;
+CREATE POLICY "Premium editor insert" ON storage.objects
 for insert to authenticated
 with check (bucket_id = 'client-premium' and public.is_editor(auth.uid()));
 drop policy if exists "Premium editor update" on storage.objects;
-create policy "Premium editor update" on storage.objects
+DROP POLICY IF EXISTS "Premium editor update" ON storage.objects;
+CREATE POLICY "Premium editor update" ON storage.objects
 for update to authenticated
 using (bucket_id = 'client-premium' and public.is_editor(auth.uid()))
 with check (bucket_id = 'client-premium' and public.is_editor(auth.uid()));
 drop policy if exists "Premium editor delete" on storage.objects;
-create policy "Premium editor delete" on storage.objects
+DROP POLICY IF EXISTS "Premium editor delete" ON storage.objects;
+CREATE POLICY "Premium editor delete" ON storage.objects
 for delete to authenticated
 using (bucket_id = 'client-premium' and public.is_editor(auth.uid()));
 

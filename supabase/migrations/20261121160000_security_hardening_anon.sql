@@ -5,8 +5,8 @@
 --    Les fonctions utilisées par les politiques RLS et les triggers ne sont pas modifiées.
 
 DROP POLICY IF EXISTS "Authenticated users read app appearance" ON public.app_appearance;
-CREATE POLICY "Approved members read app appearance"
-  ON public.app_appearance
+DROP POLICY IF EXISTS "Approved members read app appearance" ON public.app_appearance;
+CREATE POLICY "Approved members read app appearance" ON public.app_appearance
   FOR SELECT
   TO authenticated
   USING (public.is_approved_member(auth.uid()) OR public.has_role(auth.uid(), 'admin'::app_role));

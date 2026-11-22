@@ -1,4 +1,4 @@
-CREATE TABLE public.pilot_historic_hours (
+CREATE TABLE IF NOT EXISTS public.pilot_historic_hours (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   year smallint NOT NULL,
@@ -22,18 +22,18 @@ CREATE TABLE public.pilot_historic_hours (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pilot_historic_hours TO authenticated;
 GRANT ALL ON public.pilot_historic_hours TO service_role;
 ALTER TABLE public.pilot_historic_hours ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage their own historic hours"
-  ON public.pilot_historic_hours FOR ALL
+DROP POLICY IF EXISTS "Users manage their own historic hours" ON public.pilot_historic_hours;
+CREATE POLICY "Users manage their own historic hours" ON public.pilot_historic_hours FOR ALL
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE INDEX idx_pilot_historic_hours_client ON public.pilot_historic_hours(client_id);
-CREATE INDEX idx_pilot_historic_hours_status ON public.pilot_historic_hours(status);
+CREATE INDEX IF NOT EXISTS idx_pilot_historic_hours_client ON public.pilot_historic_hours(client_id);
+CREATE INDEX IF NOT EXISTS idx_pilot_historic_hours_status ON public.pilot_historic_hours(status);
 
 CREATE TRIGGER update_pilot_historic_hours_updated_at
   BEFORE UPDATE ON public.pilot_historic_hours
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-CREATE TABLE public.pilot_hours_match_log (
+CREATE TABLE IF NOT EXISTS public.pilot_hours_match_log (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   hours_id uuid NOT NULL REFERENCES public.pilot_historic_hours(id) ON DELETE CASCADE,
@@ -47,9 +47,9 @@ CREATE TABLE public.pilot_hours_match_log (
 GRANT SELECT, INSERT ON public.pilot_hours_match_log TO authenticated;
 GRANT ALL ON public.pilot_hours_match_log TO service_role;
 ALTER TABLE public.pilot_hours_match_log ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users read their own hours match log"
-  ON public.pilot_hours_match_log FOR SELECT
+DROP POLICY IF EXISTS "Users read their own hours match log" ON public.pilot_hours_match_log;
+CREATE POLICY "Users read their own hours match log" ON public.pilot_hours_match_log FOR SELECT
   USING (auth.uid() = user_id);
-CREATE POLICY "Users write their own hours match log"
-  ON public.pilot_hours_match_log FOR INSERT
+DROP POLICY IF EXISTS "Users write their own hours match log" ON public.pilot_hours_match_log;
+CREATE POLICY "Users write their own hours match log" ON public.pilot_hours_match_log FOR INSERT
   WITH CHECK (auth.uid() = user_id);

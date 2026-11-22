@@ -22,6 +22,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.predevis_quotes TO authenticated;
 GRANT ALL ON public.predevis_quotes TO service_role;
 ALTER TABLE public.predevis_quotes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins manage predevis_quotes" ON public.predevis_quotes;
+DROP POLICY IF EXISTS "Admins manage predevis_quotes" ON public.predevis_quotes;
 CREATE POLICY "Admins manage predevis_quotes" ON public.predevis_quotes
   FOR ALL TO authenticated
   USING (public.has_role(auth.uid(), 'admin'))
@@ -52,6 +53,7 @@ REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.predevis_postes FROM authenticate
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.predevis_postes TO authenticated;
 GRANT ALL ON public.predevis_postes TO service_role;
 ALTER TABLE public.predevis_postes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins manage predevis_postes" ON public.predevis_postes;
 DROP POLICY IF EXISTS "Admins manage predevis_postes" ON public.predevis_postes;
 CREATE POLICY "Admins manage predevis_postes" ON public.predevis_postes
   FOR ALL TO authenticated
@@ -100,6 +102,7 @@ REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.predevis_lines FROM authenticated
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.predevis_lines TO authenticated;
 GRANT ALL ON public.predevis_lines TO service_role;
 ALTER TABLE public.predevis_lines ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins manage predevis_lines" ON public.predevis_lines;
 DROP POLICY IF EXISTS "Admins manage predevis_lines" ON public.predevis_lines;
 CREATE POLICY "Admins manage predevis_lines" ON public.predevis_lines
   FOR ALL TO authenticated

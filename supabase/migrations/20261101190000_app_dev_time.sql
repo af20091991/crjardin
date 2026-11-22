@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS public.app_dev_time (
 INSERT INTO public.app_dev_time (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 GRANT SELECT ON public.app_dev_time TO authenticated;
 ALTER TABLE public.app_dev_time ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated read dev time" ON public.app_dev_time;
 CREATE POLICY "Authenticated read dev time" ON public.app_dev_time
   FOR SELECT TO authenticated USING (true);
 

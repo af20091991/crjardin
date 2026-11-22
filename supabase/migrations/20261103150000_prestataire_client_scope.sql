@@ -23,6 +23,7 @@ GRANT EXECUTE ON FUNCTION public.prestataire_client_ids(uuid) TO authenticated;
 
 -- 2) CR Chantier : lecture, modification et suppression selon le périmètre
 DROP POLICY IF EXISTS "Authenticated read all interventions" ON public.interventions;
+DROP POLICY IF EXISTS "Read interventions in scope" ON public.interventions;
 CREATE POLICY "Read interventions in scope" ON public.interventions
   FOR SELECT TO authenticated USING (
     NOT public.has_role(auth.uid(), 'prestataire'::app_role)
@@ -33,6 +34,7 @@ CREATE POLICY "Read interventions in scope" ON public.interventions
   );
 
 DROP POLICY IF EXISTS "Editors update interventions" ON public.interventions;
+DROP POLICY IF EXISTS "Editors update interventions in scope" ON public.interventions;
 CREATE POLICY "Editors update interventions in scope" ON public.interventions
   FOR UPDATE TO authenticated
   USING (
@@ -46,6 +48,7 @@ CREATE POLICY "Editors update interventions in scope" ON public.interventions
   WITH CHECK (public.is_editor(auth.uid()));
 
 DROP POLICY IF EXISTS "Editors delete interventions" ON public.interventions;
+DROP POLICY IF EXISTS "Editors delete interventions in scope" ON public.interventions;
 CREATE POLICY "Editors delete interventions in scope" ON public.interventions
   FOR DELETE TO authenticated
   USING (
@@ -59,6 +62,7 @@ CREATE POLICY "Editors delete interventions in scope" ON public.interventions
 
 -- 3) Photos de CR : même périmètre
 DROP POLICY IF EXISTS "Approved team can read intervention photos" ON public.intervention_photos;
+DROP POLICY IF EXISTS "Team reads intervention photos in scope" ON public.intervention_photos;
 CREATE POLICY "Team reads intervention photos in scope" ON public.intervention_photos
   FOR SELECT TO authenticated USING (
     public.is_approved_member(auth.uid()) AND (
@@ -75,11 +79,14 @@ CREATE POLICY "Team reads intervention photos in scope" ON public.intervention_p
 DROP POLICY IF EXISTS "Editors insert premium documents" ON public.client_premium_documents;
 DROP POLICY IF EXISTS "Editors update premium documents" ON public.client_premium_documents;
 DROP POLICY IF EXISTS "Editors delete premium documents" ON public.client_premium_documents;
+DROP POLICY IF EXISTS "Admins insert premium documents" ON public.client_premium_documents;
 CREATE POLICY "Admins insert premium documents" ON public.client_premium_documents
   FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
+DROP POLICY IF EXISTS "Admins update premium documents" ON public.client_premium_documents;
 CREATE POLICY "Admins update premium documents" ON public.client_premium_documents
   FOR UPDATE TO authenticated
   USING (public.has_role(auth.uid(), 'admin'::app_role))
   WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
+DROP POLICY IF EXISTS "Admins delete premium documents" ON public.client_premium_documents;
 CREATE POLICY "Admins delete premium documents" ON public.client_premium_documents
   FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin'::app_role));

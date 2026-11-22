@@ -13,6 +13,7 @@ GRANT SELECT ON public.admin_view_log TO authenticated;
 GRANT ALL ON public.admin_view_log TO service_role;
 
 DROP POLICY IF EXISTS "Admins read admin view log" ON public.admin_view_log;
+DROP POLICY IF EXISTS "Admins read admin view log" ON public.admin_view_log;
 CREATE POLICY "Admins read admin view log" ON public.admin_view_log
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'::app_role));
 

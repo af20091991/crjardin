@@ -17,8 +17,10 @@ GRANT SELECT, INSERT ON public.login_events TO authenticated;
 GRANT ALL ON public.login_events TO service_role;
 ALTER TABLE public.login_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Insert own login event" ON public.login_events;
 CREATE POLICY "Insert own login event" ON public.login_events
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Admin reads login events" ON public.login_events;
 CREATE POLICY "Admin reads login events" ON public.login_events
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
 

@@ -1,4 +1,4 @@
-CREATE TABLE public.worksite_sheets (
+CREATE TABLE IF NOT EXISTS public.worksite_sheets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   client_id uuid REFERENCES public.clients(id) ON DELETE SET NULL,
@@ -28,19 +28,19 @@ GRANT ALL ON public.worksite_sheets TO service_role;
 
 ALTER TABLE public.worksite_sheets ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Editors read own or admin reads all worksite sheets"
-ON public.worksite_sheets FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Editors read own or admin reads all worksite sheets" ON public.worksite_sheets;
+CREATE POLICY "Editors read own or admin reads all worksite sheets" ON public.worksite_sheets FOR SELECT TO authenticated
 USING (
   (user_id = auth.uid() AND public.is_editor(auth.uid()))
   OR public.has_role(auth.uid(), 'admin')
 );
 
-CREATE POLICY "Editors insert own worksite sheets"
-ON public.worksite_sheets FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Editors insert own worksite sheets" ON public.worksite_sheets;
+CREATE POLICY "Editors insert own worksite sheets" ON public.worksite_sheets FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid() AND public.is_editor(auth.uid()));
 
-CREATE POLICY "Editors update own or admin updates all worksite sheets"
-ON public.worksite_sheets FOR UPDATE TO authenticated
+DROP POLICY IF EXISTS "Editors update own or admin updates all worksite sheets" ON public.worksite_sheets;
+CREATE POLICY "Editors update own or admin updates all worksite sheets" ON public.worksite_sheets FOR UPDATE TO authenticated
 USING (
   (user_id = auth.uid() AND public.is_editor(auth.uid()))
   OR public.has_role(auth.uid(), 'admin')
@@ -50,8 +50,8 @@ WITH CHECK (
   OR public.has_role(auth.uid(), 'admin')
 );
 
-CREATE POLICY "Editors delete own or admin deletes all worksite sheets"
-ON public.worksite_sheets FOR DELETE TO authenticated
+DROP POLICY IF EXISTS "Editors delete own or admin deletes all worksite sheets" ON public.worksite_sheets;
+CREATE POLICY "Editors delete own or admin deletes all worksite sheets" ON public.worksite_sheets FOR DELETE TO authenticated
 USING (
   (user_id = auth.uid() AND public.is_editor(auth.uid()))
   OR public.has_role(auth.uid(), 'admin')

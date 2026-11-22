@@ -3,7 +3,7 @@
 
 -- === Tables ===
 
-create table public.client_premium (
+CREATE TABLE IF NOT EXISTS public.client_premium (
   client_id uuid primary key references public.clients(id) on delete cascade,
   user_id uuid not null default auth.uid(),
   enabled boolean not null default false,
@@ -17,7 +17,7 @@ create table public.client_premium (
   updated_at timestamptz not null default now()
 );
 
-create table public.client_premium_documents (
+CREATE TABLE IF NOT EXISTS public.client_premium_documents (
   id uuid primary key default gen_random_uuid(),
   client_id uuid not null references public.clients(id) on delete cascade,
   user_id uuid not null default auth.uid(),
@@ -31,7 +31,7 @@ create table public.client_premium_documents (
   updated_at timestamptz not null default now()
 );
 
-create index client_premium_documents_client_idx
+CREATE INDEX IF NOT EXISTS client_premium_documents_client_idx
   on public.client_premium_documents (client_id, created_at desc);
 
 -- === RLS ===
@@ -39,30 +39,30 @@ create index client_premium_documents_client_idx
 alter table public.client_premium enable row level security;
 alter table public.client_premium_documents enable row level security;
 
-create policy "Editors read client_premium"
-  on public.client_premium for select to authenticated
+DROP POLICY IF EXISTS "Editors read client_premium" ON public.client_premium;
+CREATE POLICY "Editors read client_premium" ON public.client_premium for select to authenticated
   using (public.is_editor(auth.uid()));
-create policy "Editors insert client_premium"
-  on public.client_premium for insert to authenticated
+DROP POLICY IF EXISTS "Editors insert client_premium" ON public.client_premium;
+CREATE POLICY "Editors insert client_premium" ON public.client_premium for insert to authenticated
   with check (user_id = auth.uid() and public.is_editor(auth.uid()));
-create policy "Editors update client_premium"
-  on public.client_premium for update to authenticated
+DROP POLICY IF EXISTS "Editors update client_premium" ON public.client_premium;
+CREATE POLICY "Editors update client_premium" ON public.client_premium for update to authenticated
   using (public.is_editor(auth.uid())) with check (public.is_editor(auth.uid()));
-create policy "Editors delete client_premium"
-  on public.client_premium for delete to authenticated
+DROP POLICY IF EXISTS "Editors delete client_premium" ON public.client_premium;
+CREATE POLICY "Editors delete client_premium" ON public.client_premium for delete to authenticated
   using (public.is_editor(auth.uid()));
 
-create policy "Editors read premium documents"
-  on public.client_premium_documents for select to authenticated
+DROP POLICY IF EXISTS "Editors read premium documents" ON public.client_premium_documents;
+CREATE POLICY "Editors read premium documents" ON public.client_premium_documents for select to authenticated
   using (public.is_editor(auth.uid()));
-create policy "Editors insert premium documents"
-  on public.client_premium_documents for insert to authenticated
+DROP POLICY IF EXISTS "Editors insert premium documents" ON public.client_premium_documents;
+CREATE POLICY "Editors insert premium documents" ON public.client_premium_documents for insert to authenticated
   with check (user_id = auth.uid() and public.is_editor(auth.uid()));
-create policy "Editors update premium documents"
-  on public.client_premium_documents for update to authenticated
+DROP POLICY IF EXISTS "Editors update premium documents" ON public.client_premium_documents;
+CREATE POLICY "Editors update premium documents" ON public.client_premium_documents for update to authenticated
   using (public.is_editor(auth.uid())) with check (public.is_editor(auth.uid()));
-create policy "Editors delete premium documents"
-  on public.client_premium_documents for delete to authenticated
+DROP POLICY IF EXISTS "Editors delete premium documents" ON public.client_premium_documents;
+CREATE POLICY "Editors delete premium documents" ON public.client_premium_documents for delete to authenticated
   using (public.is_editor(auth.uid()));
 
 -- === Storage ===
@@ -71,18 +71,18 @@ insert into storage.buckets (id, name, public, file_size_limit)
 values ('client-premium', 'client-premium', false, 26214400)
 on conflict (id) do nothing;
 
-create policy "Premium editor read"
-  on storage.objects for select to authenticated
+DROP POLICY IF EXISTS "Premium editor read" ON storage.objects;
+CREATE POLICY "Premium editor read" ON storage.objects for select to authenticated
   using (bucket_id = 'client-premium' and public.is_editor(auth.uid()));
-create policy "Premium editor insert"
-  on storage.objects for insert to authenticated
+DROP POLICY IF EXISTS "Premium editor insert" ON storage.objects;
+CREATE POLICY "Premium editor insert" ON storage.objects for insert to authenticated
   with check (bucket_id = 'client-premium' and public.is_editor(auth.uid()));
-create policy "Premium editor update"
-  on storage.objects for update to authenticated
+DROP POLICY IF EXISTS "Premium editor update" ON storage.objects;
+CREATE POLICY "Premium editor update" ON storage.objects for update to authenticated
   using (bucket_id = 'client-premium' and public.is_editor(auth.uid()))
   with check (bucket_id = 'client-premium' and public.is_editor(auth.uid()));
-create policy "Premium editor delete"
-  on storage.objects for delete to authenticated
+DROP POLICY IF EXISTS "Premium editor delete" ON storage.objects;
+CREATE POLICY "Premium editor delete" ON storage.objects for delete to authenticated
   using (bucket_id = 'client-premium' and public.is_editor(auth.uid()));
 
 -- === RPC publiques (accès client via share_token, sans compte) ===

@@ -134,14 +134,14 @@ $$;
 
 -- Rendre visible la fiche du prestataire lui-même sans exposer les autres fiches.
 DROP POLICY IF EXISTS "Assigned subcontractors read own profile" ON public.subcontractors;
-CREATE POLICY "Assigned subcontractors read own profile"
-  ON public.subcontractors FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Assigned subcontractors read own profile" ON public.subcontractors;
+CREATE POLICY "Assigned subcontractors read own profile" ON public.subcontractors FOR SELECT TO authenticated
   USING (auth_user_id = auth.uid() AND active = true);
 
 -- Calendrier : les prestataires reliés à leur compte peuvent consulter le calendrier partagé.
 DROP POLICY IF EXISTS "Active subcontractors read SST availability" ON public.sst_availability_calendar;
-CREATE POLICY "Active subcontractors read SST availability"
-  ON public.sst_availability_calendar FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Active subcontractors read SST availability" ON public.sst_availability_calendar;
+CREATE POLICY "Active subcontractors read SST availability" ON public.sst_availability_calendar FOR SELECT TO authenticated
   USING (
     public.is_approved_member(auth.uid())
     OR EXISTS (
@@ -152,8 +152,8 @@ CREATE POLICY "Active subcontractors read SST availability"
 
 -- Missions attribuées : lecture seule pour le compte Auth explicitement lié.
 DROP POLICY IF EXISTS "Assigned subcontractors read own missions" ON public.subcontractor_missions;
-CREATE POLICY "Assigned subcontractors read own missions"
-  ON public.subcontractor_missions FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Assigned subcontractors read own missions" ON public.subcontractor_missions;
+CREATE POLICY "Assigned subcontractors read own missions" ON public.subcontractor_missions FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.subcontractors s
@@ -164,8 +164,8 @@ CREATE POLICY "Assigned subcontractors read own missions"
 
 -- Fiches de chantier liées aux missions attribuées.
 DROP POLICY IF EXISTS "Assigned subcontractors read linked worksite sheets" ON public.worksite_sheets;
-CREATE POLICY "Assigned subcontractors read linked worksite sheets"
-  ON public.worksite_sheets FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Assigned subcontractors read linked worksite sheets" ON public.worksite_sheets;
+CREATE POLICY "Assigned subcontractors read linked worksite sheets" ON public.worksite_sheets FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1
@@ -178,8 +178,8 @@ CREATE POLICY "Assigned subcontractors read linked worksite sheets"
 
 -- Métadonnées des photos des missions attribuées.
 DROP POLICY IF EXISTS "Assigned subcontractors read own mission photos" ON public.subcontractor_mission_photos;
-CREATE POLICY "Assigned subcontractors read own mission photos"
-  ON public.subcontractor_mission_photos FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Assigned subcontractors read own mission photos" ON public.subcontractor_mission_photos;
+CREATE POLICY "Assigned subcontractors read own mission photos" ON public.subcontractor_mission_photos FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1
@@ -271,8 +271,8 @@ CREATE TRIGGER sst_notify_assigned_subcontractors
 -- Photos des fiches et des missions : autoriser la lecture des seuls objets liés
 -- à une fiche/mission attribuée au compte SST. Ne donne aucun droit d'écriture.
 DROP POLICY IF EXISTS "Assigned subcontractors read linked SST photos" ON storage.objects;
-CREATE POLICY "Assigned subcontractors read linked SST photos"
-  ON storage.objects FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Assigned subcontractors read linked SST photos" ON storage.objects;
+CREATE POLICY "Assigned subcontractors read linked SST photos" ON storage.objects FOR SELECT TO authenticated
   USING (
     bucket_id = 'chantier-photos'
     AND (

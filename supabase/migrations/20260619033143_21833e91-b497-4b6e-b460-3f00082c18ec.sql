@@ -3,50 +3,77 @@
 
 -- clients
 DROP POLICY IF EXISTS "Users manage own clients" ON public.clients;
+DROP POLICY IF EXISTS "Authenticated read all clients" ON public.clients;
 CREATE POLICY "Authenticated read all clients" ON public.clients FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Owner insert clients" ON public.clients;
 CREATE POLICY "Owner insert clients" ON public.clients FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner update clients" ON public.clients;
 CREATE POLICY "Owner update clients" ON public.clients FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner delete clients" ON public.clients;
 CREATE POLICY "Owner delete clients" ON public.clients FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- interventions
 DROP POLICY IF EXISTS "Users manage own interventions" ON public.interventions;
+DROP POLICY IF EXISTS "Authenticated read all interventions" ON public.interventions;
 CREATE POLICY "Authenticated read all interventions" ON public.interventions FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Owner insert interventions" ON public.interventions;
 CREATE POLICY "Owner insert interventions" ON public.interventions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner update interventions" ON public.interventions;
 CREATE POLICY "Owner update interventions" ON public.interventions FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner delete interventions" ON public.interventions;
 CREATE POLICY "Owner delete interventions" ON public.interventions FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- intervention_tasks
 DROP POLICY IF EXISTS "Users manage own tasks" ON public.intervention_tasks;
+DROP POLICY IF EXISTS "Authenticated read all tasks" ON public.intervention_tasks;
 CREATE POLICY "Authenticated read all tasks" ON public.intervention_tasks FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Owner insert tasks" ON public.intervention_tasks;
 CREATE POLICY "Owner insert tasks" ON public.intervention_tasks FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner update tasks" ON public.intervention_tasks;
 CREATE POLICY "Owner update tasks" ON public.intervention_tasks FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner delete tasks" ON public.intervention_tasks;
 CREATE POLICY "Owner delete tasks" ON public.intervention_tasks FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- intervention_photos
 DROP POLICY IF EXISTS "Users manage own photos" ON public.intervention_photos;
+DROP POLICY IF EXISTS "Authenticated read all photos" ON public.intervention_photos;
 CREATE POLICY "Authenticated read all photos" ON public.intervention_photos FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Owner insert photos" ON public.intervention_photos;
 CREATE POLICY "Owner insert photos" ON public.intervention_photos FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner update photos" ON public.intervention_photos;
 CREATE POLICY "Owner update photos" ON public.intervention_photos FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner delete photos" ON public.intervention_photos;
 CREATE POLICY "Owner delete photos" ON public.intervention_photos FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- recommendations
 DROP POLICY IF EXISTS "Users manage own recommendations" ON public.recommendations;
+DROP POLICY IF EXISTS "Authenticated read all recommendations" ON public.recommendations;
 CREATE POLICY "Authenticated read all recommendations" ON public.recommendations FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Owner insert recommendations" ON public.recommendations;
 CREATE POLICY "Owner insert recommendations" ON public.recommendations FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner update recommendations" ON public.recommendations;
 CREATE POLICY "Owner update recommendations" ON public.recommendations FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner delete recommendations" ON public.recommendations;
 CREATE POLICY "Owner delete recommendations" ON public.recommendations FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- garden_health
 DROP POLICY IF EXISTS "Users manage own garden health" ON public.garden_health;
+DROP POLICY IF EXISTS "Authenticated read all garden health" ON public.garden_health;
 CREATE POLICY "Authenticated read all garden health" ON public.garden_health FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Owner insert garden health" ON public.garden_health;
 CREATE POLICY "Owner insert garden health" ON public.garden_health FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner update garden health" ON public.garden_health;
 CREATE POLICY "Owner update garden health" ON public.garden_health FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Owner delete garden health" ON public.garden_health;
 CREATE POLICY "Owner delete garden health" ON public.garden_health FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- profiles: readable by all authenticated (author names/signatures), editable by owner only
 DROP POLICY IF EXISTS "Users manage own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Authenticated read all profiles" ON public.profiles;
 CREATE POLICY "Authenticated read all profiles" ON public.profiles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Owner insert profile" ON public.profiles;
 CREATE POLICY "Owner insert profile" ON public.profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Owner update profile" ON public.profiles;
 CREATE POLICY "Owner update profile" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 -- 2. Secret share token for client view links

@@ -15,13 +15,17 @@ alter table public.client_photo_albums enable row level security;
 grant select, insert, update, delete on public.client_photo_albums to authenticated;
 grant all on public.client_photo_albums to service_role;
 drop policy if exists "Authenticated read photo albums" on public.client_photo_albums;
-create policy "Owner read photo albums" on public.client_photo_albums for select to authenticated using ((select auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Owner read photo albums" ON public.client_photo_albums;
+CREATE POLICY "Owner read photo albums" ON public.client_photo_albums for select to authenticated using ((select auth.uid()) = user_id);
 drop policy if exists "Owner insert photo albums" on public.client_photo_albums;
-create policy "Owner insert photo albums" on public.client_photo_albums for insert to authenticated with check ((select auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Owner insert photo albums" ON public.client_photo_albums;
+CREATE POLICY "Owner insert photo albums" ON public.client_photo_albums for insert to authenticated with check ((select auth.uid()) = user_id);
 drop policy if exists "Owner update photo albums" on public.client_photo_albums;
-create policy "Owner update photo albums" on public.client_photo_albums for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Owner update photo albums" ON public.client_photo_albums;
+CREATE POLICY "Owner update photo albums" ON public.client_photo_albums for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 drop policy if exists "Owner delete photo albums" on public.client_photo_albums;
-create policy "Owner delete photo albums" on public.client_photo_albums for delete to authenticated using ((select auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Owner delete photo albums" ON public.client_photo_albums;
+CREATE POLICY "Owner delete photo albums" ON public.client_photo_albums for delete to authenticated using ((select auth.uid()) = user_id);
 
 -- Regroupe les anciennes photos libres dans un album d'archive par client.
 with legacy as (

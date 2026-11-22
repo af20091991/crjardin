@@ -1,5 +1,5 @@
 -- Liaison Contact <-> Sites (un contact peut couvrir plusieurs sites du même client)
-CREATE TABLE public.contact_sites (
+CREATE TABLE IF NOT EXISTS public.contact_sites (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   contact_id uuid NOT NULL REFERENCES public.contacts(id) ON DELETE CASCADE,
@@ -14,13 +14,14 @@ GRANT ALL ON public.contact_sites TO service_role;
 
 ALTER TABLE public.contact_sites ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "contact_sites owner" ON public.contact_sites;
 CREATE POLICY "contact_sites owner" ON public.contact_sites
   FOR ALL TO authenticated
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-CREATE UNIQUE INDEX contact_sites_unique ON public.contact_sites (contact_id, site_id);
-CREATE INDEX contact_sites_site_idx ON public.contact_sites (site_id);
+CREATE UNIQUE INDEX IF NOT EXISTS contact_sites_unique ON public.contact_sites (contact_id, site_id);
+CREATE INDEX IF NOT EXISTS contact_sites_site_idx ON public.contact_sites (site_id);
 
 CREATE TRIGGER contact_sites_updated_at
   BEFORE UPDATE ON public.contact_sites
@@ -49,5 +50,5 @@ CREATE TRIGGER contact_sites_same_client_check
   FOR EACH ROW EXECUTE FUNCTION public.contact_sites_same_client();
 
 -- Un client ne peut pas avoir deux sites de même nom
-CREATE UNIQUE INDEX sites_client_name_unique
+CREATE UNIQUE INDEX IF NOT EXISTS sites_client_name_unique
   ON public.sites (user_id, client_id, lower(btrim(name)));

@@ -25,19 +25,19 @@ drop policy if exists "Editors insert Premium work calendar" on public.client_pr
 drop policy if exists "Editors update Premium work calendar" on public.client_premium_work_calendar_items;
 drop policy if exists "Editors delete Premium work calendar" on public.client_premium_work_calendar_items;
 
-create policy "Editors read Premium work calendar"
-  on public.client_premium_work_calendar_items for select to authenticated
+DROP POLICY IF EXISTS "Editors read Premium work calendar" ON public.client_premium_work_calendar_items;
+CREATE POLICY "Editors read Premium work calendar" ON public.client_premium_work_calendar_items for select to authenticated
   using (public.is_editor(auth.uid()));
 
-create policy "Editors insert Premium work calendar"
-  on public.client_premium_work_calendar_items for insert to authenticated
+DROP POLICY IF EXISTS "Editors insert Premium work calendar" ON public.client_premium_work_calendar_items;
+CREATE POLICY "Editors insert Premium work calendar" ON public.client_premium_work_calendar_items for insert to authenticated
   with check (user_id = auth.uid() and public.is_editor(auth.uid()));
 
-create policy "Editors update Premium work calendar"
-  on public.client_premium_work_calendar_items for update to authenticated
+DROP POLICY IF EXISTS "Editors update Premium work calendar" ON public.client_premium_work_calendar_items;
+CREATE POLICY "Editors update Premium work calendar" ON public.client_premium_work_calendar_items for update to authenticated
   using (public.is_editor(auth.uid()))
   with check (public.is_editor(auth.uid()));
 
-create policy "Editors delete Premium work calendar"
-  on public.client_premium_work_calendar_items for delete to authenticated
+DROP POLICY IF EXISTS "Editors delete Premium work calendar" ON public.client_premium_work_calendar_items;
+CREATE POLICY "Editors delete Premium work calendar" ON public.client_premium_work_calendar_items for delete to authenticated
   using (public.is_editor(auth.uid()));

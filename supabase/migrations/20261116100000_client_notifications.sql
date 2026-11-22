@@ -25,16 +25,19 @@ grant all on public.client_notifications to service_role;
 alter table public.client_notifications enable row level security;
 
 drop policy if exists "Admins read client notifications" on public.client_notifications;
-create policy "Admins read client notifications" on public.client_notifications
+DROP POLICY IF EXISTS "Admins read client notifications" ON public.client_notifications;
+CREATE POLICY "Admins read client notifications" ON public.client_notifications
   for select to authenticated using (public.has_role(auth.uid(), 'admin'));
 
 drop policy if exists "Admins update client notifications" on public.client_notifications;
-create policy "Admins update client notifications" on public.client_notifications
+DROP POLICY IF EXISTS "Admins update client notifications" ON public.client_notifications;
+CREATE POLICY "Admins update client notifications" ON public.client_notifications
   for update to authenticated using (public.has_role(auth.uid(), 'admin'))
   with check (public.has_role(auth.uid(), 'admin'));
 
 drop policy if exists "Admins delete client notifications" on public.client_notifications;
-create policy "Admins delete client notifications" on public.client_notifications
+DROP POLICY IF EXISTS "Admins delete client notifications" ON public.client_notifications;
+CREATE POLICY "Admins delete client notifications" ON public.client_notifications
   for delete to authenticated using (public.has_role(auth.uid(), 'admin'));
 
 -- Insertion uniquement par les déclencheurs ci-dessous (SECURITY DEFINER).

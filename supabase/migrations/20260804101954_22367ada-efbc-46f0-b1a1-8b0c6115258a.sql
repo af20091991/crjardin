@@ -1,7 +1,7 @@
 -- =========================================================
 -- SITES
 -- =========================================================
-CREATE TABLE public.sites (
+CREATE TABLE IF NOT EXISTS public.sites (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL,
   client_id uuid NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -21,17 +21,21 @@ CREATE TABLE public.sites (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.sites TO authenticated;
 GRANT ALL ON public.sites TO service_role;
 ALTER TABLE public.sites ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "sites_select_own" ON public.sites;
 CREATE POLICY "sites_select_own" ON public.sites FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "sites_insert_own" ON public.sites;
 CREATE POLICY "sites_insert_own" ON public.sites FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "sites_update_own" ON public.sites;
 CREATE POLICY "sites_update_own" ON public.sites FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "sites_delete_own" ON public.sites;
 CREATE POLICY "sites_delete_own" ON public.sites FOR DELETE TO authenticated USING (auth.uid() = user_id);
-CREATE INDEX sites_client_idx ON public.sites(client_id);
-CREATE INDEX sites_user_idx ON public.sites(user_id);
+CREATE INDEX IF NOT EXISTS sites_client_idx ON public.sites(client_id);
+CREATE INDEX IF NOT EXISTS sites_user_idx ON public.sites(user_id);
 
 -- =========================================================
 -- ALIAS DE SITES
 -- =========================================================
-CREATE TABLE public.site_aliases (
+CREATE TABLE IF NOT EXISTS public.site_aliases (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL,
   site_id uuid NOT NULL REFERENCES public.sites(id) ON DELETE CASCADE,
@@ -45,16 +49,20 @@ CREATE TABLE public.site_aliases (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.site_aliases TO authenticated;
 GRANT ALL ON public.site_aliases TO service_role;
 ALTER TABLE public.site_aliases ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "site_aliases_select_own" ON public.site_aliases;
 CREATE POLICY "site_aliases_select_own" ON public.site_aliases FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "site_aliases_insert_own" ON public.site_aliases;
 CREATE POLICY "site_aliases_insert_own" ON public.site_aliases FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "site_aliases_update_own" ON public.site_aliases;
 CREATE POLICY "site_aliases_update_own" ON public.site_aliases FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "site_aliases_delete_own" ON public.site_aliases;
 CREATE POLICY "site_aliases_delete_own" ON public.site_aliases FOR DELETE TO authenticated USING (auth.uid() = user_id);
-CREATE UNIQUE INDEX site_aliases_unique ON public.site_aliases(user_id, alias_normalized);
+CREATE UNIQUE INDEX IF NOT EXISTS site_aliases_unique ON public.site_aliases(user_id, alias_normalized);
 
 -- =========================================================
 -- CONTACTS
 -- =========================================================
-CREATE TABLE public.contacts (
+CREATE TABLE IF NOT EXISTS public.contacts (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL,
   client_id uuid NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -76,16 +84,20 @@ CREATE TABLE public.contacts (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.contacts TO authenticated;
 GRANT ALL ON public.contacts TO service_role;
 ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "contacts_select_own" ON public.contacts;
 CREATE POLICY "contacts_select_own" ON public.contacts FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "contacts_insert_own" ON public.contacts;
 CREATE POLICY "contacts_insert_own" ON public.contacts FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "contacts_update_own" ON public.contacts;
 CREATE POLICY "contacts_update_own" ON public.contacts FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "contacts_delete_own" ON public.contacts;
 CREATE POLICY "contacts_delete_own" ON public.contacts FOR DELETE TO authenticated USING (auth.uid() = user_id);
-CREATE INDEX contacts_client_idx ON public.contacts(client_id);
+CREATE INDEX IF NOT EXISTS contacts_client_idx ON public.contacts(client_id);
 
 -- =========================================================
 -- PROPOSITIONS DE REGROUPEMENT (validation humaine obligatoire)
 -- =========================================================
-CREATE TABLE public.site_merge_proposals (
+CREATE TABLE IF NOT EXISTS public.site_merge_proposals (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL,
   cluster_key text NOT NULL,
@@ -110,11 +122,15 @@ CREATE TABLE public.site_merge_proposals (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.site_merge_proposals TO authenticated;
 GRANT ALL ON public.site_merge_proposals TO service_role;
 ALTER TABLE public.site_merge_proposals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "smp_select_own" ON public.site_merge_proposals;
 CREATE POLICY "smp_select_own" ON public.site_merge_proposals FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "smp_insert_own" ON public.site_merge_proposals;
 CREATE POLICY "smp_insert_own" ON public.site_merge_proposals FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "smp_update_own" ON public.site_merge_proposals;
 CREATE POLICY "smp_update_own" ON public.site_merge_proposals FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "smp_delete_own" ON public.site_merge_proposals;
 CREATE POLICY "smp_delete_own" ON public.site_merge_proposals FOR DELETE TO authenticated USING (auth.uid() = user_id);
-CREATE UNIQUE INDEX smp_cluster_unique ON public.site_merge_proposals(user_id, cluster_key);
+CREATE UNIQUE INDEX IF NOT EXISTS smp_cluster_unique ON public.site_merge_proposals(user_id, cluster_key);
 
 -- =========================================================
 -- RATTACHEMENTS (facultatifs : les calculs actuels restent valides)
@@ -130,8 +146,8 @@ ALTER TABLE public.clients ADD COLUMN merged_into_client_id uuid REFERENCES publ
 ALTER TABLE public.clients ADD COLUMN merged_reason text;
 ALTER TABLE public.clients ADD COLUMN merged_at timestamptz;
 
-CREATE INDEX interventions_site_idx ON public.interventions(site_id);
-CREATE INDEX pilot_ca_entries_site_idx ON public.pilot_ca_entries(site_id);
+CREATE INDEX IF NOT EXISTS interventions_site_idx ON public.interventions(site_id);
+CREATE INDEX IF NOT EXISTS pilot_ca_entries_site_idx ON public.pilot_ca_entries(site_id);
 
 -- =========================================================
 -- TRIGGERS updated_at

@@ -17,7 +17,8 @@ create index if not exists sst_calendar_changes_pending_decision_idx
 
 -- L'auteur lit ses propres modifications en attente de décision.
 drop policy if exists "Actors read own sst calendar changes" on public.sst_calendar_changes;
-create policy "Actors read own sst calendar changes" on public.sst_calendar_changes
+DROP POLICY IF EXISTS "Actors read own sst calendar changes" ON public.sst_calendar_changes;
+CREATE POLICY "Actors read own sst calendar changes" ON public.sst_calendar_changes
   for select to authenticated
   using (actor_id = auth.uid());
 

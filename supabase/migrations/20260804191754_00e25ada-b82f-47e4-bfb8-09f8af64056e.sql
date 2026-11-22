@@ -33,10 +33,10 @@ GRANT SELECT, INSERT ON public.referential_audit_log TO authenticated;
 GRANT ALL ON public.referential_audit_log TO service_role;
 ALTER TABLE public.referential_audit_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated can read referential audit log"
-  ON public.referential_audit_log FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated can append referential audit log"
-  ON public.referential_audit_log FOR INSERT TO authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "Authenticated can read referential audit log" ON public.referential_audit_log;
+CREATE POLICY "Authenticated can read referential audit log" ON public.referential_audit_log FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated can append referential audit log" ON public.referential_audit_log;
+CREATE POLICY "Authenticated can append referential audit log" ON public.referential_audit_log FOR INSERT TO authenticated WITH CHECK (true);
 
 CREATE INDEX IF NOT EXISTS referential_audit_log_client_idx ON public.referential_audit_log(client_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS clients_entity_status_idx ON public.clients(entity_status);

@@ -28,18 +28,18 @@ GRANT ALL ON public.pilot_migration_log TO service_role;
 
 ALTER TABLE public.pilot_migration_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "migration_log_read_authenticated"
-  ON public.pilot_migration_log FOR SELECT
+DROP POLICY IF EXISTS "migration_log_read_authenticated" ON public.pilot_migration_log;
+CREATE POLICY "migration_log_read_authenticated" ON public.pilot_migration_log FOR SELECT
   TO authenticated
   USING (true);
 
-CREATE POLICY "migration_log_write_admin"
-  ON public.pilot_migration_log FOR INSERT
+DROP POLICY IF EXISTS "migration_log_write_admin" ON public.pilot_migration_log;
+CREATE POLICY "migration_log_write_admin" ON public.pilot_migration_log FOR INSERT
   TO authenticated
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
-CREATE POLICY "migration_log_update_admin"
-  ON public.pilot_migration_log FOR UPDATE
+DROP POLICY IF EXISTS "migration_log_update_admin" ON public.pilot_migration_log;
+CREATE POLICY "migration_log_update_admin" ON public.pilot_migration_log FOR UPDATE
   TO authenticated
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
@@ -90,18 +90,18 @@ GRANT ALL ON public.pilot_quality_checks TO service_role;
 
 ALTER TABLE public.pilot_quality_checks ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "quality_checks_read_authenticated"
-  ON public.pilot_quality_checks FOR SELECT
+DROP POLICY IF EXISTS "quality_checks_read_authenticated" ON public.pilot_quality_checks;
+CREATE POLICY "quality_checks_read_authenticated" ON public.pilot_quality_checks FOR SELECT
   TO authenticated
   USING (true);
 
-CREATE POLICY "quality_checks_write_admin"
-  ON public.pilot_quality_checks FOR INSERT
+DROP POLICY IF EXISTS "quality_checks_write_admin" ON public.pilot_quality_checks;
+CREATE POLICY "quality_checks_write_admin" ON public.pilot_quality_checks FOR INSERT
   TO authenticated
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
-CREATE POLICY "quality_checks_update_admin"
-  ON public.pilot_quality_checks FOR UPDATE
+DROP POLICY IF EXISTS "quality_checks_update_admin" ON public.pilot_quality_checks;
+CREATE POLICY "quality_checks_update_admin" ON public.pilot_quality_checks FOR UPDATE
   TO authenticated
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
@@ -138,8 +138,8 @@ GRANT ALL ON public.service_contracts TO service_role;
 
 ALTER TABLE public.service_contracts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "service_contracts_owner_all"
-  ON public.service_contracts FOR ALL
+DROP POLICY IF EXISTS "service_contracts_owner_all" ON public.service_contracts;
+CREATE POLICY "service_contracts_owner_all" ON public.service_contracts FOR ALL
   TO authenticated
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);

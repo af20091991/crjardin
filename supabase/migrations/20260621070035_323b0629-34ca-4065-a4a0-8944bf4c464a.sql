@@ -1,4 +1,4 @@
-CREATE TABLE public.planning_notes (
+CREATE TABLE IF NOT EXISTS public.planning_notes (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   scheduled_date DATE NOT NULL,
   title TEXT NOT NULL,
@@ -15,25 +15,25 @@ GRANT ALL ON public.planning_notes TO service_role;
 ALTER TABLE public.planning_notes ENABLE ROW LEVEL SECURITY;
 
 -- Everyone signed in can read planned notes
-CREATE POLICY "Authenticated can read planning notes"
-ON public.planning_notes FOR SELECT
+DROP POLICY IF EXISTS "Authenticated can read planning notes" ON public.planning_notes;
+CREATE POLICY "Authenticated can read planning notes" ON public.planning_notes FOR SELECT
 TO authenticated
 USING (true);
 
 -- Only admins can create/update/delete planned notes
-CREATE POLICY "Admins can insert planning notes"
-ON public.planning_notes FOR INSERT
+DROP POLICY IF EXISTS "Admins can insert planning notes" ON public.planning_notes;
+CREATE POLICY "Admins can insert planning notes" ON public.planning_notes FOR INSERT
 TO authenticated
 WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
-CREATE POLICY "Admins can update planning notes"
-ON public.planning_notes FOR UPDATE
+DROP POLICY IF EXISTS "Admins can update planning notes" ON public.planning_notes;
+CREATE POLICY "Admins can update planning notes" ON public.planning_notes FOR UPDATE
 TO authenticated
 USING (public.has_role(auth.uid(), 'admin'))
 WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
-CREATE POLICY "Admins can delete planning notes"
-ON public.planning_notes FOR DELETE
+DROP POLICY IF EXISTS "Admins can delete planning notes" ON public.planning_notes;
+CREATE POLICY "Admins can delete planning notes" ON public.planning_notes FOR DELETE
 TO authenticated
 USING (public.has_role(auth.uid(), 'admin'));
 

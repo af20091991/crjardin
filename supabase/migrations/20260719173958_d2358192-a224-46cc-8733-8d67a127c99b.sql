@@ -28,22 +28,22 @@ GRANT ALL ON public.intervention_report_history TO service_role;
 
 ALTER TABLE public.intervention_report_history ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated read report history"
-  ON public.intervention_report_history FOR SELECT
+DROP POLICY IF EXISTS "Authenticated read report history" ON public.intervention_report_history;
+CREATE POLICY "Authenticated read report history" ON public.intervention_report_history FOR SELECT
   TO authenticated USING (true);
 
-CREATE POLICY "Editors insert report history"
-  ON public.intervention_report_history FOR INSERT
+DROP POLICY IF EXISTS "Editors insert report history" ON public.intervention_report_history;
+CREATE POLICY "Editors insert report history" ON public.intervention_report_history FOR INSERT
   TO authenticated
   WITH CHECK (user_id = auth.uid() AND public.is_editor(auth.uid()));
 
 -- 4. Storage policies for intervention-reports bucket
-CREATE POLICY "Authenticated read intervention reports"
-  ON storage.objects FOR SELECT
+DROP POLICY IF EXISTS "Authenticated read intervention reports" ON storage.objects;
+CREATE POLICY "Authenticated read intervention reports" ON storage.objects FOR SELECT
   TO authenticated
   USING (bucket_id = 'intervention-reports');
 
-CREATE POLICY "Authenticated upload intervention reports"
-  ON storage.objects FOR INSERT
+DROP POLICY IF EXISTS "Authenticated upload intervention reports" ON storage.objects;
+CREATE POLICY "Authenticated upload intervention reports" ON storage.objects FOR INSERT
   TO authenticated
   WITH CHECK (bucket_id = 'intervention-reports' AND owner = auth.uid());

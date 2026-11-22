@@ -1,5 +1,5 @@
 -- Nouveau module Calendrier SST : calendrier partagé de disponibilités
-CREATE TABLE public.sst_availability_calendar (
+CREATE TABLE IF NOT EXISTS public.sst_availability_calendar (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL DEFAULT auth.uid(),
   date date NOT NULL,
@@ -14,26 +14,26 @@ GRANT ALL ON public.sst_availability_calendar TO service_role;
 
 ALTER TABLE public.sst_availability_calendar ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated can read availabilities"
-  ON public.sst_availability_calendar FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated can read availabilities" ON public.sst_availability_calendar;
+CREATE POLICY "Authenticated can read availabilities" ON public.sst_availability_calendar FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY "Users insert own availability"
-  ON public.sst_availability_calendar FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Users insert own availability" ON public.sst_availability_calendar;
+CREATE POLICY "Users insert own availability" ON public.sst_availability_calendar FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Users update own availability"
-  ON public.sst_availability_calendar FOR UPDATE TO authenticated
+DROP POLICY IF EXISTS "Users update own availability" ON public.sst_availability_calendar;
+CREATE POLICY "Users update own availability" ON public.sst_availability_calendar FOR UPDATE TO authenticated
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Users delete own availability"
-  ON public.sst_availability_calendar FOR DELETE TO authenticated
+DROP POLICY IF EXISTS "Users delete own availability" ON public.sst_availability_calendar;
+CREATE POLICY "Users delete own availability" ON public.sst_availability_calendar FOR DELETE TO authenticated
   USING (user_id = auth.uid());
 
-CREATE POLICY "Admins delete any availability"
-  ON public.sst_availability_calendar FOR DELETE TO authenticated
+DROP POLICY IF EXISTS "Admins delete any availability" ON public.sst_availability_calendar;
+CREATE POLICY "Admins delete any availability" ON public.sst_availability_calendar FOR DELETE TO authenticated
   USING (public.has_role(auth.uid(), 'admin'));
 
-CREATE INDEX sst_availability_calendar_date_idx ON public.sst_availability_calendar (date);
+CREATE INDEX IF NOT EXISTS sst_availability_calendar_date_idx ON public.sst_availability_calendar (date);
 
 CREATE TRIGGER sst_availability_calendar_updated_at
   BEFORE UPDATE ON public.sst_availability_calendar

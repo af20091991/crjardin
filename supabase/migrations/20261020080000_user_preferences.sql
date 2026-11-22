@@ -14,21 +14,21 @@ GRANT ALL ON public.user_preferences TO service_role;
 ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users read own preferences" ON public.user_preferences;
-CREATE POLICY "Users read own preferences"
-ON public.user_preferences FOR SELECT TO authenticated
+DROP POLICY IF EXISTS "Users read own preferences" ON public.user_preferences;
+CREATE POLICY "Users read own preferences" ON public.user_preferences FOR SELECT TO authenticated
 USING (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "Users insert own preferences" ON public.user_preferences;
-CREATE POLICY "Users insert own preferences"
-ON public.user_preferences FOR INSERT TO authenticated
+DROP POLICY IF EXISTS "Users insert own preferences" ON public.user_preferences;
+CREATE POLICY "Users insert own preferences" ON public.user_preferences FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "Users update own preferences" ON public.user_preferences;
-CREATE POLICY "Users update own preferences"
-ON public.user_preferences FOR UPDATE TO authenticated
+DROP POLICY IF EXISTS "Users update own preferences" ON public.user_preferences;
+CREATE POLICY "Users update own preferences" ON public.user_preferences FOR UPDATE TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "Users delete own preferences" ON public.user_preferences;
-CREATE POLICY "Users delete own preferences"
-ON public.user_preferences FOR DELETE TO authenticated
+DROP POLICY IF EXISTS "Users delete own preferences" ON public.user_preferences;
+CREATE POLICY "Users delete own preferences" ON public.user_preferences FOR DELETE TO authenticated
 USING (user_id = auth.uid());
