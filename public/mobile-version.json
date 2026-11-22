@@ -1,6 +1,6 @@
 {
-  "latestBuild": 19,
-  "versionName": "2.8.13",
+  "latestBuild": 20,
+  "versionName": "2.8.15",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Démarrage corrigé : splash complet puis appli sans écran blanc. Mettre à jour pour en profiter."
+  "notes": "Notifications : icône « PP » sur cercle vert. Mettre à jour pour en profiter."
 }
