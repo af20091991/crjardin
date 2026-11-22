@@ -22,7 +22,7 @@ create or replace function public.sync_equipment_maintenance_schedules(p_equipme
 declare v_equipment public.equipment%rowtype;
 begin
  select * into v_equipment from public.equipment where id=p_equipment_id and user_id=auth.uid();
- if not found then raise exception 'Équipement introuvable'; end if;
+ if not found then raise exception 'Ã‰quipement introuvable'; end if;
  insert into public.equipment_maintenance_schedules(user_id,equipment_id,maintenance_type_id,next_due_date)
  select v_equipment.user_id,v_equipment.id,mt.id,current_date+make_interval(months=>mt.interval_months)
  from public.maintenance_types mt join public.equipment_type_maintenance_types etm on etm.maintenance_type_id=mt.id and etm.user_id=mt.user_id
