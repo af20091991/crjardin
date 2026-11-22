@@ -91,7 +91,15 @@ export async function sendPush(
               token,
               notification: { title: msg.title, body: msg.body ?? undefined },
               data: { url: msg.url },
-              android: { priority: "HIGH", notification: { channel_id: "default" } },
+              android: {
+                priority: "HIGH",
+                notification: {
+                  channel_id: "default",
+                  // Icône « PP » (drawable ic_stat_pp de l'APK) et couleur du cercle vert.
+                  icon: "ic_stat_pp",
+                  color: "#4F8E33",
+                },
+              },
             },
           }),
         },

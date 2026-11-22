@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-11-22",
+    version: "2.8.15",
+    theme: "Général",
+    title: "Notifications : icône « PP » sur cercle vert",
+    details: [
+      "Les notifications push de l'application affichent un cercle vert avec « PP » en blanc.",
+    ],
+  },
+  {
+    date: "2026-11-22",
     version: "2.8.14",
     theme: "Général",
     title: "Tableau de bord SST : chiffres financiers en premier, sous-modules enrichis",
