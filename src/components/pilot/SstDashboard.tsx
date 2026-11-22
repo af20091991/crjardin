@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { AlertTriangle, CheckCircle2, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,12 +11,13 @@ import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import { SstCreateMissionDialog } from "@/components/pilot/SstCreateMissionDialog";
 import { SstReconciliationBoard } from "@/components/pilot/SstReconciliationBoard";
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
-import { PP_COLORS } from "@/lib/pilot-colors";
+import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
+import { useUnseenSstChanges } from "@/components/pilot/SstChangesPanel";
 import { formatEuro, formatHourlyRate, formatHours, formatPercent } from "@/lib/format-utils";
 import { usePilotScope } from "@/lib/pilot-mode";
 import { listClients } from "@/lib/clients";
 import { listCaEntries } from "@/lib/pilot-ca";
-import { listChargeRows } from "@/lib/pilot-charges";
+import { listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
 import { sstChargeLines, sstByProvider, isAccompanied, isSstCharge } from "@/lib/sst-charges";
 import {
@@ -35,6 +37,15 @@ import {
   sstReconciliation,
 } from "@/lib/sst-accounting-gap";
 import { sstDuplicateReport, sstDuplicateTotal } from "@/lib/sst-duplicates";
+import {
+  hourlyByPrestation,
+  hoursBySubcontractor,
+  monthlyBySubcontractor,
+  monthlyModeMix,
+  priceGaps,
+  upcomingMissions,
+  yearlySummary,
+} from "@/lib/sst-dashboard-metrics";
 
 /** Objectif de marge par défaut (même valeur que le Journal). */
 const MARGIN_TARGET = 25;
@@ -42,6 +53,8 @@ const MARGIN_TARGET = 25;
 const eur = (n: number) => formatEuro(n);
 const pct = (n: number | null) => (n == null ? "—" : formatPercent(n));
 const monthLabel = (key: string) => `${key.slice(5, 7)}/${key.slice(2, 4)}`;
+const dateFr = (iso: string) =>
+  new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("fr-FR");
 
 type Tone = "default" | "positive" | "negative" | "warning";
 
@@ -95,6 +108,12 @@ export function SstDashboard() {
     queryKey: ["pilot-ca", RECONCILIATION_YEAR],
     queryFn: () => listCaEntries(RECONCILIATION_YEAR),
   });
+  // CA total par année : sert uniquement à la part de la sous-traitance dans le CA.
+  const salesQ = useQuery({
+    queryKey: ["pilot-sales-by-year", mode, period],
+    queryFn: () => listSalesByYear({ mode, period }),
+  });
+  const changes = useUnseenSstChanges(true);
 
   const missions = useMemo(() => missionsQ.data ?? [], [missionsQ.data]);
   const ssts = useMemo(() => sstsQ.data ?? [], [sstsQ.data]);
@@ -356,6 +375,149 @@ export function SstDashboard() {
     [prestations],
   );
 
+  // Toutes années : évolution annuelle et répartition hors filtre d'exercice.
+  const allChargeLines = useMemo(
+    () => sstChargeLines({ chargeRows: chargeRowsQ.data ?? [], missions, clients, year: "all" }),
+    [chargeRowsQ.data, missions, clients],
+  );
+  const allCostOverride = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of allChargeLines) if (l.missionId) map.set(l.missionId, l.amount);
+    return map;
+  }, [allChargeLines]);
+  const allRows = useMemo(
+    () =>
+      sstRows({
+        missions,
+        ssts,
+        clients,
+        mode,
+        year: "all",
+        includeArchived: false,
+        costOverride: allCostOverride,
+      }),
+    [missions, ssts, clients, mode, allCostOverride],
+  );
+  const allOrphans = useMemo(
+    () => allChargeLines.filter((l) => !l.duplicateOfMission),
+    [allChargeLines],
+  );
+  const yearly = useMemo(
+    () => yearlySummary(allRows, allOrphans, salesQ.data ?? null, 2026),
+    [allRows, allOrphans, salesQ.data],
+  );
+  const salesThisYear = salesQ.data?.get(year) ?? 0;
+  const shareOfSales = salesThisYear > 0 ? (totals.revenue / salesThisYear) * 100 : null;
+
+  const gaps = useMemo(() => priceGaps(scopedRows), [scopedRows]);
+  const rates = useMemo(() => hourlyByPrestation(scopedRows), [scopedRows]);
+  const hoursBySub = useMemo(() => hoursBySubcontractor(scopedRows).slice(0, 8), [scopedRows]);
+  const modeMix = useMemo(() => monthlyModeMix(scopedRows), [scopedRows]);
+  const missionsByMonth = useMemo(() => monthlyBySubcontractor(scopedRows, 5), [scopedRows]);
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = useMemo(
+    () =>
+      upcomingMissions(
+        missions.filter((m) => new Date(m.mission_date).getFullYear() === year),
+        today,
+        6,
+      ),
+    [missions, year, today],
+  );
+  const clientNames = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
+  const sstNames = useMemo(() => new Map(ssts.map((s) => [s.id, s.name])), [ssts]);
+
+  const annualDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "annuel",
+        label: "Évolution annuelle",
+        unit: "euro",
+        categoryLabel: "Année",
+        series: [
+          { key: "revenue", label: "CA SST", color: PP_COLORS.sales },
+          { key: "cost", label: "Coût total", color: PP_COLORS.charges },
+          { key: "margin", label: "Marge", color: PP_COLORS.primary },
+        ],
+        rows: yearly.map((y) => ({
+          name: String(y.year),
+          revenue: y.revenue,
+          cost: y.cost,
+          margin: y.margin,
+        })),
+        note: "Années à partir de 2026. Coût total = fiches + charges sans fiche. Avec le mode « Réel », les missions futures n'apparaissent qu'une fois réalisées.",
+      },
+    ],
+    [yearly],
+  );
+
+  const missionsMonthDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "missions-mois",
+        label: "Missions par mois",
+        unit: "nombre",
+        categoryLabel: "Mois",
+        series: missionsByMonth.subs.map((name, i) => ({
+          key: `s${i}`,
+          label: name,
+          color: name === "Autres" ? PP_COLORS.neutral : PP_SERIES[i % PP_SERIES.length],
+        })),
+        rows: missionsByMonth.months.map((m) => {
+          const row: Record<string, string | number> = { name: monthLabel(m.key) };
+          missionsByMonth.subs.forEach((name, i) => {
+            row[`s${i}`] = m.counts[name] ?? 0;
+          });
+          return row;
+        }),
+        note: "Nombre de missions par mois. Les 5 sous-traitants les plus actifs, les autres regroupés.",
+      },
+    ],
+    [missionsByMonth],
+  );
+
+  const modeDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "mode",
+        label: "Autonome / chantier",
+        unit: "nombre",
+        categoryLabel: "Mois",
+        series: [
+          { key: "autonome", label: "Autonome", color: PP_COLORS.primary },
+          { key: "chantier", label: "Chantier", color: PP_COLORS.warning },
+          { key: "nonClassee", label: "Non classée", color: PP_COLORS.neutral },
+        ],
+        rows: modeMix.map((m) => ({
+          name: monthLabel(m.key),
+          autonome: m.autonome,
+          chantier: m.chantier,
+          nonClassee: m.nonClassee,
+        })),
+        note: "Nombre de missions par mois selon le mode : autonome, accompagnée sur chantier, ou non encore classée.",
+      },
+    ],
+    [modeMix],
+  );
+
+  const hoursDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "heures",
+        label: "Heures économisées / réalisées",
+        unit: "heure",
+        categoryLabel: "Sous-traitant",
+        series: [
+          { key: "saved", label: "Économisées", color: PP_COLORS.sales },
+          { key: "realized", label: "Réalisées par le SST", color: PP_COLORS.charges },
+        ],
+        rows: hoursBySub.map((h) => ({ name: h.name, saved: h.saved, realized: h.realized })),
+        note: "Heures économisées (saisies) face aux heures réalisées par chaque sous-traitant. Les 8 premiers par heures économisées.",
+      },
+    ],
+    [hoursBySub],
+  );
+
   const loading = missionsQ.isLoading || sstsQ.isLoading || clientsQ.isLoading;
   if (loading) return <LoadingState label="Chargement des données SST…" />;
 
@@ -389,7 +551,7 @@ export function SstDashboard() {
       )}
 
       {/* Chiffres clés */}
-      <section aria-label="Chiffres clés" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Chiffres clés" className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Kpi
           label="CA SST"
           value={eur(totals.revenue)}
@@ -443,6 +605,21 @@ export function SstDashboard() {
           value={formatHours(totals.hoursSaved)}
           sub="Heures non réalisées par vous grâce à la sous-traitance"
         />
+        <Kpi
+          label="Part SST dans le CA"
+          value={pct(shareOfSales)}
+          sub={
+            salesThisYear > 0
+              ? `${eur(totals.revenue)} sur ${eur(salesThisYear)} de CA total`
+              : "CA total de l'exercice non renseigné"
+          }
+        />
+        <Kpi
+          label="Écart convenu / facturé"
+          value={eur(gaps.total)}
+          sub={`${gaps.count} mission(s) avec écart de prix`}
+          tone={gaps.total > 0 ? "warning" : "default"}
+        />
       </section>
 
       {/* Graphiques */}
@@ -456,6 +633,20 @@ export function SstDashboard() {
             defaultType="barres_groupees"
           />
         </div>
+        <PilotFlexChart
+          title="Évolution annuelle"
+          subtitle="À partir de 2026, années à venir incluses"
+          datasets={annualDatasets}
+          storageKey="sst-dashboard:annuel"
+          defaultType="barres_groupees"
+        />
+        <PilotFlexChart
+          title="Évolution du taux de marge"
+          subtitle="Marge nette rapportée au CA, par mois"
+          datasets={monthlyDatasets.filter((d) => d.id === "taux-marge")}
+          storageKey="sst-dashboard:taux"
+          defaultType="courbe"
+        />
         <PilotFlexChart
           title="Coût par sous-traitant"
           subtitle="Sur fiches et charges sans fiche"
@@ -478,11 +669,25 @@ export function SstDashboard() {
           defaultType="barres"
         />
         <PilotFlexChart
-          title="Évolution du taux de marge"
-          subtitle="Marge nette rapportée au CA, par mois"
-          datasets={monthlyDatasets.filter((d) => d.id === "taux-marge")}
-          storageKey="sst-dashboard:taux"
-          defaultType="courbe"
+          title="Missions par mois et par sous-traitant"
+          subtitle="Charge de travail sous-traitée"
+          datasets={missionsMonthDatasets}
+          storageKey="sst-dashboard:missions-mois"
+          defaultType="barres_empilees"
+        />
+        <PilotFlexChart
+          title="Autonome / chantier dans le temps"
+          subtitle="Répartition mensuelle des missions"
+          datasets={modeDatasets}
+          storageKey="sst-dashboard:mode"
+          defaultType="barres_empilees"
+        />
+        <PilotFlexChart
+          title="Heures économisées vs réalisées"
+          subtitle="Par sous-traitant"
+          datasets={hoursDatasets}
+          storageKey="sst-dashboard:heures"
+          defaultType="barres_groupees"
         />
       </section>
 
@@ -561,6 +766,169 @@ export function SstDashboard() {
                   </div>
                 </div>
               ))
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Prix, écarts, planning et calendrier */}
+      <section aria-label="Prix et planning" className="grid gap-5 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Prix et coût par heure, par prestation</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Missions non accompagnées ayant des heures saisies.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            {rates.length === 0 ? (
+              <p className="px-5 pb-5 text-sm text-muted-foreground">
+                Données insuffisantes : aucune heure saisie sur la période.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-muted/30">
+                    <tr>
+                      <th className="px-5 py-3 text-left">Prestation</th>
+                      <th className="px-3 py-3 text-right">Missions</th>
+                      <th className="px-3 py-3 text-right">Heures</th>
+                      <th className="px-3 py-3 text-right">Vente / h</th>
+                      <th className="px-3 py-3 text-right">Coût / h</th>
+                      <th className="px-5 py-3 text-right">Marge / h</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rates.slice(0, 8).map((r) => (
+                      <tr key={r.name} className="border-b last:border-0">
+                        <td className="px-5 py-3 font-medium">{r.name}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{r.missions}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {formatHours(r.hours)}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {formatHourlyRate(r.saleHourly)}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {formatHourlyRate(r.costHourly)}
+                        </td>
+                        <td
+                          className={`px-5 py-3 text-right tabular-nums ${r.marginHourly < 0 ? "text-red-700 dark:text-red-400" : ""}`}
+                        >
+                          {formatHourlyRate(r.marginHourly)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Écarts convenu / facturé</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Total {eur(gaps.total)} sur {gaps.count} mission(s). Les plus forts écarts d'abord.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            {gaps.count === 0 ? (
+              <p className="px-5 pb-5 text-sm text-muted-foreground">
+                Aucun écart entre prix convenu et montant facturé.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-muted/30">
+                    <tr>
+                      <th className="px-5 py-3 text-left">Date</th>
+                      <th className="px-3 py-3 text-left">Sous-traitant</th>
+                      <th className="px-3 py-3 text-left">Prestation</th>
+                      <th className="px-3 py-3 text-right">Convenu</th>
+                      <th className="px-3 py-3 text-right">Facturé</th>
+                      <th className="px-5 py-3 text-right">Écart</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {gaps.items.slice(0, 8).map((g) => (
+                      <tr key={g.id} className="border-b last:border-0">
+                        <td className="px-5 py-3 tabular-nums">{dateFr(g.date)}</td>
+                        <td className="px-3 py-3">{g.sst}</td>
+                        <td className="max-w-[12rem] truncate px-3 py-3">{g.label}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{eur(g.agreed)}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{eur(g.invoiced)}</td>
+                        <td
+                          className={`px-5 py-3 text-right font-medium tabular-nums ${g.gap > 0 ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"}`}
+                        >
+                          {g.gap > 0 ? "+" : ""}
+                          {eur(g.gap)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Prochaines missions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {upcoming.length === 0 ? (
+              <p className="text-muted-foreground">Aucune mission planifiée à venir.</p>
+            ) : (
+              upcoming.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex flex-wrap justify-between gap-2 border-b pb-2 last:border-0"
+                >
+                  <span className="min-w-0">
+                    <span className="font-medium tabular-nums">{dateFr(m.mission_date)}</span>
+                    {" · "}
+                    {sstNames.get(m.subcontractor_id) ?? "Sous-traitant"}
+                    {" · "}
+                    {m.prestation || m.service_requested}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {m.client_id
+                      ? (clientNames.get(m.client_id) ?? "Client inconnu")
+                      : "Sans client"}
+                  </span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between gap-2 text-base">
+              Calendrier SST
+              <Link to="/pilot/calendrier" className="text-xs font-normal text-primary underline">
+                Ouvrir le calendrier
+              </Link>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {changes.length === 0 ? (
+              <p className="text-muted-foreground">Aucune modification non vue.</p>
+            ) : (
+              <>
+                <p>
+                  <span className="font-semibold tabular-nums">{changes.length}</span>{" "}
+                  modification(s) non vue(s)
+                </p>
+                {changes.slice(0, 3).map((c) => (
+                  <p key={c.id} className="truncate text-muted-foreground">
+                    {new Date(c.created_at).toLocaleDateString("fr-FR")} · {c.summary}
+                  </p>
+                ))}
+              </>
             )}
           </CardContent>
         </Card>

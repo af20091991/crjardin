@@ -23,6 +23,19 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-22",
+    version: "2.8.14",
+    theme: "Général",
+    title: "Tableau de bord SST : chiffres financiers en premier, sous-modules enrichis",
+    details: [
+      "Données financières affichées en premier : chiffres clés, graphiques, puis détail par sous-traitant.",
+      "Nouveaux indicateurs : part de la sous-traitance dans le CA, écart entre prix convenu et facturé.",
+      "Évolution annuelle à partir de 2026, prix de vente et coût par heure par prestation.",
+      "Missions par mois et par sous-traitant, répartition autonome / chantier dans le temps.",
+      "Heures économisées face aux heures réalisées, prochaines missions et modifications du calendrier SST.",
+    ],
+  },
+  {
     date: "2026-11-16",
     version: "2.8.13",
     theme: "Général",
