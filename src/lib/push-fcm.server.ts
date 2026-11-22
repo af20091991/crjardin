@@ -94,7 +94,8 @@ export async function sendPush(
               android: {
                 priority: "HIGH",
                 notification: {
-                  channel_id: "default",
+                  // Pas de channel_id : Android utilise son canal de secours (le canal « default »
+                  // n'est créé nulle part dans l'application, il peut masquer la notification).
                   // Icône « PP » (drawable ic_stat_pp de l'APK) et couleur du cercle vert.
                   icon: "ic_stat_pp",
                   color: "#4F8E33",
