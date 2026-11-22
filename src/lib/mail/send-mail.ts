@@ -20,9 +20,15 @@ export type SendMailInput = {
   text?: string;
   sender_domain?: string;
   purpose?: string;
+  reply_to?: string;
+  idempotency_key?: string;
+  [key: string]: unknown;
 };
 
-export async function sendLovableEmail(input: SendMailInput): Promise<{ id?: string }> {
+export async function sendLovableEmail(
+  input: SendMailInput,
+  _config?: { apiKey?: string; sendUrl?: string },
+): Promise<{ id?: string; message_id?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     throw new EmailAPIError("RESEND_API_KEY non configurée", "not_configured", 500);
@@ -36,6 +42,7 @@ export async function sendLovableEmail(input: SendMailInput): Promise<{ id?: str
       subject: input.subject,
       html: input.html,
       text: input.text,
+      reply_to: input.reply_to,
     }),
   });
   const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string; name?: string };
@@ -43,5 +50,5 @@ export async function sendLovableEmail(input: SendMailInput): Promise<{ id?: str
     const code = res.status === 422 && /suppress/i.test(body.message ?? "") ? "recipient_suppressed" : (body.name ?? "send_failed");
     throw new EmailAPIError(body.message ?? `Envoi refusé (${res.status})`, code, res.status);
   }
-  return { id: body.id };
+  return { id: body.id, message_id: body.id };
 }
