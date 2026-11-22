@@ -45,9 +45,16 @@ export async function sendLovableEmail(
       reply_to: input.reply_to,
     }),
   });
-  const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string; name?: string };
+  const body = (await res.json().catch(() => ({}))) as {
+    id?: string;
+    message?: string;
+    name?: string;
+  };
   if (!res.ok) {
-    const code = res.status === 422 && /suppress/i.test(body.message ?? "") ? "recipient_suppressed" : (body.name ?? "send_failed");
+    const code =
+      res.status === 422 && /suppress/i.test(body.message ?? "")
+        ? "recipient_suppressed"
+        : (body.name ?? "send_failed");
     throw new EmailAPIError(body.message ?? `Envoi refusé (${res.status})`, code, res.status);
   }
   return { id: body.id, message_id: body.id };

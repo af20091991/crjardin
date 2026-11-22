@@ -8,7 +8,12 @@ import { nitro } from "nitro/vite";
 
 // Variables serveur (non préfixées VITE_) disponibles via process.env au build et à l'exécution.
 const serverEnv = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
-for (const key of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_PUBLISHABLE_KEY", "GOOGLE_MAPS_API_KEY"]) {
+for (const key of [
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "GOOGLE_MAPS_API_KEY",
+]) {
   if (!process.env[key] && serverEnv[key]) process.env[key] = serverEnv[key];
 }
 
