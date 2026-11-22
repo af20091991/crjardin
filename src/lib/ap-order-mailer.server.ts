@@ -1,6 +1,6 @@
 // Assistant AP — envoi d'une commande fournisseur par e-mail (gabarit du mail).
 // Server-only. Pas de pixel de suivi, pas de raccourcisseur d'URL.
-import { EmailAPIError, sendLovableEmail } from "@lovable.dev/email-js";
+import { EmailAPIError, sendLovableEmail } from "@/lib/mail/send-mail";
 import { buildApOrderEmail, AP_ORDER_SITE_NAME } from "@/lib/ap-order-email";
 
 const SENDER_DOMAIN = "notify.delagraineaujardin.com";

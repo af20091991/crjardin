@@ -36,7 +36,6 @@ import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
-import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ApiPublicRadarQuotidienRouteImport } from './routes/api/public/radar-quotidien'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push-dispatch'
 import { Route as ApiPublicPpFullBackupRouteImport } from './routes/api/public/pp-full-backup'
@@ -234,11 +233,6 @@ const AuthenticatedClientsIndexRoute =
     path: '/clients/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
-  id: '/lovable/email/events',
-  path: '/lovable/email/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicRadarQuotidienRoute = ApiPublicRadarQuotidienRouteImport.update({
   id: '/api/public/radar-quotidien',
   path: '/api/public/radar-quotidien',
@@ -629,7 +623,6 @@ export interface FileRoutesByFullPath {
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/radar-quotidien': typeof ApiPublicRadarQuotidienRoute
-  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
@@ -712,7 +705,6 @@ export interface FileRoutesByTo {
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/radar-quotidien': typeof ApiPublicRadarQuotidienRoute
-  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
@@ -799,7 +791,6 @@ export interface FileRoutesById {
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/radar-quotidien': typeof ApiPublicRadarQuotidienRoute
-  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
@@ -886,7 +877,6 @@ export interface FileRouteTypes {
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
     | '/api/public/radar-quotidien'
-    | '/lovable/email/events'
     | '/clients/'
     | '/fiches/'
     | '/interventions/'
@@ -969,7 +959,6 @@ export interface FileRouteTypes {
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
     | '/api/public/radar-quotidien'
-    | '/lovable/email/events'
     | '/clients'
     | '/fiches'
     | '/interventions'
@@ -1055,7 +1044,6 @@ export interface FileRouteTypes {
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
     | '/api/public/radar-quotidien'
-    | '/lovable/email/events'
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
     | '/_authenticated/interventions/'
@@ -1090,7 +1078,6 @@ export interface RootRouteChildren {
   ApiPublicPpFullBackupRoute: typeof ApiPublicPpFullBackupRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
   ApiPublicRadarQuotidienRoute: typeof ApiPublicRadarQuotidienRoute
-  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
@@ -1284,13 +1271,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/'
       preLoaderRoute: typeof AuthenticatedClientsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/lovable/email/events': {
-      id: '/lovable/email/events'
-      path: '/lovable/email/events'
-      fullPath: '/lovable/email/events'
-      preLoaderRoute: typeof LovableEmailEventsRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/public/radar-quotidien': {
       id: '/api/public/radar-quotidien'
@@ -1872,7 +1852,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPpFullBackupRoute: ApiPublicPpFullBackupRoute,
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
   ApiPublicRadarQuotidienRoute: ApiPublicRadarQuotidienRoute,
-  LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
