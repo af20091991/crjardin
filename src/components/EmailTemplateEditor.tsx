@@ -20,7 +20,7 @@ const SAMPLE = {
   titre: "Madame",
   nom: "Martin",
   date: "12 juillet 2026",
-  lien: "https://crjardin.lovable.app/partage/exemple",
+  lien: "https://pp.delagraineaujardin.com/partage/exemple",
 };
 
 function esc(s: string): string {

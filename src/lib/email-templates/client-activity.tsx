@@ -58,7 +58,7 @@ export const template = {
     clientName: "Mme Martin",
     actionText: "a ajouté un document",
     contentPreview: "Facture chaudière",
-    clientUrl: "https://crjardin.lovable.app/clients/exemple",
+    clientUrl: "https://pp.delagraineaujardin.com/clients/exemple",
   },
 } satisfies TemplateEntry;
 

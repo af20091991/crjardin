@@ -69,7 +69,7 @@ export const template = {
     civility: "Madame",
     firstName: "Sophie",
     lastName: "Martin",
-    premiumUrl: "https://crjardin.lovable.app/partage/exemple",
+    premiumUrl: "https://pp.delagraineaujardin.com/partage/exemple",
   },
 } satisfies TemplateEntry;
 

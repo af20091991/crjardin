@@ -68,7 +68,7 @@ export const template = {
     serviceRequested: "Taille des haies",
     dateLabel: "lundi 2 novembre",
     instructions: "Prévoir le broyage des déchets verts.",
-    missionUrl: "https://crjardin.lovable.app/sst",
+    missionUrl: "https://pp.delagraineaujardin.com/sst",
   },
 } satisfies TemplateEntry;
 

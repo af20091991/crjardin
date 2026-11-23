@@ -43,8 +43,8 @@ export function NativeAppLayer() {
       if (!url) return;
       try {
         const u = new URL(url);
-        // Lien d'e-mail https://crjardin.lovable.app/... → même page dans l'appli
-        if (u.protocol === "https:" && u.hostname === "crjardin.lovable.app") {
+        // Lien d'e-mail https://pp.delagraineaujardin.com/... → même page dans l'appli
+        if (u.protocol === "https:" && (u.hostname === "pp.delagraineaujardin.com" || u.hostname === "crjardin.lovable.app")) {
           const target = `${u.pathname}${u.search}${u.hash}`;
           if (target !== "/" && /^\/[\w/_.$%~:@!&=+,;?#-]*$/.test(target)) {
             window.location.assign(target);

@@ -60,7 +60,7 @@ export const template = {
   displayName: 'Nouveau compte-rendu',
   previewData: {
     subject: 'Votre compte-rendu de jardinage est disponible',
-    shareUrl: 'https://crjardin.lovable.app/partage/exemple',
+    shareUrl: 'https://pp.delagraineaujardin.com/partage/exemple',
     bodyText:
       'Bonjour Madame Martin,\n\nVoici votre lien privé : {{LIEN}}\n\nJardinement vôtre,\n\nAnthony Fournier\nDe la graine au jardin',
   },

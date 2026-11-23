@@ -78,7 +78,7 @@ export const template = {
     civility: "Madame",
     firstName: "Sophie",
     lastName: "Martin",
-    premiumUrl: "https://crjardin.lovable.app/partage/exemple?section=documents",
+    premiumUrl: "https://pp.delagraineaujardin.com/partage/exemple?section=documents",
     documentTitle: "Devis entretien 2027",
   },
 } satisfies TemplateEntry;

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const APP_ORIGIN = "https://crjardin.lovable.app";
+const APP_ORIGIN = "https://pp.delagraineaujardin.com";
 
 function cleanId(value: unknown): string | null {
   return typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value) ? value : null;

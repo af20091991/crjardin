@@ -102,7 +102,7 @@ export const template: TemplateEntry = {
     civility: "Madame",
     firstName: "Sophie",
     lastName: "Martin",
-    premiumUrl: "https://crjardin.lovable.app/partage/exemple",
+    premiumUrl: "https://pp.delagraineaujardin.com/partage/exemple",
     title: "Nouveau compte-rendu : Taille des haies",
     body: "Le compte-rendu de la dernière intervention est disponible.",
   },

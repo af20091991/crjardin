@@ -5,7 +5,7 @@ import { resolvePremiumClientIdentity } from "@/lib/premium-client-name";
 
 const FROM = "De la graine au jardin <contact@delagraineaujardin.com>";
 const SENDER_DOMAIN = "notify.delagraineaujardin.com";
-export const PREMIUM_TRACKING_ORIGIN = "https://crjardin.lovable.app";
+export const PREMIUM_TRACKING_ORIGIN = "https://pp.delagraineaujardin.com";
 
 export type PremiumMailStatus = "sent" | "skipped" | "suppressed" | "failed";
 

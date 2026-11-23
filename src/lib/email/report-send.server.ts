@@ -10,7 +10,7 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 const SITE_NAME = "CR Jardin";
 const SENDER_DOMAIN = "notify.delagraineaujardin.com";
 const FROM_DOMAIN = "delagraineaujardin.com";
-const TRACKING_ORIGIN = "https://crjardin.lovable.app";
+const TRACKING_ORIGIN = "https://pp.delagraineaujardin.com";
 
 export interface SendReportEmailInput {
   templateName: string;
