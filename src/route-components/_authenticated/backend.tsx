@@ -14,6 +14,7 @@ import {
   Archive,
   ChevronRight,
   Eye,
+  Download,
 } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 
@@ -45,6 +46,12 @@ const SECTIONS: Section[] = [
     label: "Backup PP CA",
     description: "Sauvegarde Excel hebdomadaire de la page Chiffre d'affaires (toutes les années).",
     icon: Archive,
+  },
+  {
+    to: "/export-stockage",
+    label: "Export du stockage",
+    description: "Téléchargement en ZIP de chaque bucket de fichiers, dossiers compris.",
+    icon: Download,
   },
   {
     to: "/modeles",
