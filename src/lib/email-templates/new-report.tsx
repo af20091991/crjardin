@@ -70,7 +70,8 @@ const Email = ({ bodyText, shareUrl, subject }: Props) => {
 
 export const template = {
   component: Email,
-  subject: (data: Record<string, unknown>) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  subject: (data: Record<string, any>) =>
     data?.subject || "Votre compte-rendu de jardinage est disponible",
   displayName: "Nouveau compte-rendu",
   previewData: {
