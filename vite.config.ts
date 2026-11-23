@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { defineConfig, loadEnv } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
@@ -17,20 +18,37 @@ for (const key of [
   if (!process.env[key] && serverEnv[key]) process.env[key] = serverEnv[key];
 }
 
+const isO2switchBuild =
+  process.env.GITHUB_ACTIONS === "true" || process.env.NITRO_PRESET === "node-server";
+const pwaOutDir = isO2switchBuild ? ".output/public" : "dist";
+
+const ensurePwaOutput = () => ({
+  name: "ensure-pwa-output",
+  configResolved() {
+    mkdirSync(pwaOutDir, { recursive: true });
+  },
+});
+
 export default defineConfig({
   server: { port: 8080 },
   plugins: [
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart({ server: { entry: "server" } }),
-    nitro({ preset: "node-server" }),
+    isO2switchBuild
+      ? nitro({ preset: "node-server" })
+      : nitro({
+          preset: "cloudflare-pages",
+          cloudflare: { nodeCompat: true },
+        }),
     viteReact(),
+    ensurePwaOutput(),
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: null,
       selfDestroying: true,
       devOptions: { enabled: false },
-      outDir: ".output/public",
+      outDir: pwaOutDir,
       filename: "sw.js",
       manifest: {
         name: "De la graine au jardin — Suivi de chantier",

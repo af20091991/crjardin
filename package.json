@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build && node scripts/post-build.mjs",
-    "build:dev": "NODE_OPTIONS=--max-old-space-size=8192 vite build --mode development && node scripts/post-build.mjs",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build",
+    "build:dev": "NODE_OPTIONS=--max-old-space-size=8192 vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "vite build --mode development && tsc --noEmit",
