@@ -20,7 +20,7 @@ for (const key of [
 
 const isO2switchBuild =
   process.env.GITHUB_ACTIONS === "true" || process.env.NITRO_PRESET === "node-server";
-const pwaOutDir = isO2switchBuild ? ".output/public" : "dist";
+const pwaOutDir = isO2switchBuild ? ".output/public" : "dist/client";
 
 const ensurePwaOutput = () => ({
   name: "ensure-pwa-output",
@@ -29,18 +29,30 @@ const ensurePwaOutput = () => ({
   },
 });
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   server: { port: 8080 },
   plugins: [
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart({ server: { entry: "server" } }),
-    isO2switchBuild
-      ? nitro({ preset: "node-server" })
-      : nitro({
-          preset: "cloudflare-pages",
-          cloudflare: { nodeCompat: true },
-        }),
+    ...(command === "build"
+      ? [
+          isO2switchBuild
+            ? nitro({ preset: "node-server" })
+            : nitro({
+                preset: "cloudflare-module",
+                output: {
+                  dir: "dist",
+                  serverDir: "dist/server",
+                  publicDir: "dist/client",
+                },
+                cloudflare: {
+                  nodeCompat: true,
+                  deployConfig: true,
+                },
+              }),
+        ]
+      : []),
     viteReact(),
     ensurePwaOutput(),
     VitePWA({
@@ -80,4 +92,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));
