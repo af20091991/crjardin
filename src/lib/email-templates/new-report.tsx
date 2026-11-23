@@ -70,7 +70,7 @@ const Email = ({ bodyText, shareUrl, subject }: Props) => {
 
 export const template = {
   component: Email,
-  subject: (data: Record<string, any>) =>
+  subject: (data: Record<string, unknown>) =>
     data?.subject || "Votre compte-rendu de jardinage est disponible",
   displayName: "Nouveau compte-rendu",
   previewData: {
