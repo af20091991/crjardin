@@ -44,7 +44,10 @@ export function NativeAppLayer() {
       try {
         const u = new URL(url);
         // Lien d'e-mail https://pp.delagraineaujardin.com/... → même page dans l'appli
-        if (u.protocol === "https:" && (u.hostname === "pp.delagraineaujardin.com" || u.hostname === "crjardin.lovable.app")) {
+        if (
+          u.protocol === "https:" &&
+          (u.hostname === "pp.delagraineaujardin.com" || u.hostname === "crjardin.lovable.app")
+        ) {
           const target = `${u.pathname}${u.search}${u.hash}`;
           if (target !== "/" && /^\/[\w/_.$%~:@!&=+,;?#-]*$/.test(target)) {
             window.location.assign(target);
