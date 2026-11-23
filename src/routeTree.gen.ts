@@ -21,6 +21,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedBackupPpCaRouteImport } from './routes/_authenticated/backup-pp-ca'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
+import { Route as AuthenticatedExportStockageRouteImport } from './routes/_authenticated/export-stockage'
 import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
 import { Route as AuthenticatedPersonnalisationRouteImport } from './routes/_authenticated/personnalisation'
 import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/pilot'
@@ -152,6 +153,12 @@ const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
   path: '/emails',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedExportStockageRoute =
+  AuthenticatedExportStockageRouteImport.update({
+    id: '/export-stockage',
+    path: '/export-stockage',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
   id: '/modeles',
   path: '/modeles',
@@ -566,6 +573,7 @@ export interface FileRoutesByFullPath {
   '/backend': typeof AuthenticatedBackendRoute
   '/backup-pp-ca': typeof AuthenticatedBackupPpCaRoute
   '/emails': typeof AuthenticatedEmailsRoute
+  '/export-stockage': typeof AuthenticatedExportStockageRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/pilot': typeof AuthenticatedPilotRouteWithChildren
@@ -649,6 +657,7 @@ export interface FileRoutesByTo {
   '/backend': typeof AuthenticatedBackendRoute
   '/backup-pp-ca': typeof AuthenticatedBackupPpCaRoute
   '/emails': typeof AuthenticatedEmailsRoute
+  '/export-stockage': typeof AuthenticatedExportStockageRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/planning': typeof AuthenticatedPlanningRoute
@@ -733,6 +742,7 @@ export interface FileRoutesById {
   '/_authenticated/backend': typeof AuthenticatedBackendRoute
   '/_authenticated/backup-pp-ca': typeof AuthenticatedBackupPpCaRoute
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
+  '/_authenticated/export-stockage': typeof AuthenticatedExportStockageRoute
   '/_authenticated/modeles': typeof AuthenticatedModelesRoute
   '/_authenticated/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/_authenticated/pilot': typeof AuthenticatedPilotRouteWithChildren
@@ -820,6 +830,7 @@ export interface FileRouteTypes {
     | '/backend'
     | '/backup-pp-ca'
     | '/emails'
+    | '/export-stockage'
     | '/modeles'
     | '/personnalisation'
     | '/pilot'
@@ -903,6 +914,7 @@ export interface FileRouteTypes {
     | '/backend'
     | '/backup-pp-ca'
     | '/emails'
+    | '/export-stockage'
     | '/modeles'
     | '/personnalisation'
     | '/planning'
@@ -986,6 +998,7 @@ export interface FileRouteTypes {
     | '/_authenticated/backend'
     | '/_authenticated/backup-pp-ca'
     | '/_authenticated/emails'
+    | '/_authenticated/export-stockage'
     | '/_authenticated/modeles'
     | '/_authenticated/personnalisation'
     | '/_authenticated/pilot'
@@ -1165,6 +1178,13 @@ declare module '@tanstack/react-router' {
       path: '/emails'
       fullPath: '/emails'
       preLoaderRoute: typeof AuthenticatedEmailsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/export-stockage': {
+      id: '/_authenticated/export-stockage'
+      path: '/export-stockage'
+      fullPath: '/export-stockage'
+      preLoaderRoute: typeof AuthenticatedExportStockageRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/modeles': {
@@ -1774,6 +1794,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBackendRoute: typeof AuthenticatedBackendRoute
   AuthenticatedBackupPpCaRoute: typeof AuthenticatedBackupPpCaRoute
   AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
+  AuthenticatedExportStockageRoute: typeof AuthenticatedExportStockageRoute
   AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
   AuthenticatedPersonnalisationRoute: typeof AuthenticatedPersonnalisationRoute
   AuthenticatedPilotRoute: typeof AuthenticatedPilotRouteWithChildren
@@ -1803,6 +1824,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBackendRoute: AuthenticatedBackendRoute,
   AuthenticatedBackupPpCaRoute: AuthenticatedBackupPpCaRoute,
   AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
+  AuthenticatedExportStockageRoute: AuthenticatedExportStockageRoute,
   AuthenticatedModelesRoute: AuthenticatedModelesRoute,
   AuthenticatedPersonnalisationRoute: AuthenticatedPersonnalisationRoute,
   AuthenticatedPilotRoute: AuthenticatedPilotRouteWithChildren,
