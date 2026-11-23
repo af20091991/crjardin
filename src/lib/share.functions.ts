@@ -369,7 +369,7 @@ export const addClientMessage = createServerFn({ method: "POST" })
               contentPreview: attachment
                 ? `${content}\n\n📎 ${attachment.filename}`.slice(0, 2300)
                 : content,
-              clientUrl: `https://crjardin.lovable.app/clients/${client.id}`,
+              clientUrl: `https://pp.delagraineaujardin.com/clients/${client.id}`,
             },
             idempotencyKey: `client-message-${msgId as string}`,
           });
@@ -1029,7 +1029,7 @@ export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" 
             clientName: client.name,
             actionText: "a ajouté une photo",
             contentPreview: data.filename,
-            clientUrl: `https://crjardin.lovable.app/clients/${client.id}`,
+            clientUrl: `https://pp.delagraineaujardin.com/clients/${client.id}`,
           },
           idempotencyKey: `client-premium-photo-${data.path}`,
         });
@@ -1148,7 +1148,7 @@ export const finalizeSharedPremiumDocumentUpload = createServerFn({ method: "POS
             clientName: client.name,
             actionText: "a ajouté un document",
             contentPreview: data.title,
-            clientUrl: `https://crjardin.lovable.app/clients/${client.id}`,
+            clientUrl: `https://pp.delagraineaujardin.com/clients/${client.id}`,
           },
           idempotencyKey: `client-premium-document-${data.path}`,
         });

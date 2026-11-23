@@ -98,7 +98,7 @@ export const template = {
         lines: [{ label: "Heures estimées", from: "4", to: "6" }],
       },
     ],
-    calendarUrl: "https://crjardin.lovable.app/pilot/calendrier",
+    calendarUrl: "https://pp.delagraineaujardin.com/pilot/calendrier",
   },
 } satisfies TemplateEntry;
 
