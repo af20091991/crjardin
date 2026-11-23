@@ -45,6 +45,7 @@ import {
   Truck,
   Calculator,
   Crown,
+  Download,
 } from "lucide-react";
 import {
   Sheet,
@@ -537,6 +538,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 label: "Administration",
                 short: "Admin",
                 icon: Database,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/export-stockage",
+                label: "Export du stockage",
+                short: "Stockage",
+                icon: Download,
                 exact: false,
                 primary: false,
               },
