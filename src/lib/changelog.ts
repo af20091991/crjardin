@@ -23,6 +23,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-23",
+    version: "2.8.16",
+    theme: "Général",
+    title: "Export complet du stockage",
+    details: [
+      "Nouvelle page administrateur /export-stockage : téléchargement de chaque bucket en ZIP, dossiers compris (découpage en parties de 300 Mo).",
+    ],
+  },
+  {
     date: "2026-11-22",
     version: "2.8.15",
     theme: "Général",
