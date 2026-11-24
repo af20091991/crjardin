@@ -81,8 +81,8 @@ export async function sendPremiumMailToAll(options: SendOptions): Promise<Premiu
     lastName: contact?.last_name,
   });
 
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+  const apiKey = process.env["RESEND_API_KEY"];
+  if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
   const premiumUrl = `${PREMIUM_TRACKING_ORIGIN}/partage/${client.share_token}${
     section ? `?section=${encodeURIComponent(section)}` : ""
   }`;

@@ -18,8 +18,8 @@ export async function sendApOrderEmail(
 ): Promise<
   { sent: true; messageId: string | null } | { sent: false; reason: "recipient_suppressed" }
 > {
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+  const apiKey = process.env["RESEND_API_KEY"];
+  if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
   const { subject, text, html } = buildApOrderEmail({ pdfUrl: input.pdfUrl });
   try {
     const response = await sendLovableEmail(

@@ -3,7 +3,7 @@ import { render } from "@react-email/render";
 import { EmailAPIError, sendLovableEmail } from "@/lib/mail/send-mail";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 
-// Server-only. Sends through Lovable's managed email API.
+// Server-only. Sends through Resend (see lib/mail/send-mail.ts).
 // Kept as a direct send (instead of the shared template helper) because the
 // rendered HTML is post-processed per send to inject the open-tracking pixel.
 
@@ -54,8 +54,8 @@ async function logSend(row: {
 }
 
 export async function sendReportEmail(input: SendReportEmailInput): Promise<SendReportEmailResult> {
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+  const apiKey = process.env["RESEND_API_KEY"];
+  if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
 
   const template = TEMPLATES[input.templateName];
   if (!template) {
