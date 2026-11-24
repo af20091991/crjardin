@@ -3,7 +3,7 @@ import { render } from "@react-email/render";
 import { EmailAPIError, sendLovableEmail } from "@/lib/mail/send-mail";
 import { TEMPLATES } from "./registry";
 
-// Server-only: reads LOVABLE_API_KEY. Never import from client components.
+// Server-only: reads RESEND_API_KEY. Never import from client components.
 
 // Configuration baked in at scaffold time
 const SITE_NAME = "CR Jardin";
@@ -37,9 +37,9 @@ export async function sendTemplateEmail(
   to: string,
   options: SendTemplateEmailOptions = {},
 ): Promise<SendTemplateEmailResult> {
-  const apiKey = process.env["LOVABLE_API_KEY"];
+  const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey) {
-    throw new Error("LOVABLE_API_KEY is not configured");
+    throw new Error("RESEND_API_KEY is not configured");
   }
 
   const template = TEMPLATES[templateName];
