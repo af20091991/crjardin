@@ -55,13 +55,11 @@ export const Route = createFileRoute("/api/public/email-unsubscribe")({
               .from("email_unsubscribe_tokens")
               .update({ used_at: new Date().toISOString() })
               .eq("token", token);
-            await db
-              .from("suppressed_emails")
-              .insert({
-                email: row.email,
-                reason: "unsubscribe",
-                metadata: { source: "lien e-mail" },
-              });
+            await db.from("suppressed_emails").insert({
+              email: row.email,
+              reason: "unsubscribe",
+              metadata: { source: "lien e-mail" },
+            });
           }
           return page(
             "Désabonnement confirmé",
