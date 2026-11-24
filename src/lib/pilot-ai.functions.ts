@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { formatHours } from "@/lib/format-utils";
+import { callAi } from "@/lib/ai-provider.server";
 
 const AskInput = z.object({
   question: z.string().min(2).max(1000),
@@ -62,8 +63,6 @@ export const askPilotAi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AskInput.parse(input))
   .handler(async ({ data, context }): Promise<{ answer: string; chart: AiChartSpec | null }> => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Configuration IA manquante");
     const { supabase } = context;
     const year = new Date().getFullYear();
 
@@ -277,28 +276,8 @@ ${contextText}
 Question de l'utilisateur :
 ${data.question}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": key,
-        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "user", content: prompt }],
-      }),
+    const { content: raw } = await callAi({
+      messages: [{ role: "user", content: prompt }],
     });
-
-    if (res.status === 429)
-      throw new Error("Limite de requêtes IA atteinte, réessayez dans un instant.");
-    if (res.status === 402)
-      throw new Error("Crédits IA épuisés. Ajoutez des crédits pour continuer.");
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`Erreur IA (${res.status}) ${body.slice(0, 200)}`);
-    }
-    const json = await res.json();
-    const raw: string = json?.choices?.[0]?.message?.content ?? "Aucune réponse générée.";
     return extractChart(raw);
   });

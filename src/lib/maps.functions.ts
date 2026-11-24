@@ -2,17 +2,19 @@ import { createServerFn } from "@tanstack/react-start";
 
 // Google Static Maps: serveur + fallback navigateur pour l'export PDF SST.
 
-const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
+const PLACES_API = "https://places.googleapis.com/v1";
+const GEOCODE_API = "https://maps.googleapis.com/maps/api/geocode/json";
+
+/** Clé serveur Google Maps (GOOGLE_MAPS_API_KEY). */
+function mapsKey(): string {
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) throw new Error("Clé Google Maps indisponible (GOOGLE_MAPS_API_KEY)");
+  return key;
+}
 
 function headers(extra?: Record<string, string>) {
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!lovableKey || !mapsKey) {
-    throw new Error("Connecteur Google Maps indisponible");
-  }
   return {
-    Authorization: `Bearer ${lovableKey}`,
-    "X-Connection-Api-Key": mapsKey,
+    "X-Goog-Api-Key": mapsKey(),
     ...extra,
   };
 }
@@ -28,7 +30,7 @@ export const placeAutocomplete = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PlaceSuggestion[]> => {
     const input = (data.input ?? "").trim();
     if (input.length < 3) return [];
-    const res = await fetch(`${GATEWAY}/places/v1/places:autocomplete`, {
+    const res = await fetch(`${PLACES_API}/places:autocomplete`, {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ input, languageCode: "fr", regionCode: "FR" }),
@@ -61,8 +63,7 @@ export const geocodeAddress = createServerFn({ method: "POST" })
     const address = (data.address ?? "").trim();
     if (!address) return null;
     const res = await fetch(
-      `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}&language=fr&region=fr`,
-      { headers: headers() },
+      `${GEOCODE_API}?address=${encodeURIComponent(address)}&language=fr&region=fr&key=${encodeURIComponent(mapsKey())}`,
     );
     if (!res.ok) {
       console.error("geocode failed", res.status, await res.text());
@@ -109,7 +110,7 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<RecyclingCenter | null> => {
     const { lat, lng } = data;
     if (typeof lat !== "number" || typeof lng !== "number") return null;
-    const res = await fetch(`${GATEWAY}/places/v1/places:searchText`, {
+    const res = await fetch(`${PLACES_API}/places:searchText`, {
       method: "POST",
       headers: headers({
         "Content-Type": "application/json",
@@ -180,7 +181,7 @@ export interface StaticGardenMapMarker {
   lng: number;
 }
 
-export const SST_PDF_MAP_REFERER = "https://crjardin.lovable.app/";
+export const SST_PDF_MAP_REFERER = "https://pp.delagraineaujardin.com/";
 
 const STATIC_MAP_WIDTH = 640;
 const STATIC_MAP_HEIGHT = 540;
@@ -377,7 +378,9 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       return null;
     }
 
-    const mapsBrowserKey = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+    const mapsBrowserKey =
+      import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY ??
+      import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
 
     if (!mapsBrowserKey) {
       console.error("staticGardenMap: clé Google Maps navigateur indisponible");
