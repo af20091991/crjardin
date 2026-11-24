@@ -121,7 +121,7 @@ export async function sendPremiumMailToAll(options: SendOptions): Promise<Premiu
         lastName: identity.lastName || undefined,
         ...extraProps,
         premiumUrl,
-        unsubscribeUrl: `https://api.lovable.dev/v1/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
+        unsubscribeUrl: `${PREMIUM_TRACKING_ORIGIN}/api/public/email-unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
       });
       let html = await render(element);
       const text = await render(element, { plainText: true });

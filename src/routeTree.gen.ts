@@ -41,6 +41,7 @@ import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/p
 import { Route as ApiPublicPpFullBackupRouteImport } from './routes/api/public/pp-full-backup'
 import { Route as ApiPublicPpCaBackupRouteImport } from './routes/api/public/pp-ca-backup'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as ApiPublicEmailUnsubscribeRouteImport } from './routes/api/public/email-unsubscribe'
 import { Route as ApiPublicDevTimeRouteImport } from './routes/api/public/dev-time'
 import { Route as ApiPublicBrevoWebhookRouteImport } from './routes/api/public/brevo-webhook'
 import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
@@ -256,6 +257,11 @@ const ApiPublicPpCaBackupRoute = ApiPublicPpCaBackupRouteImport.update({
 const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   id: '/api/public/email-open',
   path: '/api/public/email-open',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEmailUnsubscribeRoute = ApiPublicEmailUnsubscribeRouteImport.update({
+  id: '/api/public/email-unsubscribe',
+  path: '/api/public/email-unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicDevTimeRoute = ApiPublicDevTimeRouteImport.update({
@@ -619,6 +625,7 @@ export interface FileRoutesByFullPath {
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/email-unsubscribe': typeof ApiPublicEmailUnsubscribeRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
@@ -701,6 +708,7 @@ export interface FileRoutesByTo {
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/email-unsubscribe': typeof ApiPublicEmailUnsubscribeRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
@@ -787,6 +795,7 @@ export interface FileRoutesById {
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/email-unsubscribe': typeof ApiPublicEmailUnsubscribeRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
@@ -873,6 +882,7 @@ export interface FileRouteTypes {
     | '/api/public/brevo-webhook'
     | '/api/public/dev-time'
     | '/api/public/email-open'
+    | '/api/public/email-unsubscribe'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
@@ -955,6 +965,7 @@ export interface FileRouteTypes {
     | '/api/public/brevo-webhook'
     | '/api/public/dev-time'
     | '/api/public/email-open'
+    | '/api/public/email-unsubscribe'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
@@ -1040,6 +1051,7 @@ export interface FileRouteTypes {
     | '/api/public/brevo-webhook'
     | '/api/public/dev-time'
     | '/api/public/email-open'
+    | '/api/public/email-unsubscribe'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
@@ -1074,6 +1086,7 @@ export interface RootRouteChildren {
   ApiPublicBrevoWebhookRoute: typeof ApiPublicBrevoWebhookRoute
   ApiPublicDevTimeRoute: typeof ApiPublicDevTimeRoute
   ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
+  ApiPublicEmailUnsubscribeRoute: typeof ApiPublicEmailUnsubscribeRoute
   ApiPublicPpCaBackupRoute: typeof ApiPublicPpCaBackupRoute
   ApiPublicPpFullBackupRoute: typeof ApiPublicPpFullBackupRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
@@ -1305,6 +1318,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/email-open'
       fullPath: '/api/public/email-open'
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/email-unsubscribe': {
+      id: '/api/public/email-unsubscribe'
+      path: '/api/public/email-unsubscribe'
+      fullPath: '/api/public/email-unsubscribe'
+      preLoaderRoute: typeof ApiPublicEmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/dev-time': {
@@ -1848,6 +1868,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBrevoWebhookRoute: ApiPublicBrevoWebhookRoute,
   ApiPublicDevTimeRoute: ApiPublicDevTimeRoute,
   ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
+  ApiPublicEmailUnsubscribeRoute: ApiPublicEmailUnsubscribeRoute,
   ApiPublicPpCaBackupRoute: ApiPublicPpCaBackupRoute,
   ApiPublicPpFullBackupRoute: ApiPublicPpFullBackupRoute,
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
