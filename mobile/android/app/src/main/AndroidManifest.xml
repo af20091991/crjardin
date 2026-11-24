@@ -37,7 +37,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="crjardin.lovable.app" />
+                <data android:scheme="https" android:host="pp.delagraineaujardin.com" /><data android:scheme="https" android:host="crjardin.lovable.app" />
             </intent-filter>
 
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />

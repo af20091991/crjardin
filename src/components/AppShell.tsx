@@ -791,7 +791,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             </div>
             <SheetContent
               side="left"
-              className="flex h-dvh w-[88vw] max-w-sm flex-col overflow-hidden p-0 pt-[calc(env(safe-area-inset-top)+1rem)]"
+              className="flex h-dvh w-[88vw] max-w-sm flex-col overflow-hidden bg-card p-0 pt-[calc(env(safe-area-inset-top)+1rem)] opacity-100 text-foreground"
             >
               <SheetHeader className="shrink-0 px-6 text-left">
                 <SheetTitle className="font-serif">Modules</SheetTitle>
