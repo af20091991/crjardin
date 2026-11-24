@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { callAi } from "@/lib/ai-provider.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
@@ -17,8 +18,7 @@ export const generateInterventionInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }): Promise<AiResult> => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Configuration IA manquante");
+    if (!process.env.AI_API_KEY) throw new Error("Configuration IA manquante");
     const { supabase } = context;
 
     const { data: iv, error: ivErr } = await supabase
@@ -47,7 +47,10 @@ export const generateInterventionInsights = createServerFn({ method: "POST" })
       impossible: "impossible",
     };
     const taskLines = (tasks ?? [])
-      .map((t) => `- ${t.label} : ${statusLabels[t.status] ?? t.status}${t.note ? ` (note : ${t.note})` : ""}`)
+      .map(
+        (t) =>
+          `- ${t.label} : ${statusLabels[t.status] ?? t.status}${t.note ? ` (note : ${t.note})` : ""}`,
+      )
       .join("\n");
 
     const dateStr = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
@@ -78,26 +81,10 @@ CONSIGNES
 Réponds uniquement avec un objet JSON valide respectant exactement cette structure :
 {"summary":"","garden_state":"","recommendations_text":"","recommendations":[{"title":"","description":"","category":""}]}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": key,
-        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      }),
+    const { content } = await callAi({
+      messages: [{ role: "user", content: prompt }],
+      jsonMode: true,
     });
-
-    if (res.status === 429) throw new Error("Limite de requêtes IA atteinte, réessayez dans un instant.");
-    if (res.status === 402) throw new Error("Crédits IA épuisés. Ajoutez des crédits pour continuer.");
-    if (!res.ok) throw new Error("Erreur du service IA");
-
-    const json = await res.json();
-    const content: string = json?.choices?.[0]?.message?.content ?? "{}";
     let parsed: AiResult;
     try {
       parsed = JSON.parse(content);
@@ -129,8 +116,7 @@ export const analyzeInterventionPhotos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PhotoInput.parse(input))
   .handler(async ({ data, context }): Promise<{ suggestions: PhotoSuggestion[] }> => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Configuration IA manquante");
+    if (!process.env.AI_API_KEY) throw new Error("Configuration IA manquante");
     const { supabase } = context;
 
     const { data: photos } = await supabase
@@ -162,28 +148,10 @@ Propose 0 à 4 préconisations commerciales concrètes. Sois prudent : ne propos
 Pour chaque préconisation : un titre court, une description (1-2 phrases expliquant ce que tu observes), une catégorie parmi "Entretien", "Aménagement", "Plantation", "Traitement", "Élagage", et une estimation d'heures de main-d'œuvre (nombre, ou null si incertain).
 Réponds uniquement en JSON valide : {"suggestions":[{"title":"","description":"","category":"","estimated_hours":0}]}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": key,
-        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "user", content: [{ type: "text", text: prompt }, ...imageBlocks] },
-        ],
-        response_format: { type: "json_object" },
-      }),
+    const { content } = await callAi({
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, ...imageBlocks] }],
+      jsonMode: true,
     });
-
-    if (res.status === 429) throw new Error("Limite de requêtes IA atteinte, réessayez dans un instant.");
-    if (res.status === 402) throw new Error("Crédits IA épuisés. Ajoutez des crédits pour continuer.");
-    if (!res.ok) throw new Error("Erreur du service IA");
-
-    const json = await res.json();
-    const content: string = json?.choices?.[0]?.message?.content ?? "{}";
     let parsed: { suggestions?: PhotoSuggestion[] };
     try {
       parsed = JSON.parse(content);
@@ -193,11 +161,13 @@ Réponds uniquement en JSON valide : {"suggestions":[{"title":"","description":"
     }
     const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
     return {
-      suggestions: suggestions.map((s) => ({
-        title: s.title ?? "",
-        description: s.description ?? "",
-        category: s.category ?? "Entretien",
-        estimated_hours: typeof s.estimated_hours === "number" ? s.estimated_hours : null,
-      })).filter((s) => s.title.trim()),
+      suggestions: suggestions
+        .map((s) => ({
+          title: s.title ?? "",
+          description: s.description ?? "",
+          category: s.category ?? "Entretien",
+          estimated_hours: typeof s.estimated_hours === "number" ? s.estimated_hours : null,
+        }))
+        .filter((s) => s.title.trim()),
     };
   });
