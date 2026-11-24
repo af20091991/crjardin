@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
+const ROUTES_API = "https://routes.googleapis.com/directions/v2:computeRoutes";
 
 interface Point {
   lat: number;
@@ -14,17 +14,15 @@ export const computeRoute = createServerFn({ method: "POST" })
   .inputValidator((d: { origin: Point; dest: Point }) => d)
   .handler(
     async ({ data }): Promise<{ distanceMeters: number; durationSeconds: number } | null> => {
-      const lovableKey = process.env.LOVABLE_API_KEY;
       const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-      if (!lovableKey || !mapsKey) return null;
+      if (!mapsKey) return null;
       const toWaypoint = (p: Point) => ({
         location: { latLng: { latitude: p.lat, longitude: p.lng } },
       });
-      const res = await fetch(`${GATEWAY}/routes/directions/v2:computeRoutes`, {
+      const res = await fetch(ROUTES_API, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": mapsKey,
+          "X-Goog-Api-Key": mapsKey,
           "Content-Type": "application/json",
           "X-Goog-FieldMask": "routes.duration,routes.distanceMeters",
         },

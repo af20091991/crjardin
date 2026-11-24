@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { callAi } from "@/lib/ai-provider.server";
 
 const Row = z.object({
   period_label: z.string().min(1),
@@ -26,9 +27,6 @@ export const normalizePremiumWorkCalendar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data }): Promise<{ items: PremiumWorkCalendarItem[] }> => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Configuration IA manquante");
-
     const source = data.rows.map((row, index) => ({
       position: index,
       period_label: row.period_label,
@@ -51,26 +49,10 @@ Réponds uniquement avec JSON : {"items":[{"period_label":"","year":null,"month"
 SOURCE :
 ${JSON.stringify(source, null, 2)}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": key,
-        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      }),
+    const { content } = await callAi({
+      jsonMode: true,
+      messages: [{ role: "user", content: prompt }],
     });
-
-    if (res.status === 429) throw new Error("Limite de requêtes IA atteinte, réessayez dans un instant.");
-    if (res.status === 402) throw new Error("Crédits IA épuisés. Réessayez après avoir ajouté des crédits.");
-    if (!res.ok) throw new Error("Erreur du service IA");
-
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content ?? "{}";
     let parsed: { items?: PremiumWorkCalendarItem[] } = {};
     try {
       parsed = JSON.parse(content);
@@ -79,9 +61,11 @@ ${JSON.stringify(source, null, 2)}`;
       if (match) parsed = JSON.parse(match[0]);
     }
 
-    const byKey = new Map(source.map((r) => [`${r.period_label}|${r.year ?? ""}|${r.month ?? ""}|${r.sequence}`, r]));
+    const byKey = new Map(
+      source.map((r) => [`${r.period_label}|${r.year ?? ""}|${r.month ?? ""}|${r.sequence}`, r]),
+    );
     const items = Array.isArray(parsed.items)
-      ? parsed.items
+      ? (parsed.items
           .map((item) => {
             const key = `${item.period_label}|${item.year ?? ""}|${item.month ?? ""}|${item.sequence}`;
             const original = byKey.get(key);
@@ -91,11 +75,15 @@ ${JSON.stringify(source, null, 2)}`;
               year: original.year,
               month: original.month,
               sequence: original.sequence,
-              title: String(item.title || original.type || original.period_label).trim().slice(0, 160),
-              details: String(item.details || original.tasks.join(", ")).trim().slice(0, 1200),
+              title: String(item.title || original.type || original.period_label)
+                .trim()
+                .slice(0, 160),
+              details: String(item.details || original.tasks.join(", "))
+                .trim()
+                .slice(0, 1200),
             };
           })
-          .filter(Boolean) as PremiumWorkCalendarItem[]
+          .filter(Boolean) as PremiumWorkCalendarItem[])
       : [];
 
     if (items.length !== source.length) {
