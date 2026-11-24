@@ -10,7 +10,7 @@ jobs:
     permissions:
       contents: write
     env:
-      PP_APP_URL: ${{ vars.PP_APP_URL || 'https://crjardin.lovable.app' }}
+      PP_APP_URL: ${{ vars.PP_APP_URL || 'https://pp.delagraineaujardin.com' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -62,7 +62,7 @@ jobs:
   ios:
     runs-on: macos-latest
     env:
-      PP_APP_URL: ${{ vars.PP_APP_URL || 'https://crjardin.lovable.app' }}
+      PP_APP_URL: ${{ vars.PP_APP_URL || 'https://pp.delagraineaujardin.com' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
