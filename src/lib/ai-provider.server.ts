@@ -33,7 +33,10 @@ export async function callAi(opts: {
     throw new Error("Limite de requêtes IA atteinte, réessayez dans un instant.");
   if (res.status === 402 || res.status === 403)
     throw new Error("Crédits ou accès IA épuisés. Vérifiez la clé IA du serveur.");
-  if (!res.ok) throw new Error("Erreur du service IA");
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).slice(0, 300);
+    throw new Error(`Erreur du service IA (${res.status}) ${detail}`.trim());
+  }
 
   const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   return { content: json?.choices?.[0]?.message?.content ?? "{}" };
