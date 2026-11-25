@@ -1,9 +1,10 @@
 // Espace Premium du client (partage) : accueil, jardin et compte Premium.
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   markSharedDocumentViewed,
+  trackPremiumView,
   type SharedIntervention,
   type ClientMessage,
   type SharedRecommendation,
@@ -48,6 +49,15 @@ export function PremiumPageIntro({
   );
 }
 
+// Pages de l'espace Premium suivies à l'ouverture.
+const PREMIUM_PAGE_VIEW: Partial<Record<PremiumSection, string>> = {
+  home: "accueil",
+  calendar: "calendrier",
+  garden: "jardin",
+  reports: "interventions",
+  exchange: "messagerie",
+};
+
 // prettier-ignore
 export function PremiumExperience({
   client,
@@ -78,10 +88,13 @@ export function PremiumExperience({
 }) {
   const requestedSection = Route.useSearch().section;
   const [section, setSection] = useState<PremiumSection>(
-    requestedSection === "documents" || requestedSection === "exchange"
-      ? requestedSection
-      : "home",
+    requestedSection === "documents" || requestedSection === "exchange" ? requestedSection : "home",
   );
+  // Suivi des pages consultées (les comptes-rendus, photos et documents sont suivis un à un).
+  useEffect(() => {
+    const page = PREMIUM_PAGE_VIEW[section];
+    if (page) void trackPremiumView({ data: { token, section: page } }).catch(() => undefined);
+  }, [section, token]);
   const { isAdmin } = useIsAdmin();
   const pendingRecommendations = premium.recommendation_groups.reduce(
     (total, group) => total + group.items.filter((item) => !item.client_interest).length,
@@ -100,14 +113,41 @@ export function PremiumExperience({
       <header className="border-b bg-background">
         <div className="mx-auto flex min-h-20 w-full max-w-[1320px] items-center justify-between gap-5 px-5 py-3 sm:px-10 lg:px-16">
           <div className="min-w-0">
-            <p className="truncate font-premium-serif text-2xl font-medium sm:text-3xl">Le carnet du jardin</p>
-            <p className="truncate text-sm text-muted-foreground">De la graine au jardin · Compte Premium</p>
+            <p className="truncate font-premium-serif text-2xl font-medium sm:text-3xl">
+              Le carnet du jardin
+            </p>
+            <p className="truncate text-sm text-muted-foreground">
+              De la graine au jardin · Compte Premium
+            </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <PremiumInstall />
-            <Button variant="ghost" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>{dark ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
-            <Button variant="ghost" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} aria-pressed={large}><Type className="size-4" /></Button>
-            {isAdmin && <Button asChild variant="link" className="hidden h-10 px-0 text-sm text-primary sm:inline-flex"><Link to="/clients/premium">← Pilot Pro</Link></Button>}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={dark ? "Mode clair" : "Mode sombre"}
+              onClick={toggleDark}
+            >
+              {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Agrandir le texte"
+              onClick={toggleLarge}
+              aria-pressed={large}
+            >
+              <Type className="size-4" />
+            </Button>
+            {isAdmin && (
+              <Button
+                asChild
+                variant="link"
+                className="hidden h-10 px-0 text-sm text-primary sm:inline-flex"
+              >
+                <Link to="/clients/premium">← Pilot Pro</Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -115,8 +155,12 @@ export function PremiumExperience({
         {section === "home" && (
           <div className="mb-10 flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div>
-              <p className="font-premium-serif text-xl font-medium">Retrouvez votre espace à tout moment</p>
-              <p className="mt-1 text-sm text-muted-foreground">Ajoutez Mon jardin à votre téléphone pour y accéder en un geste.</p>
+              <p className="font-premium-serif text-xl font-medium">
+                Retrouvez votre espace à tout moment
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ajoutez Mon jardin à votre téléphone pour y accéder en un geste.
+              </p>
             </div>
             <PremiumInstall variant="card" />
           </div>
@@ -236,24 +280,36 @@ export function PremiumExperience({
             <div className="mt-8 max-w-4xl divide-y border-t">
               {premium.documents.length ? (
                 premium.documents.map((document) => (
-                    <a
-                      key={document.id}
-                      href={document.url ?? undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => void markSharedDocumentViewed({ data: { token, documentId: document.id } }).catch(() => undefined)}
-                      className="flex min-w-0 items-center gap-4 py-5 text-sm hover:text-primary"
-                    >
-                      <FileText className="size-5 shrink-0 text-primary" />
-                      <span className="min-w-0 flex-1 truncate">
-                        {document.title}
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          {fmtDate(document.created_at)}
-                        </span>
+                  <a
+                    key={document.id}
+                    href={document.url ?? undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      void trackPremiumView({
+                        data: {
+                          token,
+                          section: "document",
+                          itemId: document.id,
+                          itemLabel: document.title,
+                        },
+                      }).catch(() => undefined);
+                      void markSharedDocumentViewed({
+                        data: { token, documentId: document.id },
+                      }).catch(() => undefined);
+                    }}
+                    className="flex min-w-0 items-center gap-4 py-5 text-sm hover:text-primary"
+                  >
+                    <FileText className="size-5 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {document.title}
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {fmtDate(document.created_at)}
                       </span>
-                      <Download className="size-4 shrink-0" />
-                    </a>
-                  ))
+                    </span>
+                    <Download className="size-4 shrink-0" />
+                  </a>
+                ))
               ) : (
                 <p className="py-8 text-sm text-muted-foreground">
                   Aucun document n'a encore été partagé.
@@ -264,9 +320,7 @@ export function PremiumExperience({
               <div className="mt-8 max-w-xl">
                 <PremiumDocumentUpload
                   token={token}
-                  onUploaded={() =>
-                    qc.invalidateQueries({ queryKey: ["shared-premium", token] })
-                  }
+                  onUploaded={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}
                 />
               </div>
             )}
@@ -385,7 +439,7 @@ export function PremiumTab({
                   href={d.url ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => void markSharedDocumentViewed({ data: { token, documentId: d.id } }).catch(() => undefined)}
+                  onClick={() => { void trackPremiumView({ data: { token, section: "document", itemId: d.id, itemLabel: d.title } }).catch(() => undefined); void markSharedDocumentViewed({ data: { token, documentId: d.id } }).catch(() => undefined); }}
                   className="flex items-center justify-between gap-2 rounded-lg border p-2.5 text-sm transition-colors hover:border-primary/40"
                 >
                   <span className="truncate">{d.title}</span>

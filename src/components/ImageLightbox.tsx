@@ -10,18 +10,23 @@ export function ImageLightbox({
   alt,
   caption,
   children,
+  onOpen,
 }: {
   src: string;
   alt?: string;
   caption?: string | null;
   children: ReactNode;
+  onOpen?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          onOpen?.();
+        }}
         className="block w-full cursor-zoom-in"
         aria-label="Agrandir la photo"
       >

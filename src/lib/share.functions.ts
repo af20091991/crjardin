@@ -1299,3 +1299,82 @@ export const trackPremiumRecommendationsConsulted = createServerFn({ method: "PO
     }
     return { ok: true };
   });
+
+const PREMIUM_VIEW_SECTIONS = [
+  "accueil",
+  "calendrier",
+  "jardin",
+  "interventions",
+  "messagerie",
+  "cr",
+  "photo",
+  "document",
+] as const;
+type PremiumViewSection = (typeof PREMIUM_VIEW_SECTIONS)[number];
+
+const PREMIUM_VIEW_LABELS: Record<PremiumViewSection, string> = {
+  accueil: "l'accueil de son espace Premium",
+  calendrier: "son calendrier travaux",
+  jardin: "la fiche de son jardin",
+  interventions: "la page Interventions",
+  messagerie: "la messagerie",
+  cr: "un compte-rendu",
+  photo: "une photo",
+  document: "un document",
+};
+
+/**
+ * Suivi détaillé : le client vient d'ouvrir une page ou un élément précis de son espace Premium
+ * (compte-rendu, photo, document). Journalisé dans share_access_log avec l'élément consulté, et
+ * notifié dans PP. Au plus une notification par élément toutes les 30 minutes.
+ */
+export const trackPremiumView = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { token: string; section: string; itemId?: string; itemLabel?: string }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!(PREMIUM_VIEW_SECTIONS as readonly string[]).includes(data.section))
+        throw new Error("Section invalide");
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const section = data.section as PremiumViewSection;
+    const itemId = data.itemId ? String(data.itemId).slice(0, 80) : null;
+    const itemLabel = data.itemLabel ? String(data.itemLabel).slice(0, 160) : null;
+    const forwarded = getRequestHeader("x-forwarded-for") ?? "";
+    const ip = forwarded.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
+
+    await supabaseAdmin.from("share_access_log").insert({
+      client_id: client.id,
+      user_agent: getRequestHeader("user-agent") ?? null,
+      ip_address: ip,
+      section,
+      item_id: itemId,
+      item_label: itemLabel,
+    } as never);
+
+    const what = itemLabel
+      ? `${PREMIUM_VIEW_LABELS[section]} : ${itemLabel}`
+      : PREMIUM_VIEW_LABELS[section];
+    const title = `${client.name} a consulté ${what}`.slice(0, 200);
+    const since = new Date(Date.now() - 30 * 60_000).toISOString();
+    const { data: recent } = await supabaseAdmin
+      .from("notifications")
+      .select("id")
+      .eq("client_id", client.id)
+      .eq("title", title)
+      .gte("created_at", since)
+      .limit(1);
+    if ((recent ?? []).length === 0) {
+      await supabaseAdmin.from("notifications").insert({
+        user_id: client.user_id,
+        type: "read",
+        title,
+        body: null,
+        client_id: client.id,
+      });
+    }
+    return { ok: true };
+  });
