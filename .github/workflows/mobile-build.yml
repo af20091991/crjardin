@@ -31,7 +31,7 @@ jobs:
           cp mobile/android/pp-debug.keystore ~/.android/debug.keystore
       - run: ./gradlew assembleDebug
         working-directory: mobile/android
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pp-android-debug-apk
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
