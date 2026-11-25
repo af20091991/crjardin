@@ -145,7 +145,7 @@ function SharePage() {
     {!splashDone && <SproutSplash onDone={() => setSplashDone(true)} />}
     <div className={`min-h-dvh bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
-        <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
@@ -185,7 +185,7 @@ function SharePage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
         <>
           {/* Synthèse (client #8) */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
