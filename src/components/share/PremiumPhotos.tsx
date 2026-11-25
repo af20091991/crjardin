@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { trackPremiumView } from "@/lib/share.functions";
 import {
   setSharedPremiumCover,
   createSharedPremiumPhotoUpload,
@@ -286,7 +287,7 @@ export function PremiumPhotos({
             {photos.map((photo) => (
               <figure key={photo.id} className="space-y-2">
                 <div className="overflow-hidden rounded-xl border bg-muted">
-                  <ImageLightbox src={photo.url!} alt={photo.caption ?? "Photo"} caption={photo.caption}>
+                  <ImageLightbox src={photo.url!} alt={photo.caption ?? "Photo"} caption={photo.caption} onOpen={() => void trackPremiumView({ data: { token, section: "photo", itemId: photo.id, itemLabel: photo.caption ?? "photo sans légende" } }).catch(() => undefined)}>
                     <ThumbImg src={photo.url!} alt={photo.caption ?? "Photo"} className="aspect-[4/3] w-full object-cover" />
                   </ImageLightbox>
                 </div>
@@ -307,7 +308,7 @@ export function PremiumPhotos({
             {unassignedPhotos.map((photo) => (
               <figure key={photo.id} className="space-y-2">
                 <div className="overflow-hidden rounded-xl border bg-muted">
-                  <ImageLightbox src={photo.url!} alt={photo.caption ?? "Photo"} caption={photo.caption}>
+                  <ImageLightbox src={photo.url!} alt={photo.caption ?? "Photo"} caption={photo.caption} onOpen={() => void trackPremiumView({ data: { token, section: "photo", itemId: photo.id, itemLabel: photo.caption ?? "photo sans légende" } }).catch(() => undefined)}>
                     <ThumbImg src={photo.url!} alt={photo.caption ?? "Photo"} className="aspect-[4/3] w-full object-cover" />
                   </ImageLightbox>
                 </div>
@@ -345,6 +346,7 @@ export function PremiumPhotos({
                       src={photo.url!}
                       alt={photo.caption ?? "Photo d'intervention"}
                       caption={photo.caption}
+                      onOpen={() => void trackPremiumView({ data: { token, section: "photo", itemId: photo.id, itemLabel: photo.caption ?? "photo sans légende" } }).catch(() => undefined)}
                     >
                       <ThumbImg
                         src={photo.url!}

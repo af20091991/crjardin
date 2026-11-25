@@ -35,7 +35,7 @@ import {
   fmtDate,
 } from "@/components/share/ShareReports";
 import { GeneralMessages } from "@/components/share/ShareMessages";
-import { PremiumExperience, PremiumTab } from "@/components/share/PremiumExperience";
+import { PremiumExperience } from "@/components/share/PremiumExperience";
 import { sharedQuery, premiumQuery } from "@/routes/partage.$token";
 
 const messagesQuery = (token: string) =>
@@ -189,13 +189,13 @@ function SharePage() {
         <>
           {/* Synthèse (client #8) */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard label="Comptes-rendus" value={String(interventions.length)} />
+            <button type="button" onClick={() => setTab("reports")} className="text-left"><StatCard label="Comptes-rendus" value={String(interventions.length)} /></button>
             <StatCard
               label="Dernière visite jardin"
               value={lastIntervention ? fmtDate(lastIntervention.intervention_date) : "—"}
             />
-            <StatCard label="Préconisations" value={String(recommendations.length)} />
-            <StatCard label="Non lus" value={String(unread)} highlight={unread > 0} />
+            <button type="button" onClick={openRecos} className="text-left"><StatCard label="Préconisations" value={String(recommendations.length)} /></button>
+            <button type="button" onClick={() => setTab("reports")} className="text-left"><StatCard label="Non lus" value={String(unread)} highlight={unread > 0} /></button>
           </div>
           {lastVisit && (
             <p className="text-xs text-muted-foreground">
@@ -203,28 +203,8 @@ function SharePage() {
             </p>
           )}
 
-          {unreadRecos > 0 && (
-            <button
-              onClick={openRecos}
-              className="flex w-full items-center gap-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-left transition-colors hover:bg-accent/20"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/20 text-accent-foreground">
-                <Sparkles className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-accent-foreground">
-                  {unreadRecos} préconisation{unreadRecos > 1 ? "s" : ""} en attente
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  Découvrez ce que nous vous conseillons pour votre jardin.
-                </span>
-              </span>
-              <Badge className="shrink-0 bg-accent text-accent-foreground">Voir</Badge>
-            </button>
-          )}
-
           <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
-            <TabsList className={`grid w-full ${premium?.enabled ? "grid-cols-4" : "grid-cols-3"}`}>
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="reports">
                 <ClipboardList className="mr-1.5 h-4 w-4" />
                 Comptes-rendus
@@ -245,15 +225,6 @@ function SharePage() {
                   </span>
                 )}
               </TabsTrigger>
-              {premium?.enabled && (
-                <TabsTrigger
-                  value="premium"
-                  className="border-primary/20 bg-primary/5 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <Crown className="mr-1.5 h-4 w-4" />
-                  Premium
-                </TabsTrigger>
-              )}
             </TabsList>
 
             <TabsContent value="reports" className="space-y-4">
@@ -279,11 +250,6 @@ function SharePage() {
             <TabsContent value="recos">
               <RecommendationsTab recommendations={recommendations} token={token} />
             </TabsContent>
-            {premium?.enabled && (
-              <TabsContent value="premium" className="space-y-4">
-                <PremiumTab premium={premium} token={token} messages={messages ?? []} />
-              </TabsContent>
-            )}
           </Tabs>
 
           {!premium?.enabled && (
