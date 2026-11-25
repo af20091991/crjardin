@@ -137,7 +137,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/manifest.webmanifest" },
       {
         rel: "preconnect",
-        href: "https://mgkeqwwzhcodntkakqaz.supabase.co",
+        href: "https://wdygsbmivqxvgkgpbrqc.supabase.co",
         crossOrigin: "anonymous",
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
