@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   setRecommendationInterest,
   getSharedInterventionPdfUrl,
+  trackPremiumView,
   type SharedIntervention,
   type ClientMessage,
   type SharedRecommendation,
@@ -279,6 +280,7 @@ export function InterventionCard({
       if (iv.has_sent_pdf || iv.has_pdf) {
         // Version envoyée par le paysagiste (ou dernière archive disponible),
         // et non un PDF regénéré à la volée.
+        void trackPremiumView({ data: { token, section: "cr", itemId: iv.id, itemLabel: fmtDate(iv.intervention_date) } }).catch(() => undefined);
         const { url } = await getSharedInterventionPdfUrl({
           data: { token, interventionId: iv.id },
         });
@@ -371,6 +373,7 @@ export function InterventionCard({
                       src={p.url}
                       alt={p.caption ?? "Photo d'intervention"}
                       caption={p.caption}
+                      onOpen={() => void trackPremiumView({ data: { token, section: "photo", itemId: p.id, itemLabel: p.caption ?? "photo sans légende" } }).catch(() => undefined)}
                     >
                       <img
                         src={p.url}
