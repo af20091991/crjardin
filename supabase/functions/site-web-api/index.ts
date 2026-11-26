@@ -79,7 +79,12 @@ Deno.serve(async (req) => {
       .eq("state_hash", stateHash)
       .limit(1);
     const stateRow = stateRows?.[0];
-    if (stateError || !stateRow || stateRow.provider !== provider || new Date(stateRow.expires_at).getTime() <= Date.now()) {
+    if (
+      stateError ||
+      !stateRow ||
+      stateRow.provider !== provider ||
+      new Date(stateRow.expires_at).getTime() <= Date.now()
+    ) {
       return json({ error: "invalid_or_expired_oauth_state" }, 400);
     }
 
@@ -108,7 +113,8 @@ Deno.serve(async (req) => {
     });
     const previousRefreshToken = existing.data?.refresh_token ?? null;
     const refreshToken = tokens.refresh_token ?? previousRefreshToken;
-    if (!refreshToken) return json({ error: "google_refresh_token_missing", reconnect_required: true }, 502);
+    if (!refreshToken)
+      return json({ error: "google_refresh_token_missing", reconnect_required: true }, 502);
 
     const stored = await supabaseAdmin.rpc("store_site_web_google_tokens", {
       p_user_id: stateRow.user_id,
@@ -134,7 +140,9 @@ Deno.serve(async (req) => {
   if (action === "status") {
     const { data } = await supabaseAdmin
       .from("site_web_connections")
-      .select("provider,status,external_account_id,external_account_name,last_sync_at,last_sync_status,last_error")
+      .select(
+        "provider,status,external_account_id,external_account_name,last_sync_at,last_sync_status,last_error",
+      )
       .eq("user_id", userId)
       .eq("provider", provider)
       .maybeSingle();
@@ -167,10 +175,13 @@ Deno.serve(async (req) => {
   }
 
   if (action === "list_sites") {
-    const { data: tokenData, error: tokenError } = await supabaseAdmin.rpc("get_site_web_google_tokens", {
-      p_user_id: userId,
-      p_provider: provider,
-    });
+    const { data: tokenData, error: tokenError } = await supabaseAdmin.rpc(
+      "get_site_web_google_tokens",
+      {
+        p_user_id: userId,
+        p_provider: provider,
+      },
+    );
     if (tokenError || !tokenData?.access_token) return json({ error: "not_connected" }, 409);
 
     const response = await fetch(`${GSC_API}/sites`, {
@@ -188,10 +199,13 @@ Deno.serve(async (req) => {
       return json({ error: "missing_site_or_date_range" }, 400);
     }
 
-    const { data: tokenData, error: tokenError } = await supabaseAdmin.rpc("get_site_web_google_tokens", {
-      p_user_id: userId,
-      p_provider: provider,
-    });
+    const { data: tokenData, error: tokenError } = await supabaseAdmin.rpc(
+      "get_site_web_google_tokens",
+      {
+        p_user_id: userId,
+        p_provider: provider,
+      },
+    );
     if (tokenError || !tokenData?.access_token) return json({ error: "not_connected" }, 409);
 
     const endpoint = `${GSC_API}/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
