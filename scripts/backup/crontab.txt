@@ -1,0 +1,5 @@
+# Sauvegardes PP sur O2switch (crontab de l'utilisateur, heure serveur)
+# Quotidienne : chaque nuit à 02h30
+30 2 * * * /home/foan8002/pp-backup.sh daily
+# Hebdomadaire complète : dimanche à 03h00
+0 3 * * 0 /home/foan8002/pp-backup.sh weekly
