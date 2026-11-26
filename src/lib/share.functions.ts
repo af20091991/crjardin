@@ -154,6 +154,8 @@ export interface ClientMessage {
   sender: string;
   created_at: string;
   archived_at?: string | null;
+  /** Date d'ouverture par le client (null = pas encore lu). Absent avant la migration 20261126090000. */
+  client_read_at?: string | null;
   attachment_name?: string | null;
   attachment_size?: number | null;
   has_attachment?: boolean;

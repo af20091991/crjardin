@@ -100,6 +100,10 @@ export function PremiumExperience({
     (total, group) => total + group.items.filter((item) => !item.client_interest).length,
     0,
   );
+  // Messages du gérant pas encore ouverts par le client (client_read_at absent = non lu).
+  const pendingMessages = messages.filter(
+    (m) => m.sender === "gardener" && !m.archived_at && m.client_read_at === null,
+  ).length;
   const qc = useQueryClient();
   function navigate(next: PremiumSection) {
     setSection(next);
@@ -181,6 +185,7 @@ export function PremiumExperience({
                 onNavigate={navigate}
                 className="-mt-10 sm:-mt-12"
                 pendingRecommendations={pendingRecommendations}
+                pendingMessages={pendingMessages}
               />
             }
           />
@@ -191,6 +196,7 @@ export function PremiumExperience({
             onNavigate={navigate}
             className="mb-10 sm:mb-14"
             pendingRecommendations={pendingRecommendations}
+            pendingMessages={pendingMessages}
           />
         )}
         {section === "calendar" && (
