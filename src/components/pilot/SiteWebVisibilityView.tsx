@@ -108,13 +108,15 @@ export function SiteWebVisibilityView() {
           ) : (
             <DataTable
               headers={["Date", "Position", "Impressions", "Clics", "CTR"]}
-              rows={rows.slice(-31).map((row) => [
-                formatDateLabel(row.keys?.[0] ?? ""),
-                formatPosition(row.position),
-                formatNumber(Number(row.impressions ?? 0)),
-                formatNumber(Number(row.clicks ?? 0)),
-                formatPercent(Number(row.ctr ?? 0)),
-              ])}
+              rows={rows
+                .slice(-31)
+                .map((row) => [
+                  formatDateLabel(row.keys?.[0] ?? ""),
+                  formatPosition(row.position),
+                  formatNumber(Number(row.impressions ?? 0)),
+                  formatNumber(Number(row.clicks ?? 0)),
+                  formatPercent(Number(row.ctr ?? 0)),
+                ])}
             />
           )}
         </div>
@@ -172,9 +174,7 @@ function SourceError({ message }: { message: string }) {
 
 function LoadingState() {
   return (
-    <p className="py-8 text-center text-sm text-muted-foreground">
-      Chargement des données Google…
-    </p>
+    <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
   );
 }
 
