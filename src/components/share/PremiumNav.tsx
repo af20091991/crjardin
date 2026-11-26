@@ -55,7 +55,11 @@ export function PremiumNav({
         {PREMIUM_NAV.map(({ id, label, icon: Icon }) => {
           const active = section === id;
           const pending =
-            id === "recommendations" ? pendingRecommendations : id === "exchange" ? pendingMessages : 0;
+            id === "recommendations"
+              ? pendingRecommendations
+              : id === "exchange"
+                ? pendingMessages
+                : 0;
           return (
             <button
               key={id}
