@@ -264,6 +264,7 @@ export function PremiumExperience({
               freePhotos={freePhotos}
               albums={photoAlbums}
               coverPhotoId={premium.cover_photo_id}
+              allowCover
               token={token}
               onCoverChanged={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}
               onPhotosAdded={() => qc.invalidateQueries({ queryKey: ["shared-client", token] })}
