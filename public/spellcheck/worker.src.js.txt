@@ -1,0 +1,77 @@
+// Worker d'orthographe : charge le dictionnaire français (Hunspell) puis vérifie les mots.
+// Source de référence de public/spellcheck/worker.js (voir README.md du dossier).
+import nspell from "nspell";
+
+const strip = (w) => w.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// Distance de Damerau-Levenshtein (transpositions comprises) pour classer les suggestions.
+function distance(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+
+// Ordre : même mot sans accents d'abord, puis distance ; à distance égale, une lettre oubliée
+// (suggestion plus longue) est plus probable qu'une lettre erronée ou en trop.
+function rank(word, list) {
+  const w = word.toLowerCase();
+  const base = strip(word);
+  return list
+    .map((s, i) => {
+      const dist = distance(w, s.toLowerCase());
+      const shape = s.length > word.length ? 0 : s.length === word.length ? 1 : 2;
+      return { s, i, accent: strip(s) === base ? 0 : 1, score: dist * 10 + shape };
+    })
+    .sort((x, y) => x.accent - y.accent || x.score - y.score || x.i - y.i)
+    .map((x) => x.s);
+}
+
+let speller = null;
+let loading = null;
+const personal = new Set();
+
+async function load(base) {
+  if (speller) return speller;
+  if (!loading) {
+    loading = Promise.all([fetch(base + "fr.aff"), fetch(base + "fr.dic")]).then(async ([a, d]) => {
+      if (!a.ok || !d.ok) throw new Error("dictionnaire indisponible");
+      const [aff, dic] = await Promise.all([a.text(), d.text()]);
+      speller = nspell(aff, dic);
+      for (const word of personal) speller.add(word);
+      return speller;
+    });
+  }
+  return loading;
+}
+
+self.onmessage = async (event) => {
+  const { id, type, base, words, word } = event.data;
+  try {
+    if (type === "add") {
+      personal.add(word);
+      if (speller) speller.add(word);
+      self.postMessage({ id, ok: true });
+      return;
+    }
+    const sp = await load(base);
+    if (type === "check") {
+      const bad = [];
+      for (const w of words) if (!sp.correct(w)) bad.push(w);
+      self.postMessage({ id, bad });
+    } else if (type === "suggest") {
+      self.postMessage({ id, suggestions: rank(word, sp.suggest(word)).slice(0, 6) });
+    } else {
+      self.postMessage({ id, ready: true });
+    }
+  } catch (error) {
+    self.postMessage({ id, error: String(error && error.message ? error.message : error) });
+  }
+};

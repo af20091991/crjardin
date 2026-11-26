@@ -5,6 +5,7 @@
  * charges lues uniquement dans pilot_ca_entries (kind = "charge").
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatHourlyRate, formatHours } from "@/lib/format-utils";
 
 type AnySupabase = Pick<SupabaseClient, "from">;
 
@@ -113,8 +114,8 @@ EXERCICE ${year}
 - CA HT (ventes saisies) : ${fmt(caYear)} — N-1 : ${fmt(caPrev)}
 - Charges HT : ${fmt(chargesYear)}
 - Bénéfice (CA − Charges) : ${fmt(caYear - chargesYear)}
-- Temps interne (Vente → Temps) : ${hoursYear.toFixed(0)} h
-- Taux horaire réel (CA total ÷ temps interne) : ${hourlyRate === null ? "données insuffisantes" : `${hourlyRate.toFixed(0)} €/h`}
+- Temps interne (Vente → Temps) : ${formatHours(hoursYear)}
+- Taux horaire réel (CA total ÷ temps interne) : ${hourlyRate === null ? "données insuffisantes" : `${formatHourlyRate(hourlyRate)}`}
 - Nombre de lignes de vente (= interventions économiques) : ${ventes.filter((row) => row.year === year).length}
 - Répartition par nature : ${
     Object.entries(byCategory)

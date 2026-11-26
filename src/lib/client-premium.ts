@@ -1,0 +1,506 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const premiumCalendarDb = supabase as unknown as SupabaseClient<any>;
+
+const DOCS_BUCKET = "client-premium";
+
+export interface ClientPremium {
+  client_id: string;
+  enabled: boolean;
+  activated_at: string | null;
+  deactivated_at: string | null;
+  garden_state: string | null;
+  garden_objectives: string | null;
+  garden_specificities: string | null;
+  google_review_url: string | null;
+  commercial_note: string | null;
+  cover_photo_id: string | null;
+  cover_document_id: string | null;
+  /** Qui a choisi la couverture : le client (son choix est protégé) ou le jardinier. */
+  cover_set_by: "client" | "gardener" | null;
+  cover_set_at: string | null;
+}
+
+export type PremiumDocumentUploader = "gardener" | "client";
+
+export interface PremiumDocument {
+  id: string;
+  client_id: string;
+  title: string;
+  filename: string;
+  storage_path: string;
+  size_bytes: number | null;
+  uploaded_by: PremiumDocumentUploader;
+  visible_to_client: boolean;
+  created_at: string;
+}
+
+export interface ClientCoverPhotoOption {
+  id: string;
+  storage_path: string;
+}
+
+async function uid(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error("Non authentifié");
+  return data.user.id;
+}
+
+export async function getClientPremium(clientId: string): Promise<ClientPremium | null> {
+  const { data, error } = await supabase
+    .from("client_premium")
+    .select("*")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (error) throw new Error(`Impossible de charger le statut Premium : ${error.message}`);
+  if (!data) return null;
+
+  // L'état du jardin affiché dans Premium provient en priorité du dernier
+  // compte-rendu effectivement destiné au client.
+  const { data: latestReport } = await supabase
+    .from("interventions")
+    .select("garden_state, intervention_date")
+    .eq("client_id", clientId)
+    .not("sent_to_client_at", "is", null)
+    .not("garden_state", "is", null)
+    .order("intervention_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    ...(data as unknown as ClientPremium),
+    garden_state: latestReport?.garden_state ?? (data.garden_state as string | null),
+  };
+}
+
+export async function setClientPremiumEnabled(clientId: string, enabled: boolean): Promise<void> {
+  const user_id = await uid();
+
+  if (enabled) {
+    const { data: client, error: clientError } = await supabase
+      .from("clients")
+      .select("contract_type")
+      .eq("id", clientId)
+      .single();
+
+    if (clientError) {
+      throw new Error(`Impossible de vérifier l'éligibilité Premium : ${clientError.message}`);
+    }
+    if (client.contract_type !== "Entretien annuel") {
+      throw new Error(
+        "Le compte Premium est réservé aux clients ayant souscrit un entretien annuel.",
+      );
+    }
+  }
+
+  const now = new Date().toISOString();
+  let cover_photo_id: string | null | undefined = undefined;
+
+  if (enabled) {
+    const { data: existing } = await supabase
+      .from("client_premium")
+      .select("cover_photo_id")
+      .eq("client_id", clientId)
+      .maybeSingle();
+
+    if (!existing?.cover_photo_id) {
+      const photos = await listClientPhotosForCover(clientId);
+      cover_photo_id = photos[0]?.id ?? null;
+    }
+  }
+
+  const { error } = await supabase.from("client_premium").upsert(
+    {
+      client_id: clientId,
+      user_id,
+      enabled,
+      activated_at: enabled ? now : undefined,
+      deactivated_at: enabled ? null : now,
+      ...(cover_photo_id !== undefined ? { cover_photo_id } : {}),
+    },
+    { onConflict: "client_id" },
+  );
+  if (error) throw new Error(`Impossible de mettre à jour le statut Premium : ${error.message}`);
+}
+
+export async function updateClientPremium(
+  clientId: string,
+  patch: Partial<
+    Pick<
+      ClientPremium,
+      | "garden_state"
+      | "garden_objectives"
+      | "garden_specificities"
+      | "google_review_url"
+      | "commercial_note"
+      | "cover_photo_id"
+      | "cover_document_id"
+      | "cover_set_by"
+      | "cover_set_at"
+    >
+  >,
+): Promise<void> {
+  const user_id = await uid();
+  // Colonnes cover_set_* absentes de types.ts (régénération à faire) : écriture typée à la main.
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      upsert: (values: unknown, options: unknown) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+  const { error } = await loose
+    .from("client_premium")
+    .upsert({ client_id: clientId, user_id, ...patch }, { onConflict: "client_id" });
+  if (error) throw new Error(`Impossible d'enregistrer les modifications : ${error.message}`);
+}
+
+export async function listPremiumDocuments(clientId: string): Promise<PremiumDocument[]> {
+  const { data, error } = await supabase
+    .from("client_premium_documents")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`Impossible de charger les documents : ${error.message}`);
+  // Les fichiers de couverture ne sont listés nulle part ailleurs : ils n'apparaissent que comme couverture.
+  return (data as PremiumDocument[]).filter(
+    (d) => !(d as PremiumDocument & { cover_only?: boolean }).cover_only,
+  );
+}
+
+/** Supprime le fichier de couverture précédent (envoyé depuis PP) une fois remplacé. */
+export async function releaseCoverDocument(docId: string): Promise<void> {
+  // Colonne cover_only absente de types.ts (régénération à faire).
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: string,
+        ) => {
+          maybeSingle: () => Promise<{
+            data: { storage_path: string; cover_only: boolean } | null;
+          }>;
+        };
+      };
+    };
+  };
+  const { data } = await loose
+    .from("client_premium_documents")
+    .select("storage_path, cover_only")
+    .eq("id", docId)
+    .maybeSingle();
+  if (!data?.cover_only) return;
+  await deletePremiumDocument(docId, data.storage_path);
+}
+
+export async function uploadPremiumDocument(
+  clientId: string,
+  file: File,
+  title: string,
+  options: { coverOnly?: boolean } = {},
+): Promise<PremiumDocument> {
+  const user_id = await uid();
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${clientId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (uploadError) throw new Error(`Échec de l'envoi du document : ${uploadError.message}`);
+  // Colonne cover_only absente de types.ts (régénération à faire).
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      insert: (values: unknown) => {
+        select: () => {
+          single: () => Promise<{ data: unknown; error: { message: string } | null }>;
+        };
+      };
+    };
+  };
+  const { data, error } = await loose
+    .from("client_premium_documents")
+    .insert({
+      client_id: clientId,
+      user_id,
+      title,
+      filename: file.name,
+      storage_path: path,
+      size_bytes: file.size,
+      uploaded_by: "gardener",
+      cover_only: options.coverOnly ?? false,
+    })
+    .select()
+    .single();
+  if (error) {
+    await supabase.storage.from(DOCS_BUCKET).remove([path]);
+    throw new Error(`Impossible d'enregistrer le document : ${error.message}`);
+  }
+  return data as PremiumDocument;
+}
+
+const IMAGE_EXT_RE = /\.(jpe?g|png|webp|gif|heic|heif)$/i;
+
+/** Documents du client qui sont des photos (utilisables comme couverture). */
+export function imageDocuments(documents: PremiumDocument[]): PremiumDocument[] {
+  return documents.filter((d) => IMAGE_EXT_RE.test(d.filename));
+}
+
+export async function updatePremiumDocumentVisibility(id: string, visible: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("client_premium_documents")
+    .update({ visible_to_client: visible })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible de mettre à jour le document : ${error.message}`);
+}
+
+export async function renamePremiumDocument(id: string, title: string): Promise<void> {
+  const clean = title.trim();
+  if (!clean) throw new Error("Le titre ne peut pas être vide");
+  const { error } = await supabase
+    .from("client_premium_documents")
+    .update({ title: clean })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible de renommer le document : ${error.message}`);
+}
+
+/** Remplace le fichier d'un document en gardant son identifiant (couverture et calendrier restent liés). */
+export async function replacePremiumDocumentFile(
+  id: string,
+  clientId: string,
+  file: File,
+): Promise<void> {
+  const { data: current, error: readError } = await supabase
+    .from("client_premium_documents")
+    .select("storage_path")
+    .eq("id", id)
+    .single();
+  if (readError || !current) throw new Error("Document introuvable");
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${clientId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (uploadError) throw new Error(`Échec de l'envoi du fichier : ${uploadError.message}`);
+  const { error } = await supabase
+    .from("client_premium_documents")
+    .update({ storage_path: path, filename: file.name, size_bytes: file.size })
+    .eq("id", id);
+  if (error) {
+    await supabase.storage.from(DOCS_BUCKET).remove([path]);
+    throw new Error(`Impossible de remplacer le document : ${error.message}`);
+  }
+  await supabase.storage.from(DOCS_BUCKET).remove([current.storage_path]);
+}
+
+export async function deletePremiumDocument(id: string, storagePath: string): Promise<void> {
+  const { error: storageError } = await supabase.storage.from(DOCS_BUCKET).remove([storagePath]);
+  if (storageError) {
+    throw new Error(`Impossible de supprimer le fichier : ${storageError.message}`);
+  }
+  const { error } = await supabase.from("client_premium_documents").delete().eq("id", id);
+  if (error) throw new Error(`Impossible de supprimer le document : ${error.message}`);
+}
+
+export async function signedPremiumDocumentUrl(storagePath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(DOCS_BUCKET)
+    .createSignedUrl(storagePath, 60 * 60);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+/** Photos d'interventions du client, candidates pour la couverture de son espace Premium. */
+export async function listClientPhotosForCover(
+  clientId: string,
+): Promise<ClientCoverPhotoOption[]> {
+  const { data: interventions, error: ivError } = await supabase
+    .from("interventions")
+    .select("id")
+    .eq("client_id", clientId);
+  if (ivError) throw new Error(`Impossible de charger les interventions : ${ivError.message}`);
+  const ids = (interventions ?? []).map((i) => i.id);
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("intervention_photos")
+    .select("id, storage_path")
+    .in("intervention_id", ids)
+    // Seules les photos que le client voit peuvent devenir sa couverture.
+    .eq("include_in_report", true)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  if (error) throw new Error(`Impossible de charger les photos : ${error.message}`);
+  return data as ClientCoverPhotoOption[];
+}
+
+export interface PremiumWorkCalendarItem {
+  id: string;
+  client_id: string;
+  document_id: string | null;
+  period_label: string;
+  year: number | null;
+  month: number | null;
+  sequence: number;
+  title: string;
+  details: string | null;
+  position: number;
+  source: "pdf" | "manuel" | "ia";
+  created_at?: string;
+}
+
+export async function listPremiumWorkCalendar(
+  clientId: string,
+): Promise<PremiumWorkCalendarItem[]> {
+  const { data, error } = await premiumCalendarDb
+    .from("client_premium_work_calendar_items")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("year", { ascending: true, nullsFirst: false })
+    .order("month", { ascending: true, nullsFirst: false })
+    .order("sequence", { ascending: true })
+    .order("position", { ascending: true });
+  if (error) throw new Error(`Impossible de charger le calendrier travaux : ${error.message}`);
+  return data as PremiumWorkCalendarItem[];
+}
+
+export async function replacePremiumWorkCalendar(
+  clientId: string,
+  documentId: string,
+  items: Array<{
+    period_label: string;
+    year: number | null;
+    month: number | null;
+    sequence: number;
+    title: string;
+    details: string;
+  }>,
+  source: "pdf" | "ia" | "manuel" = "ia",
+): Promise<void> {
+  const user_id = await uid();
+  // Un nouveau calendrier remplace uniquement les années qu'il couvre (et son propre import) :
+  // le planning 2027 s'ajoute au 2026 au lieu de l'effacer.
+  const years = Array.from(
+    new Set(items.map((item) => item.year).filter((y): y is number => typeof y === "number")),
+  );
+  const scope = [
+    `document_id.eq.${documentId}`,
+    ...(years.length ? [`year.in.(${years.join(",")})`] : []),
+  ];
+  const { error: deleteError } = await premiumCalendarDb
+    .from("client_premium_work_calendar_items")
+    .delete()
+    .eq("client_id", clientId)
+    .or(scope.join(","));
+  if (deleteError)
+    throw new Error(`Impossible de remplacer le calendrier : ${deleteError.message}`);
+
+  if (items.length === 0) return;
+
+  const rows = items.map((item, position) => ({
+    client_id: clientId,
+    document_id: documentId,
+    user_id,
+    period_label: item.period_label,
+    year: item.year,
+    month: item.month,
+    sequence: item.sequence,
+    title: item.title,
+    details: item.details,
+    position,
+    source,
+  }));
+
+  const { error } = await premiumCalendarDb.from("client_premium_work_calendar_items").insert(rows);
+  if (error) throw new Error(`Impossible d'enregistrer le calendrier : ${error.message}`);
+}
+
+export interface PremiumCalendarItemInput {
+  period_label: string;
+  year: number | null;
+  month: number | null;
+  sequence: number;
+  title: string;
+  details: string | null;
+}
+
+/** Lignes du calendrier de plusieurs clients Premium (tableau de bord admin). */
+export async function listPremiumCalendarItemsForClients(
+  clientIds: string[],
+): Promise<PremiumWorkCalendarItem[]> {
+  if (clientIds.length === 0) return [];
+  const { data, error } = await premiumCalendarDb
+    .from("client_premium_work_calendar_items")
+    .select("*")
+    .in("client_id", clientIds);
+  if (error) throw new Error(`Impossible de charger les calendriers : ${error.message}`);
+  return data as PremiumWorkCalendarItem[];
+}
+
+export async function addPremiumCalendarItem(
+  clientId: string,
+  item: PremiumCalendarItemInput,
+  position: number,
+): Promise<void> {
+  const user_id = await uid();
+  const { error } = await premiumCalendarDb.from("client_premium_work_calendar_items").insert({
+    client_id: clientId,
+    user_id,
+    ...item,
+    position,
+    source: "manuel",
+  });
+  if (error) throw new Error(`Impossible d'ajouter l'intervention : ${error.message}`);
+}
+
+export async function updatePremiumCalendarItem(
+  id: string,
+  item: PremiumCalendarItemInput,
+): Promise<void> {
+  const { error } = await premiumCalendarDb
+    .from("client_premium_work_calendar_items")
+    .update({ ...item, source: "manuel" })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible d'enregistrer l'intervention : ${error.message}`);
+}
+
+export async function deletePremiumCalendarItem(id: string): Promise<void> {
+  const { error } = await premiumCalendarDb
+    .from("client_premium_work_calendar_items")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(`Impossible de supprimer l'intervention : ${error.message}`);
+}
+
+/** Modification d'une préconisation (titre et description) depuis le dashboard Premium admin. */
+export async function updateRecommendationContent(
+  id: string,
+  patch: { title: string; description: string | null },
+): Promise<void> {
+  const { error } = await supabase
+    .from("recommendations")
+    .update({ title: patch.title, description: patch.description })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible d'enregistrer la préconisation : ${error.message}`);
+}
+
+/** Ajout d'une préconisation depuis le dashboard Premium admin, rattachée ou non à une intervention. */
+export async function createRecommendationForPremium(input: {
+  clientId: string;
+  interventionId: string | null;
+  title: string;
+  description: string | null;
+}): Promise<void> {
+  const user_id = await uid();
+  const { error } = await supabase.from("recommendations").insert({
+    user_id,
+    client_id: input.clientId,
+    intervention_id: input.interventionId,
+    title: input.title,
+    description: input.description,
+    status: "en_attente",
+    source: "manuel",
+    unit_price: 70,
+  });
+  if (error) throw new Error(`Impossible d'ajouter la préconisation : ${error.message}`);
+}

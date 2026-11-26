@@ -27,7 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trophy, AlertTriangle, UserX, TrendingUp } from "lucide-react";
+import { Trophy, AlertTriangle, UserX, TrendingUp, Users } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { entriesForMode } from "@/lib/pilot-realized";
 import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
@@ -43,6 +44,7 @@ import {
 import { ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
 import { EntityStatusQuickEdit } from "@/components/pilot/rentabilite/EntityStatusQuickEdit";
 import { CertifyReferentialAction } from "@/components/pilot/rentabilite/CertifyReferentialAction";
+import { SaleReviewPanel } from "@/components/pilot/rentabilite/SaleReviewPanel";
 import { useAttachmentCertification } from "@/components/pilot/useAttachmentCertification";
 import type { ClientCertification } from "@/lib/pilot-attachment-certification";
 import { topClients } from "@/lib/pilot-top-clients";
@@ -52,6 +54,7 @@ import {
   DashboardCustomizer,
   PageBlocks,
 } from "@/components/pilot/DashboardCustomizer";
+import { formatHours, formatPercent } from "@/lib/format-utils";
 
 /** Blocs de la page — présentation uniquement, aucun impact sur les calculs. */
 const BLOCKS: DashboardBlockDef[] = [
@@ -185,6 +188,7 @@ export function ProfitabilityClientsView() {
 
   return (
     <div className="space-y-4">
+      <SaleReviewPanel />
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           CA, heures réelles et rentabilité par client. Cliquez sur un nom pour ouvrir sa fiche
@@ -251,15 +255,15 @@ export function ProfitabilityClientsView() {
                         />
                       ) : (
                         <ReliabilityBadge
-                            reliability={reliabilityOf(c)}
-                            compact
-                            clientId={c.clientId}
-                            clientLabel={c.name}
-                          />
+                          reliability={reliabilityOf(c)}
+                          compact
+                          clientId={c.clientId}
+                          clientLabel={c.name}
+                        />
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {c.share.toFixed(0)} % du CA ·{" "}
+                      {formatPercent(c.share)} du CA ·{" "}
                       {t.hourlyRate == null
                         ? "taux/h non documenté"
                         : `${formatEuro(t.hourlyRate)}/h`}
@@ -294,7 +298,7 @@ export function ProfitabilityClientsView() {
                   (A = 80 % du CA, B = 15 %, C = 5 %)
                 </span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -344,11 +348,8 @@ export function ProfitabilityClientsView() {
                   <TableBody>
                     {stats.length === 0 && (
                       <TableRow>
-                        <TableCell
-                          colSpan={8}
-                          className="py-8 text-center text-sm text-muted-foreground"
-                        >
-                          Aucune donnée
+                        <TableCell colSpan={8}>
+                          <EmptyState icon={Users} title="Aucune donnée" compact />
                         </TableCell>
                       </TableRow>
                     )}
@@ -381,7 +382,7 @@ export function ProfitabilityClientsView() {
                         </TableCell>
                         <TableCell className="text-right text-sm">{formatEuro(c.ca)}</TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
-                          {c.share.toFixed(0)} %
+                          {formatPercent(c.share)}
                         </TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
                           {c.count}
@@ -390,7 +391,7 @@ export function ProfitabilityClientsView() {
                           {formatEuro(c.avgCa)}
                         </TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
-                          {c.avgTime.toFixed(1)} h
+                          {formatHours(c.avgTime)}
                         </TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
                           {formatEuro(c.hourlyRate)}
@@ -407,11 +408,11 @@ export function ProfitabilityClientsView() {
                             />
                           ) : (
                             <ReliabilityBadge
-                            reliability={reliabilityOf(c)}
-                            compact
-                            clientId={c.clientId}
-                            clientLabel={c.name}
-                          />
+                              reliability={reliabilityOf(c)}
+                              compact
+                              clientId={c.clientId}
+                              clientLabel={c.name}
+                            />
                           )}
                         </TableCell>
                         <TableCell className="text-center">
@@ -421,6 +422,83 @@ export function ProfitabilityClientsView() {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+
+              <div className="space-y-2 p-4 md:hidden">
+                {stats.length === 0 ? (
+                  <EmptyState icon={Users} title="Aucune donnée" compact />
+                ) : (
+                  stats.map((c) => (
+                    <div key={c.key} className="rounded-lg border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 truncate text-sm font-medium">
+                          <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
+                        </div>
+                        <Badge className={ABC_TONE[c.abc]}>{c.abc}</Badge>
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <Badge className={NATURE_TONE[c.nature] ?? NATURE_TONE.Autre}>
+                          {c.nature}
+                        </Badge>
+                        <EntityStatusQuickEdit
+                          clientId={c.clientId}
+                          clientName={c.name}
+                          status={statusOf(statusesQ.data, c.clientId)}
+                        />
+                        <CertifyReferentialAction
+                          clientId={c.clientId}
+                          clientName={c.name}
+                          certification={c.clientId ? certifByClient.get(c.clientId) : undefined}
+                          onCertified={certifQ.refetch}
+                        />
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">CA</p>
+                          <p className="tabular-nums">{formatEuro(c.ca)}</p>
+                          <p className="text-xs text-muted-foreground">{formatPercent(c.share)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Lignes</p>
+                          <p className="tabular-nums">{c.count}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">CA moy.</p>
+                          <p className="tabular-nums">{formatEuro(c.avgCa)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Temps moy.</p>
+                          <p className="tabular-nums">{formatHours(c.avgTime)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Taux/h</p>
+                          <p className="tabular-nums">{formatEuro(c.hourlyRate)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Rentabilité</p>
+                          {reliabilityOf(c).profitabilityTrusted ? (
+                            <ProfitSignal
+                              level={signalFromHourlyRate(
+                                c.hourlyRate,
+                                targetHourlyRate,
+                                thresholds,
+                              )}
+                              title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
+                              compact
+                            />
+                          ) : (
+                            <ReliabilityBadge
+                              reliability={reliabilityOf(c)}
+                              compact
+                              clientId={c.clientId}
+                              clientLabel={c.name}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -489,8 +567,8 @@ export function ProfitabilityClientsView() {
   );
 }
 /**
- * Nom de client cliquable : ouvre la fiche client 360° du référentiel
- * (`/pilot/fiche/$clientId`). Sans identité économique rattachée, on retombe
+ * Nom de client cliquable : ouvre la fiche client (onglet Pilotage 360°)
+ * (`/clients/$clientId`). Sans identité économique rattachée, on retombe
  * sur la vue de rentabilité par clé de regroupement.
  */
 function ClientLink({
@@ -510,7 +588,7 @@ function ClientLink({
   }
   if (clientId) {
     return (
-      <Link to="/pilot/fiche/$clientId" params={{ clientId }} className={cls}>
+      <Link to="/clients/$clientId" params={{ clientId }} className={cls}>
         {name}
       </Link>
     );
@@ -525,4 +603,3 @@ function ClientLink({
     </Link>
   );
 }
-

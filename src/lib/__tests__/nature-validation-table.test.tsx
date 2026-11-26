@@ -1,7 +1,7 @@
 // Rendu réel : le tableau affiche plusieurs lignes en même temps + pagination.
 import "./dom-setup";
 import { describe, expect, it } from "bun:test";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NatureValidationTable } from "@/components/pilot/panels/NatureValidationTable";
 import type { NatureLine } from "@/lib/pilot-nature-validation";
@@ -30,16 +30,17 @@ describe("NatureValidationTable — tableau paginé", () => {
   it("affiche 25 lignes simultanément dans un tableau", () => {
     cleanup();
     const { container } = renderTable(rows);
+    const table = container.querySelector("table")!;
     expect(container.querySelectorAll("table tbody tr").length).toBe(25);
-    expect(screen.getByText("Ligne 1")).toBeDefined();
-    expect(screen.getByText("Ligne 25")).toBeDefined();
+    expect(within(table).getByText("Ligne 1")).toBeDefined();
+    expect(within(table).getByText("Ligne 25")).toBeDefined();
     cleanup();
   });
 
   it("propose un choix de nature sur chaque ligne", () => {
     cleanup();
     const { container } = renderTable(rows.slice(0, 3));
-    const firstRow = container.querySelector('[data-nature-row="L1"]')!;
+    const firstRow = container.querySelector('table [data-nature-row="L1"]')!;
     const labels = [...firstRow.querySelectorAll("button")].map((b) => b.textContent);
     expect(labels).toEqual(["Vente", "Charge variable", "Charge fixe"]);
     cleanup();
@@ -48,7 +49,7 @@ describe("NatureValidationTable — tableau paginé", () => {
   it("« Afficher 25 lignes de plus » révèle le reste", () => {
     cleanup();
     const { container } = renderTable(rows);
-    fireEvent.click(screen.getByText("Afficher 25 lignes de plus"));
+    fireEvent.click(screen.getAllByText("Afficher 25 lignes de plus")[0]);
     expect(container.querySelectorAll("table tbody tr").length).toBe(30);
     cleanup();
   });

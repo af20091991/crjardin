@@ -39,7 +39,10 @@ export function OpportunitiesBoard({
   offers: BoardOffer[];
   clientNameById: Map<string, string>;
 }) {
-  const activityQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
+  const activityQ = useQuery({
+    queryKey: ["client-activity-rows"],
+    queryFn: fetchClientActivityRows,
+  });
   const ceevQ = useQuery({ queryKey: ["ceev-contracts"], queryFn: listCeevContracts });
 
   const items = useMemo(
@@ -57,7 +60,9 @@ export function OpportunitiesBoard({
   if (activityQ.isLoading || ceevQ.isLoading) {
     return (
       <div className="grid gap-2 md:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-40 rounded-xl" />
+        ))}
       </div>
     );
   }
@@ -90,7 +95,8 @@ export function OpportunitiesBoard({
                   </ul>
                   {total > 0 && (
                     <p className="pt-1 text-xs text-muted-foreground">
-                      Montant de référence : <span className="font-medium text-foreground">{formatEuro(total)}</span>
+                      Montant de référence :{" "}
+                      <span className="font-medium text-foreground">{formatEuro(total)}</span>
                     </p>
                   )}
                 </>
@@ -109,7 +115,9 @@ function OpportunityRow({ o }: { o: CommercialOpportunity }) {
       <div className="flex items-start gap-2">
         <p className="min-w-0 flex-1 truncate text-sm font-medium">{o.title}</p>
         {o.amount != null && o.amount > 0 && (
-          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{formatEuro(o.amount)}</span>
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+            {formatEuro(o.amount)}
+          </span>
         )}
       </div>
       <p className="mt-0.5 text-xs text-muted-foreground">{o.why}</p>
@@ -124,7 +132,7 @@ function OpportunityRow({ o }: { o: CommercialOpportunity }) {
   return (
     <li>
       <Link
-        to="/pilot/fiche/$clientId"
+        to="/clients/$clientId"
         params={{ clientId: o.clientId }}
         className="block transition-colors hover:bg-muted/40"
       >

@@ -27,12 +27,12 @@ export function RouteErrorBoundary({ error, reset }: { error: unknown; reset?: (
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+    <div className="flex min-h-dvh items-center justify-center bg-background p-6">
       <div className="w-full max-w-lg rounded-xl border bg-card p-6 shadow-sm">
         <h1 className="font-display text-xl font-semibold">Une erreur est survenue</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          La page n'a pas pu s'afficher. Vous pouvez réessayer ; si le problème persiste,
-          copiez le message ci-dessous et transmettez-le.
+          La page n'a pas pu s'afficher. Vous pouvez réessayer ; si le problème persiste, copiez le
+          message ci-dessous et transmettez-le.
         </p>
         <pre className="mt-4 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs">
           {message}

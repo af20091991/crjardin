@@ -1,0 +1,458 @@
+// Pré-devis 3.0 : éléments bloquants, thème par poste, totaux du chantier et historique par thème.
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { AmountStepper } from "@/components/predevis/AmountStepper";
+import { Button } from "@/components/ui/button";
+import { eur } from "@/components/predevis/predevis-format";
+import { chantierFinance, TARGET_MARGIN_PCT, type PosteFinance } from "@/lib/predevis-finance";
+import { THEMES } from "@/lib/predevis-themes";
+import {
+  listQuotes,
+  loadThemeBenchmark,
+  markLineSav,
+  markPosteWithoutPurchase,
+  setPosteTheme,
+  setQuoteFlags,
+  supersedeOlderVersions,
+  suggestedTheme,
+  type QuoteSummary,
+  type StoredPoste,
+  type StoredQuoteLine,
+} from "@/lib/predevis-data";
+
+const pct = (v: number | null | undefined) =>
+  v == null ? "—" : `${v.toFixed(2).replace(".", ",")} %`;
+
+/** Bandeau des totaux du chantier, collé en haut pendant le défilement. */
+export function ChantierTotalsBar({
+  f,
+  postesSousSeuil,
+}: {
+  f: ReturnType<typeof chantierFinance>;
+  postesSousSeuil: number;
+}) {
+  const sousSeuil = f.tauxMargeAvecSst != null && f.tauxMargeAvecSst < TARGET_MARGIN_PCT;
+  return (
+    <div className="sticky top-0 z-20 -mx-1 rounded-b-xl border bg-background/95 px-3 py-3 shadow-sm backdrop-blur">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <TotalItem label="PV HT" value={eur(f.pvHt)} />
+        <TotalItem label="Marge brute" value={`${eur(f.margeHt)}`} sub={pct(f.tauxMarge)} />
+        <TotalItem
+          label="Marge après SST"
+          value={eur(f.margeAvecSstHt)}
+          sub={pct(f.tauxMargeAvecSst)}
+          tone={sousSeuil ? "warn" : "good"}
+        />
+        <TotalItem
+          label={`Seuil ${TARGET_MARGIN_PCT} %`}
+          value={
+            postesSousSeuil > 0
+              ? `${postesSousSeuil} poste${postesSousSeuil > 1 ? "s" : ""} sous le seuil`
+              : "Tous au-dessus"
+          }
+          tone={postesSousSeuil > 0 ? "warn" : "good"}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TotalItem({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "good" | "warn";
+}) {
+  return (
+    <div className="rounded-lg bg-muted/40 px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={`mt-0.5 font-display text-lg font-semibold tabular-nums ${
+          tone === "warn" ? "text-amber-700" : tone === "good" ? "text-primary" : ""
+        }`}
+      >
+        {value}
+        {sub && <span className="ml-2 text-sm font-medium text-muted-foreground">{sub}</span>}
+      </p>
+    </div>
+  );
+}
+
+/** Éléments à lever avant archivage. Chaque point indique où le lever. */
+export function QuoteBlockers({
+  quote,
+  incomplets,
+  onOpenPoste,
+  onCommitPau,
+}: {
+  quote: QuoteSummary;
+  incomplets: {
+    position: number;
+    posteId: string;
+    issues: number;
+    lines: { id: string; designation: string }[];
+  }[];
+  onOpenPoste: (posteId: string) => void;
+  /** Enregistre le PAU d'une ligne, saisi directement dans le bloc. */
+  onCommitPau: (lineId: string, value: number) => Promise<void>;
+}) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [pauDrafts, setPauDrafts] = useState<Record<string, number | undefined>>({});
+  const versions = useQuery({ queryKey: ["predevis", "quotes"], queryFn: listQuotes });
+  const older = (versions.data ?? []).filter(
+    (v) =>
+      !!quote.devis_number &&
+      v.devis_number === quote.devis_number &&
+      v.id !== quote.id &&
+      !v.superseded_at &&
+      v.created_at < quote.created_at,
+  );
+  // Le thème n'est jamais bloquant : il se confirme dans chaque poste.
+  const count = (older.length > 0 ? 1 : 0) + incomplets.length;
+
+  if (quote.archived_at) {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <Badge variant="outline">
+          Archivé le {new Date(quote.archived_at).toLocaleDateString("fr-FR")}
+        </Badge>
+        <span className="text-sm text-muted-foreground">
+          Ce devis compte dans l'historique par thème.
+        </span>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() =>
+            run(
+              () => setQuoteFlags(quote.id, { archived_at: null }),
+              "Devis désarchivé : modifiable à nouveau",
+            )
+          }
+        >
+          Désarchiver
+        </Button>
+      </div>
+    );
+  }
+
+  async function run(action: () => Promise<void>, ok: string) {
+    setBusy(true);
+    try {
+      await action();
+      await qc.invalidateQueries({ queryKey: ["predevis"] });
+      toast.success(ok);
+    } catch {
+      toast.error("Action non enregistrée, réessayez");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="space-y-3 rounded-xl border bg-card p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-display text-lg">
+          {count > 0
+            ? `${count} élément${count > 1 ? "s" : ""} bloquant${count > 1 ? "s" : ""}`
+            : "Aucun élément bloquant"}
+        </h3>
+        <Button
+          size="sm"
+          disabled={busy || count > 0}
+          onClick={() =>
+            run(
+              () => setQuoteFlags(quote.id, { archived_at: new Date().toISOString() }),
+              "Devis archivé",
+            )
+          }
+        >
+          Archiver le devis
+        </Button>
+      </div>
+      <ul className="space-y-2 text-sm">
+        {older.length > 0 && (
+          <li className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              {older.length} version{older.length > 1 ? "s" : ""} antérieure
+              {older.length > 1 ? "s" : ""} de ce devis non écartée{older.length > 1 ? "s" : ""}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() =>
+                run(
+                  () =>
+                    supersedeOlderVersions({
+                      devisNumber: quote.devis_number!,
+                      keepQuoteId: quote.id,
+                      keptCreatedAt: quote.created_at,
+                    }),
+                  "Versions antérieures écartées",
+                )
+              }
+            >
+              Écarter les anciennes versions
+            </Button>
+          </li>
+        )}
+        {incomplets.map((p) => (
+          <li key={p.posteId} className="space-y-2 rounded-lg border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">
+                Poste {p.position} : {p.issues} ligne{p.issues > 1 ? "s" : ""} sans prix d'achat
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => onOpenPoste(p.posteId)}>
+                  Ouvrir le poste
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() =>
+                    run(
+                      () => markPosteWithoutPurchase(p.posteId),
+                      "Poste en SAV : prix de revient 0 €",
+                    )
+                  }
+                >
+                  Tout le poste en SAV (0 €)
+                </Button>
+              </div>
+            </div>
+            {p.lines.map((l) => (
+              <div
+                key={l.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-t pt-2"
+              >
+                <span className="min-w-0 flex-1 truncate">{l.designation}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <AmountStepper
+                    label={`PAU HT, ${l.designation}`}
+                    step={0.01}
+                    width="w-40"
+                    placeholder="PAU HT €"
+                    value={pauDrafts[l.id]}
+                    onChange={(v) => setPauDrafts((d) => ({ ...d, [l.id]: v }))}
+                    onCommit={(v) => {
+                      if (v != null) run(() => onCommitPau(l.id, v), "Prix enregistré");
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => run(() => markLineSav(l.id), "Ligne SAV : 0 €")}
+                  >
+                    SAV = 0 €
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Thème principal d'un poste, suggestion à confirmer, et thèmes secondaires. */
+export function ThemePicker({ poste, lines }: { poste: StoredPoste; lines: StoredQuoteLine[] }) {
+  const qc = useQueryClient();
+  const suggestion = suggestedTheme(poste.title, lines);
+  const main = poste.theme ?? suggestion.main ?? "";
+  const secondary = poste.secondary_themes?.length ? poste.secondary_themes : suggestion.secondary;
+
+  async function change(value: string) {
+    try {
+      await setPosteTheme(
+        poste.id,
+        value || null,
+        secondary.filter((t) => t !== value),
+      );
+      await qc.invalidateQueries({ queryKey: ["predevis"] });
+    } catch {
+      toast.error("Thème non enregistré, réessayez");
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm">
+      <label className="font-semibold text-primary" htmlFor={`theme-${poste.id}`}>
+        Thème du poste
+      </label>
+      <select
+        id={`theme-${poste.id}`}
+        className="h-10 min-w-[240px] rounded-md border-2 border-primary/60 bg-background px-3 font-medium"
+        value={main}
+        onChange={(e) => change(e.target.value)}
+      >
+        <option value="">Non défini</option>
+        {THEMES.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+      {poste.theme == null && suggestion.main && (
+        <Button size="sm" variant="outline" onClick={() => change(suggestion.main!)}>
+          Confirmer la suggestion
+        </Button>
+      )}
+      {secondary.map((t) => (
+        <Badge key={t} variant="outline">
+          {t}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+/** Position du devis par thème, comparée à l'historique des devis archivés. */
+export function ThemeBenchmark({
+  postes,
+}: {
+  postes: { theme: string | null; fin: PosteFinance }[];
+}) {
+  const history = useQuery({
+    queryKey: ["predevis", "theme-benchmark"],
+    queryFn: loadThemeBenchmark,
+  });
+  const byTheme = new Map<string, { pv: number; marge: number; margeSst: number | null }>();
+  for (const p of postes) {
+    if (!p.theme || p.fin.pvHt == null || p.fin.margeHt == null) continue;
+    const cur = byTheme.get(p.theme) ?? { pv: 0, marge: 0, margeSst: 0 };
+    byTheme.set(p.theme, {
+      pv: cur.pv + p.fin.pvHt,
+      marge: cur.marge + p.fin.margeHt,
+      margeSst:
+        cur.margeSst == null || p.fin.margeAvecSstHt == null
+          ? null
+          : cur.margeSst + p.fin.margeAvecSstHt,
+    });
+  }
+  if (byTheme.size === 0) return null;
+  const rate = (num: number | null, base: number) =>
+    num == null || base <= 0 ? null : (num / base) * 100;
+
+  return (
+    <section className="space-y-4 rounded-xl border bg-card p-6">
+      <header className="flex flex-wrap items-baseline justify-between gap-3">
+        <h3 className="font-display text-lg">Position par rapport à l'historique</h3>
+        <span className="text-sm text-muted-foreground">
+          Taux de marge par thème, devis archivés
+        </span>
+      </header>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
+              <th className="py-2 pr-4 text-left font-medium">Thème</th>
+              <th className="py-2 pr-4 text-right font-medium">Ce devis, avant SST</th>
+              <th className="py-2 pr-4 text-right font-medium">Historique, avant SST</th>
+              <th className="py-2 pr-4 text-right font-medium">Ce devis, après SST</th>
+              <th className="py-2 text-right font-medium">Historique, après SST</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...byTheme.entries()].map(([theme, cur]) => {
+              const h = history.data?.get(theme);
+              return (
+                <tr key={theme} className="border-b last:border-0">
+                  <td className="py-2 pr-4 font-medium">{theme}</td>
+                  <td className="py-2 pr-4 text-right">{pct(rate(cur.marge, cur.pv))}</td>
+                  <td className="py-2 pr-4 text-right text-muted-foreground">
+                    {h
+                      ? `${pct(rate(h.margeHt, h.pvHt))} (${h.postes} poste${h.postes > 1 ? "s" : ""})`
+                      : "aucun archivé"}
+                  </td>
+                  <td className="py-2 pr-4 text-right">{pct(rate(cur.margeSst, cur.pv))}</td>
+                  <td className="py-2 text-right text-muted-foreground">
+                    {h ? pct(rate(h.margeAvecSstHt, h.pvHt)) : "aucun archivé"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** Ligne compacte d'un poste : titre, thème, barre du taux de marge (après SST si connue), montant. */
+export function PosteRow({
+  index,
+  title,
+  theme,
+  fin,
+  open,
+  onOpen,
+  flag,
+}: {
+  index: number;
+  title: string;
+  theme: string | null;
+  fin: PosteFinance;
+  open: boolean;
+  onOpen: () => void;
+  flag?: string | null;
+}) {
+  const taux = fin.tauxMargeAvecSst ?? fin.tauxMarge;
+  const width = taux == null ? 0 : Math.max(0, Math.min(100, taux));
+  const low = taux != null && taux < TARGET_MARGIN_PCT;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-expanded={open}
+      className={`grid w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-2 py-3 text-left text-sm transition-colors hover:bg-muted/50 md:grid-cols-[28px_minmax(0,1fr)_minmax(120px,180px)_auto] ${
+        open ? "bg-primary/5 ring-1 ring-primary/25" : ""
+      }`}
+    >
+      <span className="text-muted-foreground tabular-nums">{index}</span>
+      <span className="min-w-0">
+        <span className="block truncate font-semibold">
+          {flag && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-destructive" />}
+          {title}
+        </span>
+        <span className="mt-1 flex flex-wrap gap-2">
+          {theme && <Badge variant="outline">{theme}</Badge>}
+          {flag && <span className="text-xs text-destructive">{flag}</span>}
+        </span>
+      </span>
+      <span className="hidden md:block">
+        <span className="relative block h-2 rounded-full bg-muted">
+          <span
+            className={`absolute inset-y-0 left-0 rounded-full ${
+              low ? "bg-amber-600" : "bg-primary"
+            }`}
+            style={{ width: `${width}%` }}
+          />
+          <span
+            className="absolute -inset-y-1 w-0.5 bg-foreground/70"
+            style={{ left: `${TARGET_MARGIN_PCT}%` }}
+            title={`Seuil ${TARGET_MARGIN_PCT} %`}
+          />
+        </span>
+        <span className="mt-1 block text-xs text-muted-foreground tabular-nums">
+          {taux == null ? "—" : `${taux.toFixed(1).replace(".", ",")} %`}{" "}
+          {fin.tauxMargeAvecSst != null ? "après SST" : "avant SST"}
+        </span>
+      </span>
+      <span className="text-right font-medium tabular-nums">{eur(fin.pvHt)}</span>
+    </button>
+  );
+}

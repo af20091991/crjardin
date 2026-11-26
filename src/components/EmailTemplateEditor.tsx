@@ -20,7 +20,7 @@ const SAMPLE = {
   titre: "Madame",
   nom: "Martin",
   date: "12 juillet 2026",
-  lien: "https://crjardin.lovable.app/partage/exemple",
+  lien: "https://pp.delagraineaujardin.com/partage/exemple",
 };
 
 function esc(s: string): string {
@@ -30,15 +30,20 @@ function esc(s: string): string {
 /** Construit l'e-mail tel que reçu par le client (rendu, sans balises). */
 function buildPreviewHtml(subject: string, body: string): string {
   const filled = body
-    .split(EMAIL_TOKENS.titre).join(SAMPLE.titre)
-    .split(EMAIL_TOKENS.nom).join(SAMPLE.nom)
-    .split(EMAIL_TOKENS.date).join(SAMPLE.date);
+    .split(EMAIL_TOKENS.titre)
+    .join(SAMPLE.titre)
+    .split(EMAIL_TOKENS.nom)
+    .join(SAMPLE.nom)
+    .split(EMAIL_TOKENS.date)
+    .join(SAMPLE.date);
   const lines = filled.split("\n").map((line) => {
     const trimmed = line.trim();
     if (trimmed === "") return '<div style="height:8px"></div>';
-    const withLink = esc(line).split(EMAIL_TOKENS.lien).join(
-      `<a href="${SAMPLE.lien}" style="color:#4F8E33;font-weight:700;text-decoration:underline">${SAMPLE.lien}</a>`,
-    );
+    const withLink = esc(line)
+      .split(EMAIL_TOKENS.lien)
+      .join(
+        `<a href="${SAMPLE.lien}" style="color:#4F8E33;font-weight:700;text-decoration:underline">${SAMPLE.lien}</a>`,
+      );
     const isBullet = trimmed.startsWith("·");
     const style = isBullet
       ? "font-size:16px;line-height:1.5;color:#2f3a26;margin:0 0 4px 12px"
@@ -98,8 +103,8 @@ export function EmailTemplateEditor() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Personnalisez l'e-mail envoyé aux clients pour les prévenir d'un nouveau
-          compte-rendu. Les balises ci-dessous sont remplacées automatiquement à l'envoi.
+          Personnalisez l'e-mail envoyé aux clients pour les prévenir d'un nouveau compte-rendu. Les
+          balises ci-dessous sont remplacées automatiquement à l'envoi.
         </p>
 
         {isPending ? (
@@ -162,7 +167,8 @@ export function EmailTemplateEditor() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Exemple avec un client fictif (Madame Martin). Les balises sont remplacées automatiquement à l'envoi.
+                Exemple avec un client fictif (Madame Martin). Les balises sont remplacées
+                automatiquement à l'envoi.
               </p>
             </div>
           </>

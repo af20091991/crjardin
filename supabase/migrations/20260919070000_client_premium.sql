@@ -1,0 +1,38 @@
+create table if not exists public.client_premium (client_id uuid primary key references public.clients(id) on delete cascade,user_id uuid not null default auth.uid(),enabled boolean not null default true,activated_at timestamptz not null default now(),deactivated_at timestamptz,cover_photo_id uuid references public.intervention_photos(id) on delete set null,google_review_url text,commercial_note text,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+create table if not exists public.client_premium_documents (id uuid primary key default gen_random_uuid(),client_id uuid not null references public.clients(id) on delete cascade,user_id uuid not null default auth.uid(),kind text not null default 'document' check(kind in ('document','planning')),title text not null,filename text not null,storage_path text not null,size_bytes bigint,year integer,visible_to_client boolean not null default true,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+create table if not exists public.client_premium_planning_items (id uuid primary key default gen_random_uuid(),client_id uuid not null references public.clients(id) on delete cascade,document_id uuid references public.client_premium_documents(id) on delete set null,user_id uuid not null default auth.uid(),label text not null,period_label text,start_date date,end_date date,year integer,status text not null default 'a_valider' check(status in ('a_valider','valide')),source text not null default 'manuel' check(source in ('pdf','manuel')),notes text,position integer not null default 0,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+create index if not exists client_premium_documents_client_idx on public.client_premium_documents(client_id,kind,created_at desc);
+create index if not exists client_premium_planning_client_idx on public.client_premium_planning_items(client_id,year,position);
+alter table public.client_premium enable row level security; alter table public.client_premium_documents enable row level security; alter table public.client_premium_planning_items enable row level security;
+drop policy if exists premium_read on public.client_premium; create policy premium_read on public.client_premium for select to authenticated using(public.is_editor(auth.uid()));
+drop policy if exists premium_write on public.client_premium; create policy premium_write on public.client_premium for all to authenticated using(public.is_editor(auth.uid())) with check(public.is_editor(auth.uid()));
+drop policy if exists premium_docs_read on public.client_premium_documents; create policy premium_docs_read on public.client_premium_documents for select to authenticated using(public.is_editor(auth.uid()));
+drop policy if exists premium_docs_write on public.client_premium_documents; create policy premium_docs_write on public.client_premium_documents for all to authenticated using(public.is_editor(auth.uid())) with check(public.is_editor(auth.uid()));
+drop policy if exists premium_plan_read on public.client_premium_planning_items; create policy premium_plan_read on public.client_premium_planning_items for select to authenticated using(public.is_editor(auth.uid()));
+drop policy if exists premium_plan_write on public.client_premium_planning_items; create policy premium_plan_write on public.client_premium_planning_items for all to authenticated using(public.is_editor(auth.uid())) with check(public.is_editor(auth.uid()));
+insert into storage.buckets(id,name,public,file_size_limit) values('client-premium','client-premium',false,26214400) on conflict(id) do nothing;
+create or replace function public.get_shared_premium(p_token text) returns jsonb language sql stable security definer set search_path=public as $$ select jsonb_build_object('client',jsonb_build_object('id',c.id,'name',c.name,'email',c.email,'phone',c.phone,'address',c.address),'enabled',coalesce(p.enabled,false),'google_review_url',p.google_review_url,'commercial_note',p.commercial_note,'documents',coalesce((select jsonb_agg(jsonb_build_object('id',d.id,'kind',d.kind,'title',d.title,'filename',d.filename,'storage_path',d.storage_path,'year',d.year,'created_at',d.created_at) order by d.created_at desc) from public.client_premium_documents d where d.client_id=c.id and d.visible_to_client),'[]'::jsonb),'planning',coalesce((select jsonb_agg(jsonb_build_object('id',i.id,'label',i.label,'period_label',i.period_label,'start_date',i.start_date,'end_date',i.end_date,'year',i.year,'notes',i.notes) order by i.year,i.position,i.start_date) from public.client_premium_planning_items i where i.client_id=c.id and i.status='valide'),'[]'::jsonb)) from public.clients c left join public.client_premium p on p.client_id=c.id where c.share_token=p_token and coalesce(p.enabled,false); $$; revoke all on function public.get_shared_premium(text) from public; grant execute on function public.get_shared_premium(text) to anon,authenticated,service_role;
+drop policy if exists premium_storage_editor_read on storage.objects;
+create policy premium_storage_editor_read on storage.objects for select to authenticated using(bucket_id='client-premium' and public.is_editor(auth.uid()));
+drop policy if exists premium_storage_editor_insert on storage.objects;
+create policy premium_storage_editor_insert on storage.objects for insert to authenticated with check(bucket_id='client-premium' and public.is_editor(auth.uid()));
+drop policy if exists premium_storage_editor_update on storage.objects;
+create policy premium_storage_editor_update on storage.objects for update to authenticated using(bucket_id='client-premium' and public.is_editor(auth.uid())) with check(bucket_id='client-premium' and public.is_editor(auth.uid()));
+drop policy if exists premium_storage_editor_delete on storage.objects;
+create policy premium_storage_editor_delete on storage.objects for delete to authenticated using(bucket_id='client-premium' and public.is_editor(auth.uid()));
+
+create or replace function public.get_shared_premium_document_url(p_token text,p_document_id uuid)
+returns text language plpgsql security definer set search_path=public,storage as $$
+declare v_path text; v_url text;
+begin
+ select d.storage_path into v_path
+ from public.client_premium_documents d
+ join public.clients c on c.id=d.client_id
+ join public.client_premium p on p.client_id=c.id
+ where c.share_token=p_token and p.enabled and d.id=p_document_id and d.visible_to_client;
+ if v_path is null then raise exception 'Document indisponible'; end if;
+ select signed_url into v_url from storage.create_signed_url('client-premium',v_path,3600);
+ return v_url;
+end; $$;
+revoke all on function public.get_shared_premium_document_url(text,uuid) from public;
+grant execute on function public.get_shared_premium_document_url(text,uuid) to anon,authenticated,service_role;

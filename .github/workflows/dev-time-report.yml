@@ -1,0 +1,56 @@
+name: dev-time-report
+
+# Ajoute automatiquement le temps de développement au total de PP :
+# - à chaque pull request fusionnée (durée estimée à partir des commits de la PR) ;
+# - ou à la main (workflow_dispatch) pour une déclaration ponctuelle.
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: "Durée en secondes"
+        required: true
+      description:
+        description: "Description du travail"
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  report:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DEV_TIME_SECRET: ${{ secrets.DEV_TIME_SECRET }}
+      PP_APP_URL: https://crjardin.lovable.app
+    steps:
+      - name: Calculer la durée (PR fusionnée)
+        if: github.event_name == 'pull_request'
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/commits" --paginate --jq '.[].commit.author.date' > dates.txt
+          python3 - <<'PY' > seconds.txt
+          from datetime import datetime
+          ts = sorted(datetime.fromisoformat(l.strip().replace("Z", "+00:00")).timestamp() for l in open("dates.txt") if l.strip())
+          # Écarts ≤ 30 min comptés comme du travail continu ; 10 min forfaitaires par commit.
+          total = sum(b - a for a, b in zip(ts, ts[1:]) if b - a <= 1800) + 600 * len(ts)
+          print(int(total))
+          PY
+          echo "SECONDS=$(cat seconds.txt)" >> "$GITHUB_ENV"
+          echo "DESCRIPTION=PR #${{ github.event.pull_request.number }} : ${{ github.event.pull_request.title }}" >> "$GITHUB_ENV"
+      - name: Calculer la durée (déclaration manuelle)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "SECONDS=${{ inputs.seconds }}" >> "$GITHUB_ENV"
+          echo "DESCRIPTION=${{ inputs.description }}" >> "$GITHUB_ENV"
+      - name: Envoyer le temps à PP
+        run: |
+          if [ -z "$DEV_TIME_SECRET" ]; then echo "::error::Secret DEV_TIME_SECRET absent du dépôt GitHub"; exit 1; fi
+          BODY=$(jq -n --argjson s "$SECONDS" --arg d "$DESCRIPTION" --arg src "github" '{seconds:$s, description:$d, source:$src}')
+          curl -sS --fail-with-body -X POST "$PP_APP_URL/api/public/dev-time" \
+            -H "content-type: application/json" -H "x-dev-time-key: $DEV_TIME_SECRET" -d "$BODY"
+          echo

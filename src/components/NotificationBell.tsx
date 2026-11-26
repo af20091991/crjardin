@@ -1,27 +1,52 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { Bell, MessageSquare, HelpCircle, Eye, Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Bell,
+  MessageSquare,
+  HelpCircle,
+  Eye,
+  Check,
+  CalendarDays,
+  BellRing,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { sendTestPush } from "@/lib/test-push.functions";
+import { useNavigate } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useRole } from "@/hooks/use-role";
 import {
+  deleteReadNotifications,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
   type AppNotification,
 } from "@/lib/notifications";
+import {
+  GROUP_LABELS,
+  GROUP_ORDER,
+  groupNotifications,
+  notificationTarget,
+  type NotificationGroup,
+} from "@/lib/notification-groups";
 
 const ICONS: Record<string, typeof Bell> = {
   question: HelpCircle,
   annotation: MessageSquare,
   read: Eye,
+  sst_calendar: CalendarDays,
 };
 
 export function NotificationBell() {
+  const [testing, setTesting] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
   const { user } = useAuth();
+  const { role } = useRole();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: notifs } = useQuery({
     queryKey: ["notifications"],
     queryFn: listNotifications,
@@ -36,7 +61,12 @@ export function NotificationBell() {
       .channel(channelName)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
         () => qc.invalidateQueries({ queryKey: ["notifications"] }),
       )
       .subscribe();
@@ -45,16 +75,28 @@ export function NotificationBell() {
     };
   }, [user, qc]);
 
+  const [filter, setFilter] = useState<NotificationGroup | "all">("all");
   const unread = (notifs ?? []).filter((n) => !n.is_read).length;
+  const groups = groupNotifications(notifs ?? []);
+  const shown = filter === "all" ? groups : groups.filter((g) => g.group === filter);
 
   const inv = () => qc.invalidateQueries({ queryKey: ["notifications"] });
-  const readOne = useMutation({ mutationFn: (id: string) => markNotificationRead(id), onSuccess: inv });
+  const readOne = useMutation({
+    mutationFn: (id: string) => markNotificationRead(id),
+    onSuccess: inv,
+  });
   const readAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: inv });
+  const clearRead = useMutation({ mutationFn: deleteReadNotifications, onSuccess: inv });
+  const readCount = (notifs ?? []).length - unread;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="relative text-muted-foreground hover:text-foreground" title="Notifications" aria-label="Notifications">
+        <button
+          className="relative text-muted-foreground hover:text-foreground"
+          title="Notifications"
+          aria-label="Notifications"
+        >
           <Bell className="h-5 w-5" />
           {unread > 0 && (
             <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
@@ -63,43 +105,159 @@ export function NotificationBell() {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent
+        align="end"
+        collisionPadding={8}
+        className="w-[min(96vw,36rem)] max-w-[calc(100vw-1rem)] p-0"
+      >
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-semibold">Notifications</span>
-          {unread > 0 && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => readAll.mutate()}>
-              <Check className="mr-1 h-3 w-3" /> Tout lire
-            </Button>
+          <div className="flex items-center gap-1">
+            {unread > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => readAll.mutate()}
+              >
+                <Check className="mr-1 h-3 w-3" /> Tout lire
+              </Button>
+            )}
+            {readCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => clearRead.mutate()}
+                disabled={clearRead.isPending}
+              >
+                Supprimer les lues ({readCount})
+              </Button>
+            )}
+          </div>
+        </div>
+        {groups.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto border-b px-3 py-2">
+            {(["all", ...GROUP_ORDER] as const)
+              .filter((g) => g === "all" || groups.some((x) => x.group === g))
+              .map((g) => {
+                const count =
+                  g === "all" ? unread : (groups.find((x) => x.group === g)?.unread ?? 0);
+                return (
+                  <button
+                    key={g}
+                    onClick={() => setFilter(g)}
+                    className={`shrink-0 rounded-full border px-3 py-1 text-xs ${
+                      filter === g
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {g === "all" ? "Tout" : GROUP_LABELS[g]}
+                    {count > 0 ? ` (${count})` : ""}
+                  </button>
+                );
+              })}
+          </div>
+        )}
+        <div className="max-h-[min(72dvh,34rem)] overflow-y-auto overscroll-contain">
+          {shown.length === 0 ? (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+              Aucune notification
+            </p>
+          ) : (
+            shown.map((g) => (
+              <section key={g.group}>
+                {filter === "all" && (
+                  <h3 className="sticky top-0 z-10 bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {g.label}
+                  </h3>
+                )}
+                {g.items.map((n: AppNotification) => {
+                  const Icon = ICONS[n.type] ?? Bell;
+                  return (
+                    <button
+                      key={n.id}
+                      onClick={() => {
+                        if (!n.is_read) readOne.mutate(n.id);
+                        const target = notificationTarget(n, role);
+                        if (target) {
+                          const [path, query] = target.split("?");
+                          void navigate({
+                            to: path as never,
+                            search: query
+                              ? (Object.fromEntries(new URLSearchParams(query)) as never)
+                              : undefined,
+                          });
+                        }
+                      }}
+                      className={`flex w-full items-start gap-2.5 border-b px-3 py-3 text-left transition-colors hover:bg-accent/40 ${
+                        n.is_read ? "opacity-60" : "bg-primary/5"
+                      }`}
+                    >
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-medium leading-snug">{n.title}</p>
+                        {n.body && (
+                          <p className="mt-1 whitespace-pre-line break-words text-sm leading-snug text-muted-foreground">
+                            {n.body}
+                          </p>
+                        )}
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(n.created_at).toLocaleString("fr-FR", {
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      {!n.is_read && (
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </section>
+            ))
           )}
         </div>
-        <ScrollArea className="max-h-80">
-          {(notifs ?? []).length === 0 ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Aucune notification</p>
-          ) : (
-            (notifs ?? []).map((n: AppNotification) => {
-              const Icon = ICONS[n.type] ?? Bell;
-              return (
-                <button
-                  key={n.id}
-                  onClick={() => !n.is_read && readOne.mutate(n.id)}
-                  className={`flex w-full items-start gap-2.5 border-b px-3 py-2.5 text-left transition-colors hover:bg-accent/40 ${
-                    n.is_read ? "opacity-60" : "bg-primary/5"
-                  }`}
-                >
-                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium leading-tight">{n.title}</p>
-                    {n.body && <p className="mt-0.5 truncate text-xs text-muted-foreground">{n.body}</p>}
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      {new Date(n.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  </div>
-                  {!n.is_read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
-                </button>
-              );
-            })
+        <div className="flex items-center justify-between gap-2 border-t px-3 py-1.5">
+          {pushStatus && (
+            <p role="status" className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {pushStatus}
+            </p>
           )}
-        </ScrollArea>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground"
+            disabled={testing}
+            onClick={async () => {
+              setTesting(true);
+              setPushStatus("Envoi en cours…");
+              try {
+                const r = await sendTestPush();
+                const msg = `Notification push envoyée à ${r.sent} téléphone(s).`;
+                setPushStatus(msg);
+                toast.success(msg);
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : "Envoi impossible";
+                setPushStatus(`Échec : ${msg}`);
+                toast.error(msg);
+              } finally {
+                setTesting(false);
+              }
+            }}
+          >
+            {testing ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <BellRing className="mr-1 h-3 w-3" />
+            )}
+            Tester les notifications push
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

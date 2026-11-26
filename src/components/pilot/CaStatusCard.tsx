@@ -6,6 +6,7 @@ import { PilotCard } from "@/components/pilot/PilotCard";
 import { formatEuro } from "@/lib/pilot";
 import type { Comparison } from "@/lib/pilot-compare";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatPercent } from "@/lib/format-utils";
 
 /** Seuil au-delà duquel le CA de l'année est considéré consolidé. */
 const CONSOLIDATED_PCT = 99;
@@ -50,7 +51,7 @@ export function CaStatusCard({
       sub={
         comparison.deltaPct == null
           ? `Aucune référence à la même date en ${year - 1}`
-          : `${comparison.deltaPct >= 0 ? "+" : ""}${comparison.deltaPct.toFixed(0)} % (${comparison.deltaEuro >= 0 ? "+" : ""}${formatEuro(comparison.deltaEuro)}) ${comparison.label}`
+          : `${comparison.deltaPct >= 0 ? "+" : ""}${formatPercent(comparison.deltaPct)} (${comparison.deltaEuro >= 0 ? "+" : ""}${formatEuro(comparison.deltaEuro)}) ${comparison.label}`
       }
     />
   );

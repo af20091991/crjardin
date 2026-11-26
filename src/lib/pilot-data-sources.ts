@@ -55,7 +55,7 @@ export const OFFICIAL_SOURCES: OfficialSource[] = [
     source: "pilot_fixed_charges",
     rule: "Référentiel des charges structurelles annuelles / mensuelles.",
     never: "Ne pas ré-agréger les charges fixes depuis les lignes CA (double comptage).",
-    consumers: ["Charges", "Direction", "Finance", "Simulations"],
+    consumers: ["Charges", "Direction", "Finance"],
   },
   {
     key: "charges_variables",

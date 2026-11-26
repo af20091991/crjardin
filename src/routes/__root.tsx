@@ -1,3 +1,5 @@
+import { SpellcheckAssistant } from "@/components/SpellcheckAssistant";
+import { SpellcheckGuard } from "@/components/SpellcheckGuard";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -7,20 +9,28 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import "../nav-group-colors.css";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AppearanceProvider } from "@/lib/appearance";
 import { PilotModeProvider } from "@/lib/pilot-mode";
 import { Toaster } from "@/components/ui/sonner";
+import { installApercuGuard } from "@/lib/apercu";
+
+// Verrou de l'aperçu lecture seule (sans effet hors d'un cadre « pp-apercu »).
+installApercuGuard();
 import { registerPwa } from "@/lib/pwa";
 import { APP_VERSION } from "@/lib/app-meta";
+import { hydrateAccountPrefs, setPrefsUser } from "@/lib/account-prefs";
+import { useAuth } from "@/hooks/use-auth";
+import { RoutePending } from "@/components/RoutePending";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
@@ -48,7 +58,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
@@ -82,7 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: `De la graine au jardin v${APP_VERSION} — Paysagiste` },
       {
         name: "description",
@@ -105,40 +115,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0ae2d8fa-5fd4-4797-ab10-a001529d7362/id-preview-66a2adc9--3545adef-a337-4e33-aef9-684d626fa27c.lovable.app-1781453660626.png",
+        content: "https://pp.delagraineaujardin.com/icon-512.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0ae2d8fa-5fd4-4797-ab10-a001529d7362/id-preview-66a2adc9--3545adef-a337-4e33-aef9-684d626fa27c.lovable.app-1781453660626.png",
+        content: "https://pp.delagraineaujardin.com/icon-512.png",
       },
       { name: "theme-color", content: "#4F8E33" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "PilotPro" },
+      { name: "format-detection", content: "telephone=no" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "preload", as: "image", href: "/pilotpro-splash.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/favicon.ico", sizes: "any" },
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
+      {
+        rel: "preconnect",
+        href: "https://wdygsbmivqxvgkgpbrqc.supabase.co",
+        crossOrigin: "anonymous",
+      },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Newsreader:wght@400;500;600;700&display=swap",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Spectral:wght@400;500;600;700&family=PT+Serif:wght@400;700&family=Roboto+Slab:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Merriweather:wght@400;500;600;700&family=Bitter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Bebas+Neue&display=swap",
-      },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
     ],
   }),
   shellComponent: RootShell,
@@ -147,18 +150,99 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+const SPLASH_CSS = `
+html.js-client #pp-splash{display:none!important}
+#pp-splash{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:#ffffff;transition:opacity .3s ease,visibility .3s}
+#pp-splash.pp-out{opacity:0;visibility:hidden;pointer-events:none}
+#pp-splash img{width:min(86vmin,886px);height:auto}
+`;
+
+/** Écran de démarrage PilotPro : animation SVG (4,0 s), jouée en entier avant l'appli.
+ * Tout le calendrier est géré ici, dans un seul script, à partir du début réel de l'animation. */
+function SplashOverlay() {
+  const script = `(function(){
+var el=document.getElementById('pp-splash');
+function hideNative(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}
+hideNative();
+if(!el)return;
+setTimeout(function(){el.classList.add('pp-out');setTimeout(function(){el.remove();},300);},3000);
+})();`;
+  return (
+    <>
+      <div id="pp-splash" aria-hidden="true">
+        <img src="/pilotpro-splash.svg" alt="" />
+      </div>
+      <script dangerouslySetInnerHTML={{ __html: script }} />
+    </>
+  );
+}
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
       <head>
+        {/* Retire un ancien service worker et son cache AVANT le chargement des modules :
+            sinon une version obsolète peut bloquer l'app sans jamais atteindre registerPwa. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(!('serviceWorker' in navigator))return;navigator.serviceWorker.getRegistrations().then(function(rs){var had=rs.length>0;return Promise.all(rs.map(function(r){return r.unregister();})).then(function(){return ('caches' in window)?caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}):null;}).then(function(){if(had&&!sessionStorage.getItem('pp-sw-purged')){sessionStorage.setItem('pp-sw-purged','1');location.reload();}});});}catch(e){}})();",
+          }}
+        />
         <HeadContent />
+        {/* Espace client (appli Jardin Signature) : pas d'écran de démarrage PilotPro. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "if(/^\\/(jardin-signature|partage)/.test(location.pathname))document.documentElement.classList.add('js-client');",
+          }}
+        />
+        <style dangerouslySetInnerHTML={{ __html: SPLASH_CSS }} />
       </head>
       <body>
+        <SplashOverlay />
         {children}
         <Scripts />
       </body>
     </html>
   );
+}
+
+/** Charge la personnalisation du compte avant d'afficher les pages (3 s maximum d'attente). */
+function AccountPrefsGate({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [readyFor, setReadyFor] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      setPrefsUser(null);
+      return;
+    }
+    let cancelled = false;
+    const done = () => {
+      if (!cancelled) setReadyFor(userId);
+    };
+    const timer = window.setTimeout(done, 3000);
+    void hydrateAccountPrefs(userId).finally(() => {
+      window.clearTimeout(timer);
+      done();
+    });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [userId]);
+
+  // Pendant le chargement des préférences, afficher un indicateur plutôt qu'un écran blanc.
+  // Premier rendu identique au serveur (évite l'erreur d'hydratation) ; indicateur ensuite.
+  if (mounted && userId && readyFor !== userId) return <RoutePending />;
+  return <>{children}</>;
 }
 
 function RootComponent() {
@@ -170,12 +254,21 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <SpellcheckGuard />
+      <SpellcheckAssistant />
       <AuthProvider>
         <AppearanceProvider>
           <PilotModeProvider>
-            <Outlet />
+            <AccountPrefsGate>
+              <Outlet />
+            </AccountPrefsGate>
           </PilotModeProvider>
-          <Toaster richColors position="top-center" />
+          <Toaster
+            richColors
+            position="top-center"
+            offset="calc(env(safe-area-inset-top) + 8px)"
+            mobileOffset={{ top: "calc(env(safe-area-inset-top) + 8px)", left: 12, right: 12 }}
+          />
         </AppearanceProvider>
       </AuthProvider>
     </QueryClientProvider>

@@ -1,14 +1,62 @@
+import { signalSstCalendarWrite } from "@/lib/sst-calendar-changes";
 import { supabase } from "@/integrations/supabase/client";
 
 /** Listes de référence reprises de l'outil « Fiche chantier » SST. */
 export const INTERVENANTS = ["Chloé", "Fanny", "Angélique", "Lionel"] as const;
 
 export const EQUIPMENT_GROUPS: { group: string; items: string[] }[] = [
-  { group: "Taille-haie", items: ["Taille-haie déflecteur (R)", "Taille-haie double peigne (T)", "Taille-haie perche télescopique", "Taille-haie perche de rabattage"] },
-  { group: "Motorisé", items: ["Souffleur", "Tondeuse", "Débroussailleuse", "Broyeur", "Désherbeur thermique", "Tronçonneuse", "Tronçonneuse perche"] },
-  { group: "Outils à main", items: ["Râteau feuille", "Râteau métal", "Pioche", "Bêche", "Fourche", "Balai brosse", "Pelle minérale", "Pelle terre", "Échenilloir", "Sécateur à main", "Sécateur de force", "Cisaille"] },
+  {
+    group: "Taille-haie",
+    items: [
+      "Taille-haie déflecteur (R)",
+      "Taille-haie double peigne (T)",
+      "Taille-haie perche télescopique",
+      "Taille-haie perche de rabattage",
+    ],
+  },
+  {
+    group: "Motorisé",
+    items: [
+      "Souffleur",
+      "Tondeuse",
+      "Débroussailleuse",
+      "Broyeur",
+      "Désherbeur thermique",
+      "Tronçonneuse",
+      "Tronçonneuse perche",
+    ],
+  },
+  {
+    group: "Outils à main",
+    items: [
+      "Râteau feuille",
+      "Râteau métal",
+      "Pioche",
+      "Bêche",
+      "Fourche",
+      "Balai brosse",
+      "Pelle minérale",
+      "Pelle terre",
+      "Échenilloir",
+      "Sécateur à main",
+      "Sécateur de force",
+      "Cisaille",
+    ],
+  },
   { group: "Accessoires", items: ["Escabeau", "Poubelle", "Sacs à déchets", "Rampes"] },
-  { group: "Batterie", items: ["AP200S", "AP300", "AP500S", "AR3000", "AS1", "Batterie portable", "Chargeur AL301", "Chargeur AS1"] },
+  {
+    group: "Batterie",
+    items: [
+      "AP200S",
+      "AP300",
+      "AP500S",
+      "AR3000",
+      "AS1",
+      "Batterie portable",
+      "Chargeur AL301",
+      "Chargeur AS1",
+    ],
+  },
 ];
 
 export const EPI_OPTIONS = [
@@ -25,12 +73,69 @@ export const EPI_OPTIONS = [
 ] as const;
 
 export const TASK_GROUPS: { group: string; items: string[] }[] = [
-  { group: "Taille de haie", items: ["Taille de haie sur 1 face", "Taille de haie sur 2 faces", "Taille de haie sur 3 faces", "Taille de haie de rabattage"] },
-  { group: "Élagage & arbres", items: ["Taille d'arbustes", "Taille de rosiers", "Taille de fruitiers", "Élagage", "Abattage", "Broyage des branches"] },
-  { group: "Entretien de pelouse", items: ["Tonte", "Tonte mulching", "Scarification", "Aération du gazon", "Engazonnement / semis", "Réfection de pelouse"] },
-  { group: "Entretien de massif", items: ["Désherbage manuel", "Désherbage thermique", "Binage", "Sarclage", "Paillage", "Apport d'engrais / amendement", "Nettoyage des massifs", "Plantation", "Bêchage / préparation du sol"] },
-  { group: "Débroussaillage", items: ["Débroussaillage léger", "Débroussaillage dense", "Débroussaillage réglementaire (OLD)"] },
-  { group: "Nettoyage & finitions", items: ["Ramassage de feuilles", "Soufflage des allées", "Nettoyage des terrasses / allées", "Désherbage des joints", "Arrosage"] },
+  {
+    group: "Taille de haie",
+    items: [
+      "Taille de haie sur 1 face",
+      "Taille de haie sur 2 faces",
+      "Taille de haie sur 3 faces",
+      "Taille de haie de rabattage",
+    ],
+  },
+  {
+    group: "Élagage & arbres",
+    items: [
+      "Taille d'arbustes",
+      "Taille de rosiers",
+      "Taille de fruitiers",
+      "Élagage",
+      "Abattage",
+      "Broyage des branches",
+    ],
+  },
+  {
+    group: "Entretien de pelouse",
+    items: [
+      "Tonte",
+      "Tonte mulching",
+      "Scarification",
+      "Aération du gazon",
+      "Engazonnement / semis",
+      "Réfection de pelouse",
+    ],
+  },
+  {
+    group: "Entretien de massif",
+    items: [
+      "Désherbage manuel",
+      "Désherbage thermique",
+      "Binage",
+      "Sarclage",
+      "Paillage",
+      "Apport d'engrais / amendement",
+      "Nettoyage des massifs",
+      "Plantation",
+      "Bêchage / préparation du sol",
+    ],
+  },
+  {
+    group: "Débroussaillage",
+    items: [
+      "Débroussaillage léger",
+      "Débroussaillage dense",
+      "Débroussaillage réglementaire (OLD)",
+    ],
+  },
+  {
+    group: "Nettoyage & finitions",
+    items: [
+      "Ramassage de feuilles",
+      "Soufflage des allées",
+      "Nettoyage des terrasses / allées",
+      "Désherbage des joints",
+      "Arrosage",
+    ],
+  },
   { group: "Évacuation", items: ["Évacuation des déchets verts", "Dépôt en déchèterie"] },
 ];
 
@@ -55,6 +160,9 @@ export interface WorksiteSheet {
   access_complement: string | null;
   intervention_date: string | null;
   intervenant: string | null;
+  estimated_hours: number | null;
+  required_people: number;
+  planning_status: "draft" | "validated";
   client_present: boolean | null;
   green_waste: boolean | null;
   equipment: string[];
@@ -121,6 +229,9 @@ export function emptyWorksiteSheet(): WorksiteSheetInput {
     access_complement: "",
     intervention_date: new Date().toISOString().slice(0, 10),
     intervenant: null,
+    estimated_hours: null,
+    required_people: 1,
+    planning_status: "draft",
     client_present: null,
     green_waste: null,
     equipment: [],
@@ -167,16 +278,62 @@ export async function getWorksiteSheet(id: string): Promise<WorksiteSheet> {
 export async function createWorksiteSheet(input: WorksiteSheetInput): Promise<WorksiteSheet> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Non authentifié");
+
+  // La création doit rester tolérante : les champs de planning sont facultatifs
+  // lors de la saisie minimale d'une nouvelle fiche et leurs valeurs par défaut
+  // sont gérées par PostgreSQL.
+  const payload = {
+    client_id: input.client_id || null,
+    civility: input.civility?.trim() || null,
+    client_name: input.client_name.trim(),
+    client_phone: input.client_phone?.trim() || null,
+    client_phone_backup: input.client_phone_backup?.trim() || null,
+    contact_person: input.contact_person?.trim() || null,
+    address: input.address?.trim() || null,
+    access_complement: input.access_complement?.trim() || null,
+    intervention_date: input.intervention_date || null,
+    intervenant: input.intervenant || null,
+    estimated_hours:
+      input.estimated_hours == null || Number.isNaN(Number(input.estimated_hours))
+        ? null
+        : Number(input.estimated_hours),
+    required_people: Math.max(1, Number(input.required_people) || 1),
+    planning_status: input.planning_status === "validated" ? "validated" : "draft",
+    client_present: input.client_present ?? null,
+    green_waste: input.green_waste ?? null,
+    equipment: input.equipment ?? [],
+    epi: input.epi ?? [],
+    tasks: input.tasks ?? [],
+    checklist: input.checklist ?? [],
+    photos: input.photos ?? [],
+    notes: input.notes?.trim() || null,
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
+    garden_markers: input.garden_markers ?? [],
+    recycling_center: input.recycling_center ?? null,
+    user_id: auth.user.id,
+  };
+
   const { data, error } = await supabase
     .from("worksite_sheets")
-    .insert({ ...input, user_id: auth.user.id } as never)
+    .insert(payload as never)
     .select()
     .single();
-  if (error) throw error;
+
+  if (error) {
+    throw new Error(`Impossible de créer la fiche SST : ${error.message}`);
+  }
+  if (!data) {
+    throw new Error("Impossible de créer la fiche SST : aucune fiche retournée.");
+  }
+  signalSstCalendarWrite();
   return normalize(data as Record<string, unknown>);
 }
 
-export async function updateWorksiteSheet(id: string, input: WorksiteSheetInput): Promise<WorksiteSheet> {
+export async function updateWorksiteSheet(
+  id: string,
+  input: WorksiteSheetInput,
+): Promise<WorksiteSheet> {
   const { data, error } = await supabase
     .from("worksite_sheets")
     .update(input as never)
@@ -184,12 +341,26 @@ export async function updateWorksiteSheet(id: string, input: WorksiteSheetInput)
     .select()
     .single();
   if (error) throw error;
+  signalSstCalendarWrite();
   return normalize(data as Record<string, unknown>);
+}
+
+export async function updateWorksitePlanning(
+  id: string,
+  patch: Partial<Pick<WorksiteSheet, "estimated_hours" | "required_people" | "planning_status">>,
+): Promise<void> {
+  const { error } = await supabase
+    .from("worksite_sheets")
+    .update(patch as never)
+    .eq("id", id);
+  if (error) throw error;
+  signalSstCalendarWrite();
 }
 
 export async function deleteWorksiteSheet(id: string): Promise<void> {
   const { error } = await supabase.from("worksite_sheets").delete().eq("id", id);
   if (error) throw error;
+  signalSstCalendarWrite();
 }
 
 /** Upload d'une photo de chantier de fiche, renvoie le chemin de stockage. */
@@ -204,6 +375,21 @@ export async function uploadWorksitePhoto(file: File): Promise<string> {
   });
   if (error) throw error;
   return path;
+}
+
+export async function uploadWorksiteMethodPdf(ficheId: string, blob: Blob): Promise<string> {
+  const path = `sst-mail/${ficheId}/fiche-methode-${Date.now()}.pdf`;
+  const { error } = await supabase.storage.from("chantier-photos").upload(path, blob, {
+    cacheControl: "604800",
+    upsert: false,
+    contentType: "application/pdf",
+  });
+  if (error) throw error;
+  const { data, error: signedError } = await supabase.storage
+    .from("chantier-photos")
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
+  if (signedError) throw signedError;
+  return data.signedUrl;
 }
 
 export async function worksitePhotoUrl(storagePath: string): Promise<string> {

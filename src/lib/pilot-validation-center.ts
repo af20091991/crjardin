@@ -156,7 +156,7 @@ export function buildValidationItems(params: {
       year: s.year,
       confidence: sstLineConfidence(s),
       suggestion: null,
-      to: "/journal-sst",
+      to: "/sst",
     });
   }
 
@@ -186,9 +186,7 @@ export function countFuturePending(
   now = new Date(),
 ): number {
   const today = parisToday(now);
-  return lines.filter(
-    (l) => `${l.year}-${String(l.month).padStart(2, "0")}-01` > today,
-  ).length;
+  return lines.filter((l) => `${l.year}-${String(l.month).padStart(2, "0")}-01` > today).length;
 }
 
 export interface ValidationSummary {

@@ -10,18 +10,26 @@ export function ImageLightbox({
   alt,
   caption,
   children,
+  onOpen,
+  footer,
 }: {
   src: string;
   alt?: string;
   caption?: string | null;
   children: ReactNode;
+  onOpen?: () => void;
+  /** Zone optionnelle affichée sous la photo agrandie (ex. action discrète). */
+  footer?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          onOpen?.();
+        }}
         className="block w-full cursor-zoom-in"
         aria-label="Agrandir la photo"
       >
@@ -40,6 +48,7 @@ export function ImageLightbox({
                 {caption}
               </figcaption>
             )}
+            {footer}
           </figure>
         </DialogContent>
       </Dialog>

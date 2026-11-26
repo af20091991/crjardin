@@ -12,13 +12,17 @@ import {
   formatHours,
   hoursQuality,
 } from "@/lib/pilot-hours-ledger";
+import { formatPercent } from "@/lib/format-utils";
 
 /** Tableau de contrôle « Qualité des heures » — toutes sources confondues. */
 export function HoursQualityPanel() {
   const q = useQuery({
     queryKey: ["pilot-hours-quality"],
     queryFn: async () => {
-      const [entries, toConfirm] = await Promise.all([fetchHoursLedger(), countInterventionsToConfirm()]);
+      const [entries, toConfirm] = await Promise.all([
+        fetchHoursLedger(),
+        countInterventionsToConfirm(),
+      ]);
       const clients = aggregateHoursByClient(entries);
       const withReal = [...clients.values()].filter((c) => c.reelles > 0).length;
       return { quality: hoursQuality(entries, toConfirm), clients: clients.size, withReal };
@@ -39,12 +43,17 @@ export function HoursQualityPanel() {
           <>
             <div className="space-y-1">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Couverture des heures rattachées à un client</span>
-                <span className="font-semibold tabular-nums">{q.data.quality.coveragePct.toFixed(1)} %</span>
+                <span className="text-muted-foreground">
+                  Couverture des heures rattachées à un client
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {formatPercent(q.data.quality.coveragePct)}
+                </span>
               </div>
               <Progress value={q.data.quality.coveragePct} />
               <p className="text-xs text-muted-foreground">
-                {formatHours(q.data.quality.linkedHours)} rattachées sur {formatHours(q.data.quality.totalHours)} analysées
+                {formatHours(q.data.quality.linkedHours)} rattachées sur{" "}
+                {formatHours(q.data.quality.totalHours)} analysées
                 {q.data.quality.pendingHours > 0
                   ? ` — ${formatHours(q.data.quality.pendingHours)} en attente de rattachement`
                   : " — aucune heure orpheline"}
@@ -60,7 +69,9 @@ export function HoursQualityPanel() {
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5"
                   >
                     <div className="min-w-0">
-                      <Badge variant="outline" className={meta.badge}>{meta.label}</Badge>
+                      <Badge variant="outline" className={meta.badge}>
+                        {meta.label}
+                      </Badge>
                       <p className="mt-1 text-xs text-muted-foreground">{meta.origin}</p>
                     </div>
                     <div className="text-right text-sm">
@@ -76,9 +87,18 @@ export function HoursQualityPanel() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <Mini label="Interventions à confirmer" value={String(q.data.quality.interventionsToConfirm)} />
-              <Mini label="Clients avec heures réelles" value={`${q.data.withReal} / ${q.data.clients}`} />
-              <Mini label="Heures estimées (exclues des KPI)" value={formatHours(q.data.quality.estimatedHours)} />
+              <Mini
+                label="Interventions à confirmer"
+                value={String(q.data.quality.interventionsToConfirm)}
+              />
+              <Mini
+                label="Clients avec heures réelles"
+                value={`${q.data.withReal} / ${q.data.clients}`}
+              />
+              <Mini
+                label="Heures estimées (exclues des KPI)"
+                value={formatHours(q.data.quality.estimatedHours)}
+              />
             </div>
           </>
         )}

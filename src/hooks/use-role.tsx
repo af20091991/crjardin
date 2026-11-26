@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { apercuRoleOverride } from "@/lib/apercu";
 
 export type AppRole = "admin" | "prestataire" | "observateur";
 
@@ -20,8 +21,22 @@ export function useRole() {
     },
   });
   const roles = data ?? [];
+  // Aperçu « vue prestataire » : affichage avec les droits du prestataire (écritures bloquées par ailleurs).
+  if (apercuRoleOverride() === "prestataire") {
+    return {
+      role: "prestataire" as AppRole,
+      isAdmin: false,
+      canEdit: true,
+      canView: true,
+      isLoading,
+    };
+  }
   const isAdmin = roles.includes("admin");
   const isPrestataire = roles.includes("prestataire");
   const role: AppRole = isAdmin ? "admin" : isPrestataire ? "prestataire" : "observateur";
-  return { role, isAdmin, canEdit: isAdmin || isPrestataire, isLoading };
+  const canEdit = isAdmin || isPrestataire;
+  // Les observateurs disposent d’un accès de lecture à l’application complète.
+  // Les mutations restent protégées par canEdit et les policies RLS.
+  const canView = true;
+  return { role, isAdmin, canEdit, canView, isLoading };
 }

@@ -3,8 +3,9 @@
 // commentaire repliable. Aucun montant ni calcul n'est concerné.
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
+import { readRouteSource } from "./route-source";
 
-const src = readFileSync("src/routes/_authenticated/pilot.ca.tsx", "utf8");
+const src = readRouteSource("src/routes/_authenticated/pilot.ca.tsx");
 const ventesIdx = src.indexOf('data-testid="ca-ventes-column"');
 const chargesIdx = src.indexOf('data-testid="ca-charges-column"');
 
@@ -33,7 +34,15 @@ describe("page Chiffre d'affaires — agencement", () => {
   });
 
   it("conserve toutes les colonnes et champs de saisie Ventes", () => {
-    for (const col of ["Désignation", "Montant HT", "Statut", "Client", "Catégorie", "Type", "Temps"]) {
+    for (const col of [
+      "Désignation",
+      "Montant HT",
+      "Statut",
+      "Client",
+      "Catégorie",
+      "Type",
+      "Temps",
+    ]) {
       expect(src).toContain(col);
     }
     expect(src).toContain("<ClientPicker");
@@ -45,7 +54,9 @@ describe("page Chiffre d'affaires — agencement", () => {
   it("conserve toutes les colonnes et champs de saisie Charges", () => {
     expect(src).toContain("Détails des charges");
     expect(src.indexOf('onClick={() => addRow("charge")')).toBeGreaterThan(ventesIdx);
-    expect(src.indexOf("save(row.id, { designation: e.target.value });")).toBeGreaterThan(ventesIdx);
+    expect(src.indexOf("save(row.id, { designation: e.target.value });")).toBeGreaterThan(
+      ventesIdx,
+    );
     expect(src.indexOf("save(row.id, { amount_ht: v });")).toBeGreaterThan(ventesIdx);
   });
 
@@ -72,12 +83,12 @@ describe("page Chiffre d'affaires — agencement", () => {
   });
 
   it("fait dépendre la navigation des mois du period global", () => {
-    expect(src).toContain("period === \"exercice_complet\" || !isCurrentYear");
+    expect(src).toContain('period === "exercice_complet" || !isCurrentYear');
     expect(src).toContain("realizedMonthLimit(year, now)");
   });
 
   it("affiche le tableau annuel uniquement quand period vaut exercice_complet", () => {
-    const idx = src.indexOf("{period === \"exercice_complet\" && (");
+    const idx = src.indexOf('{period === "exercice_complet" && (');
     expect(idx).toBeGreaterThan(0);
     expect(src.indexOf("<AnnualMonthsTable", idx)).toBeGreaterThan(idx);
   });

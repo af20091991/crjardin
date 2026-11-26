@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-// Les rapports sont désormais intégrés à Paramètres > Pilot Pro.
+// Les rapports sont intégrés à Paramètres > Pilotage.
 export const Route = createFileRoute("/_authenticated/pilot/rapports")({
   beforeLoad: () => {
-    throw redirect({ to: "/pilot/parametres" });
+    throw redirect({ to: "/settings", search: { tab: "pilotage" } });
   },
 });

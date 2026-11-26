@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { SstInfoTip, PRIX_CLIENT_TIP } from "@/components/pilot/SstInfoTip";
 import {
   Dialog,
   DialogContent,
@@ -16,16 +17,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { PilotCard } from "@/components/pilot/PilotCard";
 import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
-import { formatEuro, formatHours } from "@/lib/format-utils";
-import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
+import { formatEuro, formatHourlyRate, formatHours, formatPercent } from "@/lib/format-utils";
+import { usePilotMode, usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import {
   listMissionPnl,
@@ -39,14 +53,7 @@ import {
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
 import { listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
-import { sstByProvider, sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
-import {
-  applySstLabelMap,
-  deleteSstLabelMapping,
-  listSstLabelMap,
-  upsertSstLabelMapping,
-} from "@/lib/sst-provider-map";
-import { sstDuplicateReport, sstDuplicateTotal } from "@/lib/sst-duplicates";
+import { sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
 import {
   byMonth,
   byPrestation,
@@ -66,26 +73,46 @@ import {
   type SstListKind,
 } from "@/lib/sst-lists";
 import { listSstAudit, logSst, undoSstChange, type SstAuditEntry } from "@/lib/sst-audit";
-import { Archive, ArrowLeftRight, Copy, Download, Pencil, Printer, Settings2, Trash2, Undo2 } from "lucide-react";
+import {
+  Archive,
+  ArrowLeftRight,
+  ClipboardList,
+  Copy,
+  Download,
+  Pencil,
+  Printer,
+  ReceiptText,
+  Settings2,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { sendSstMissionAssignedEmail } from "@/lib/sst-mission-email.functions";
+import { EmptyState } from "@/components/pilot/EmptyState";
 
-const pct = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(1)} %`);
+const pct = (n: number | null | undefined) => (n == null ? "—" : `${formatPercent(n)}`);
 
-export function SstProfitabilityTab() {
+/** `journalOnly` : tableau du journal seul (les synthèses vivent dans le tableau de bord). */
+export function SstProfitabilityTab({ journalOnly = false }: { journalOnly?: boolean } = {}) {
   const qc = useQueryClient();
   const { mode } = usePilotMode();
   const { period } = usePilotPeriod();
-  const [year, setYear] = useState<number | "all">(new Date().getFullYear());
+  // Exercice global de l'application ; « Toutes années » reste disponible ici.
+  const { year: pilotYear } = usePilotYear();
+  const [allYears, setAllYears] = useState(false);
+  const year: number | "all" = allYears ? "all" : pilotYear;
   const [search, setSearch] = useState("");
   const [sstFilter, setSstFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
   const [marginTarget, setMarginTarget] = useState(25);
   const [editing, setEditing] = useState<SubcontractorMission | null>(null);
+  const [visibleMissionRows, setVisibleMissionRows] = useState(5);
 
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const pnlQ = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
-  const missions = missionsQ.data ?? [];
-  const pnl = pnlQ.data ?? [];
+  const missions = useMemo(() => missionsQ.data ?? [], [missionsQ.data]);
+  const pnl = useMemo(() => pnlQ.data ?? [], [pnlQ.data]);
   // États explicites des graphiques : une erreur n'est jamais montrée comme un zéro.
   const chartsLoading = missionsQ.isLoading || pnlQ.isLoading;
   const chartsError =
@@ -102,9 +129,14 @@ export function SstProfitabilityTab() {
       return items;
     },
   });
-  const { data: audit = [] } = useQuery({ queryKey: ["sst-audit"], queryFn: () => listSstAudit(80) });
-  const { data: chargeRows = [] } = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const { data: labelMap = [] } = useQuery({ queryKey: ["sst-label-map"], queryFn: listSstLabelMap });
+  const { data: audit = [] } = useQuery({
+    queryKey: ["sst-audit"],
+    queryFn: () => listSstAudit(80),
+  });
+  const { data: chargeRows = [] } = useQuery({
+    queryKey: ["pilot-charge-rows"],
+    queryFn: listChargeRows,
+  });
   const { data: salesByYear } = useQuery({
     queryKey: ["pilot-sales-by-year", mode, period],
     queryFn: () => listSalesByYear({ mode, period }),
@@ -116,28 +148,46 @@ export function SstProfitabilityTab() {
     qc.invalidateQueries({ queryKey: ["sst-audit"] });
   };
 
-  const years = useMemo(() => {
-    const set = new Set(missions.map((m) => new Date(m.mission_date).getFullYear()));
-    set.add(new Date().getFullYear());
-    return [...set].sort((a, b) => b - a);
-  }, [missions]);
+  // Sous-traitance déjà enregistrée en charges (aucune saisie supplémentaire demandée).
+  const chargeLines = useMemo(
+    () => sstChargeLines({ chargeRows, missions, clients, year }),
+    [chargeRows, missions, clients, year],
+  );
+  // Une charge rattachée à une mission du même mois fixe le coût de cette mission.
+  const costOverride = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of chargeLines) if (l.missionId) map.set(l.missionId, l.amount);
+    return map;
+  }, [chargeLines]);
 
   const rows = useMemo(
     () =>
-      sstRows({ missions, pnl, ssts, clients, mode, includeArchived: showArchived, year }).filter((r) => {
+      sstRows({
+        missions,
+        pnl,
+        ssts,
+        clients,
+        mode,
+        includeArchived: showArchived,
+        year,
+        costOverride,
+      }).filter((r) => {
         if (sstFilter !== "all" && r.mission.subcontractor_id !== sstFilter) return false;
         if (!search.trim()) return true;
         const hay = `${r.sstName} ${r.clientName} ${r.mission.service_requested} ${r.mission.prestation ?? ""}`;
         return hay.toLowerCase().includes(search.toLowerCase());
       }),
-    [missions, pnl, ssts, clients, mode, showArchived, year, sstFilter, search],
+    [missions, pnl, ssts, clients, mode, showArchived, year, sstFilter, search, costOverride],
   );
 
   const totals = useMemo(() => sstTotals(rows), [rows]);
   const monthly = useMemo(() => byMonth(rows), [rows]);
   const perSst = useMemo(() => bySubcontractor(rows), [rows]);
   const perPresta = useMemo(() => byPrestation(rows), [rows]);
-  const insights = useMemo(() => sstInsights(rows, totals, marginTarget), [rows, totals, marginTarget]);
+  const insights = useMemo(
+    () => sstInsights(rows, totals, marginTarget),
+    [rows, totals, marginTarget],
+  );
 
   // Séries des graphiques configurables : AUCUN recalcul, uniquement une mise en
   // forme des agrégats déjà produits par sst-analytics (byMonth / bySubcontractor
@@ -154,7 +204,12 @@ export function SstProfitabilityTab() {
           { key: "revenue", label: "CA client", color: PP_COLORS.sales },
           { key: "margin", label: "Marge", color: PP_COLORS.primary },
         ],
-        rows: monthly.map((g) => ({ name: g.key, cost: g.cost, revenue: g.revenue, margin: g.margin })),
+        rows: monthly.map((g) => ({
+          name: g.key,
+          cost: g.cost,
+          revenue: g.revenue,
+          margin: g.margin,
+        })),
         note: "Missions sous-traitées (subcontractor_missions), marge nette HT calculée par le moteur SST.",
       },
       {
@@ -221,11 +276,13 @@ export function SstProfitabilityTab() {
     () => [
       {
         id: "ca-presta",
-        label: "CA sous-traité",
+        label: "CA SST",
         unit: "euro",
         categoryLabel: "Prestation",
         series: [{ key: "revenue", label: "CA client", color: PP_COLORS.sales }],
-        rows: perPresta.filter((g) => g.revenue > 0).map((g) => ({ name: g.key, revenue: g.revenue })),
+        rows: perPresta
+          .filter((g) => g.revenue > 0)
+          .map((g) => ({ name: g.key, revenue: g.revenue })),
         note: "CA client des missions sous-traitées, réparti par prestation.",
       },
       {
@@ -250,45 +307,15 @@ export function SstProfitabilityTab() {
     [perPresta],
   );
 
-  // Sous-traitance déjà enregistrée en charges (aucune saisie supplémentaire demandée).
-  const chargeLines = useMemo(
-    () => sstChargeLines({ chargeRows, missions, clients, year }),
-    [chargeRows, missions, clients, year],
-  );
-  const chargeProviders = useMemo(() => sstByProvider(chargeLines), [chargeLines]);
-  const mappedLines = useMemo(
-    () => applySstLabelMap(chargeLines, labelMap, ssts),
-    [chargeLines, labelMap, ssts],
-  );
-  // Rapport de doublons : toutes années confondues, signalement seul.
-  const duplicateGroups = useMemo(
-    () => sstDuplicateReport(sstChargeLines({ chargeRows, missions, clients, year: "all" })),
-    [chargeRows, missions, clients],
-  );
-  const duplicateTotal = useMemo(() => sstDuplicateTotal(duplicateGroups), [duplicateGroups]);
-
-  const mapMutation = useMutation({
-    mutationFn: async (v: { raw_label: string; subcontractor_id: string | null }) => {
-      if (!v.subcontractor_id) return deleteSstLabelMapping(v.raw_label);
-      const name = ssts.find((s) => s.id === v.subcontractor_id)?.name ?? null;
-      return upsertSstLabelMapping({
-        raw_label: v.raw_label,
-        subcontractor_id: v.subcontractor_id,
-        provider_name: name,
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sst-label-map"] });
-      toast.success("Correspondance enregistrée");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
   const caPeriod = useMemo(() => {
     if (!salesByYear) return null;
     if (year === "all") return [...salesByYear.values()].reduce((s, v) => s + v, 0);
     return salesByYear.get(year) ?? 0;
   }, [salesByYear, year]);
-  const chargeTotals = useMemo(() => sstChargeTotals(chargeLines, caPeriod), [chargeLines, caPeriod]);
+  const chargeTotals = useMemo(
+    () => sstChargeTotals(chargeLines, caPeriod),
+    [chargeLines, caPeriod],
+  );
 
   const archive = useMutation({
     mutationFn: async (row: SstRow) => {
@@ -309,6 +336,8 @@ export function SstProfitabilityTab() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
+
+  const sendMissionEmail = useServerFn(sendSstMissionAssignedEmail);
 
   const duplicate = useMutation({
     mutationFn: async (row: SstRow) => {
@@ -338,6 +367,7 @@ export function SstProfitabilityTab() {
         payment_method: m.payment_method,
         hours_saved: m.hours_saved,
       });
+      void sendMissionEmail({ data: { missionId: created.id } }).catch(() => undefined);
       await logSst({
         entity: "mission",
         entity_id: created.id,
@@ -408,30 +438,33 @@ export function SstProfitabilityTab() {
 
   return (
     <div className="space-y-6">
-      {/* Audit V2.3+ : missions non rattachées à un client → marge client aveugle. */}
-      {missions.filter((m) => !m.client_id && !m.archived_at).length > 0 && (
-        <Card className="border-amber-300/70 bg-amber-50/40">
-          <CardContent className="py-3 text-sm">
-            <strong>{missions.filter((m) => !m.client_id && !m.archived_at).length}</strong> mission
-            {missions.filter((m) => !m.client_id && !m.archived_at).length > 1 ? "s" : ""} de sous-traitance sans
-            client rattaché : la marge par client reste incomplète. Le rattachement se fait ligne par ligne dans
-            le tableau ci-dessous — aucun rapprochement automatique n'est effectué.
-          </CardContent>
-        </Card>
+      {!journalOnly && (
+        <>
+          {/* Audit V2.3+ : missions non rattachées à un client → marge client aveugle. */}
+          {missions.filter((m) => !m.client_id && !m.archived_at).length > 0 && (
+            <Card className="border-amber-300/70 bg-amber-50/40">
+              <CardContent className="py-3 text-sm">
+                <strong>{missions.filter((m) => !m.client_id && !m.archived_at).length}</strong>{" "}
+                mission
+                {missions.filter((m) => !m.client_id && !m.archived_at).length > 1 ? "s" : ""} de
+                sous-traitance sans client rattaché : la marge par client reste incomplète. Le
+                rattachement se fait ligne par ligne dans le tableau ci-dessous — aucun
+                rapprochement automatique n'est effectué.
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
+
       {/* Barre d'outils */}
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={String(year)} onValueChange={(v) => setYear(v === "all" ? "all" : Number(v))}>
-          <SelectTrigger className="w-36">
+        <Select value={allYears ? "all" : "year"} onValueChange={(v) => setAllYears(v === "all")}>
+          <SelectTrigger className="w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="year">Exercice {pilotYear}</SelectItem>
             <SelectItem value="all">Toutes années</SelectItem>
-            {years.map((y) => (
-              <SelectItem key={y} value={String(y)}>
-                {y}
-              </SelectItem>
-            ))}
           </SelectContent>
         </Select>
         <Select value={sstFilter} onValueChange={setSstFilter}>
@@ -448,7 +481,7 @@ export function SstProfitabilityTab() {
           </SelectContent>
         </Select>
         <Input
-          className="w-56"
+          className="w-full sm:w-56"
           placeholder="Rechercher…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -457,7 +490,7 @@ export function SstProfitabilityTab() {
           <Archive className="mr-2 h-4 w-4" />
           {showArchived ? "Masquer les archives" : "Voir les archives"}
         </Button>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:ml-auto">
           <SstSettingsDialog
             lists={lists}
             marginTarget={marginTarget}
@@ -473,423 +506,509 @@ export function SstProfitabilityTab() {
         </div>
       </div>
 
-      {/* A — Synthèse */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <PilotCard
-          storageId="sst-ca"
-          label="CA sous-traitance"
-          value={formatEuro(totals.revenue)}
-          sub={`${totals.missions} mission(s)`}
-          help="Somme des prix facturés au client pour les missions confiées à un sous-traitant."
-        />
-        <PilotCard
-          storageId="sst-cout"
-          label="Coût sous-traitance"
-          value={formatEuro(totals.cost)}
-          sub={totals.avgHourlyCost != null ? `${totals.avgHourlyCost.toFixed(0)} €/h en moyenne` : "Heures non saisies"}
-          tone="negative"
-          help="Montant facturé par les sous-traitants (montant facturé, sinon prix convenu)."
-        />
-        <PilotCard
-          storageId="sst-marge"
-          label="Marge brute"
-          value={formatEuro(totals.margin)}
-          sub={`${pct(totals.marginPct)} de marge`}
-          tone={totals.margin >= 0 ? "positive" : "negative"}
-          progress={totals.marginPct != null ? Math.min(100, (totals.marginPct / marginTarget) * 100) : undefined}
-          help={`Marge = CA client − coût sous-traitant. Objectif paramétré : ${marginTarget} %.`}
-          views={[
-            {
-              key: "marge",
-              label: "Marge brute",
-              value: formatEuro(totals.margin),
-              sub: `${pct(totals.marginPct)} de marge`,
-              tone: totals.margin >= 0 ? "positive" : "negative",
-            },
-            {
-              key: "moyenne",
-              label: "Marge moyenne / mission",
-              value: formatEuro(totals.avgMarginPerMission ?? 0),
-              sub: `${totals.missions} mission(s)`,
-            },
-          ]}
-        />
-        <PilotCard
-          storageId="sst-temps"
-          label="Temps dégagé"
-          value={formatHours(totals.hoursSaved)}
-          sub={`${formatHours(totals.hours)} réalisées par les SST`}
-          help="Heures que vous n'avez pas eu à réaliser vous-même grâce à la sous-traitance."
-        />
-      </div>
+      {!journalOnly && (
+        <>
+          {/* A — Synthèse des missions filtrées */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <PilotCard
+              storageId="sst-ca"
+              audit={{
+                sources: ["subcontractor_missions"],
+                calcul:
+                  "Somme des prix de vente HT au client (client_price) des missions filtrées.",
+                periode:
+                  "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+              }}
+              label="CA SST"
+              value={formatEuro(totals.revenue)}
+              sub={`${totals.missions} mission(s)`}
+              help="Somme des prix facturés au client pour les missions confiées à un sous-traitant."
+            />
+            <PilotCard
+              storageId="sst-cout"
+              audit={{
+                sources: ["subcontractor_missions"],
+                calcul:
+                  "Somme du montant facturé par le sous-traitant (invoiced_amount), à défaut du prix convenu (agreed_price).",
+                periode:
+                  "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+              }}
+              label="Coût SST"
+              value={formatEuro(totals.cost)}
+              sub={
+                totals.avgHourlyCost != null
+                  ? `${formatHourlyRate(totals.avgHourlyCost)} en moyenne`
+                  : "Heures non saisies"
+              }
+              tone="negative"
+              help="Montant facturé par les sous-traitants (montant facturé, sinon prix convenu)."
+            />
+            <PilotCard
+              storageId="sst-marge"
+              audit={{
+                sources: ["subcontractor_missions"],
+                calcul:
+                  "CA SST − Coût SST, mission par mission puis additionné ; le pourcentage est rapporté au CA SST.",
+                periode:
+                  "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+              }}
+              label="Marge brute"
+              value={formatEuro(totals.margin)}
+              sub={`${pct(totals.marginPct)} de marge`}
+              tone={totals.margin >= 0 ? "positive" : "negative"}
+              progress={
+                totals.marginPct != null
+                  ? Math.min(100, (totals.marginPct / marginTarget) * 100)
+                  : undefined
+              }
+              help={`Marge = CA client − coût sous-traitant. Objectif paramétré : ${marginTarget} %.`}
+              views={[
+                {
+                  key: "marge",
+                  label: "Marge brute",
+                  value: formatEuro(totals.margin),
+                  sub: `${pct(totals.marginPct)} de marge`,
+                  tone: totals.margin >= 0 ? "positive" : "negative",
+                },
+                {
+                  key: "moyenne",
+                  label: "Marge moyenne / mission",
+                  value: formatEuro(totals.avgMarginPerMission ?? 0),
+                  sub: `${totals.missions} mission(s)`,
+                },
+              ]}
+            />
+            <PilotCard
+              storageId="sst-temps"
+              audit={{
+                sources: ["subcontractor_missions"],
+                calcul:
+                  "Somme des heures économisées saisies (hours_saved), à défaut des heures SST réalisées (hours_spent).",
+                periode:
+                  "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+              }}
+              label="Temps économisé"
+              value={formatHours(totals.hoursSaved)}
+              sub={`${formatHours(totals.hours)} réalisées par les SST`}
+              help="Heures que vous n'avez pas eu à réaliser vous-même grâce à la sous-traitance."
+            />
+          </div>
+        </>
+      )}
 
-      {/* B — Tableau détaillé */}
-      {/* A bis — Sous-traitance repérée dans les charges existantes (lecture seule) */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Sous-traitance repérée dans les charges</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune ressaisie n'est
-            nécessaire. Une ligne couverte par une mission SST du même mois et du même montant est
-            exclue des totaux pour éviter tout double comptage.
-          </p>
+          <CardTitle className="text-base">Journal des missions sous-traitées</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {chargeLines.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Aucune charge de sous-traitance sur cette période.
-            </p>
+        <CardContent>
+          {rows.length === 0 ? (
+            <EmptyState
+              icon={ClipboardList}
+              title="Aucune mission sur cette période."
+              description="Créez-la depuis l'onglet Missions."
+            />
           ) : (
             <>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <PilotCard
-                  storageId="sst-charges-total"
-                  label="Coût sous-traitance (charges)"
-                  value={formatEuro(chargeTotals.amount)}
-                  sub={`${chargeTotals.lines} ligne(s)`}
-                  tone="negative"
-                  help="Somme des charges dont le libellé mentionne la sous-traitance."
-                />
-                <PilotCard
-                  storageId="sst-charges-part"
-                  label="Part du CA"
-                  value={chargeTotals.shareOfCaPct != null ? pct(chargeTotals.shareOfCaPct) : "—"}
-                  sub={caPeriod != null ? `CA de référence ${formatEuro(caPeriod)}` : "CA non disponible"}
-                  help="Poids de la sous-traitance dans le chiffre d'affaires de la période."
-                />
-                <PilotCard
-                  storageId="sst-charges-dup"
-                  label="Lignes déjà en mission"
-                  value={String(chargeTotals.duplicates)}
-                  sub={formatEuro(chargeTotals.duplicatesAmount)}
-                  help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
-                />
-              </div>
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Prestataire (déduit)</TableHead>
-                      <TableHead>Années</TableHead>
-                      <TableHead>Client(s) reconnu(s)</TableHead>
-                      <TableHead className="text-right">Lignes</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
-                      <TableHead className="text-right">Impact / CA</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {chargeProviders.map((p) => (
-                      <TableRow key={p.provider}>
-                        <TableCell className="font-medium">{p.provider}</TableCell>
-                        <TableCell>{[...p.years].sort((a, b) => a - b).join(", ")}</TableCell>
-                        <TableCell>
-                          {p.clients.length > 0 ? (
-                            p.clients.join(", ")
-                          ) : (
-                            <Badge variant="outline">À rattacher</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{p.lines}</TableCell>
-                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
-                          {formatEuro(p.amount)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {caPeriod && caPeriod > 0 ? pct((p.amount / caPeriod) * 100) : "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Période</TableHead>
-                      <TableHead>Libellé d'origine</TableHead>
-                      <TableHead>Prestataire réel</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Chantier</TableHead>
+                      <TableHead>Sous-traitant</TableHead>
+                      <TableHead>Autonomie</TableHead>
+                      <TableHead>Chantier parallèle</TableHead>
+                      <TableHead className="text-right">Temps</TableHead>
+                      <TableHead className="text-right">Prix SST</TableHead>
+                      <TableHead className="text-right">
+                        Prix HT vente
+                        <SstInfoTip text={PRIX_CLIENT_TIP} />
+                      </TableHead>
+                      <TableHead className="text-right">Marge nette HT</TableHead>
+                      <TableHead className="text-right">%</TableHead>
+                      <TableHead className="text-center">Rentabilité</TableHead>
+                      <TableHead className="text-right">Difficulté</TableHead>
+                      <TableHead>Détails</TableHead>
                       <TableHead />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mappedLines.map((l) => (
-                      <TableRow key={l.id} className={l.duplicateOfMission ? "opacity-50" : undefined}>
+                    {rows.slice(0, visibleMissionRows).map((r) => (
+                      <TableRow
+                        key={r.mission.id}
+                        className={r.mission.archived_at ? "opacity-50" : undefined}
+                      >
                         <TableCell className="whitespace-nowrap">
-                          {String(l.month).padStart(2, "0")}/{l.year}
+                          {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
                         </TableCell>
-                        <TableCell>{l.designation}</TableCell>
                         <TableCell>
-                          <Select
-                            value={l.mappedSubcontractorId ?? "none"}
-                            onValueChange={(v) =>
-                              mapMutation.mutate({
-                                raw_label: l.designation,
-                                subcontractor_id: v === "none" ? null : v,
-                              })
-                            }
-                          >
-                            <SelectTrigger className="h-8 w-48">
-                              <SelectValue placeholder="À rattacher" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">À rattacher</SelectItem>
-                              {ssts.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>
-                                  {s.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {!l.confirmed && (
-                            <span className="block pt-1 text-[11px] text-muted-foreground">
-                              Détection auto : {l.provider}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <span>{r.mission.service_requested}</span>
+                            {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
+                          </div>
                         </TableCell>
-                        <TableCell>{l.clientName ?? "—"}</TableCell>
-                        <TableCell className="text-right">{formatEuro(l.amount)}</TableCell>
+                        <TableCell className="font-medium">{r.sstName}</TableCell>
+                        <TableCell>{r.mission.autonomy ?? "—"}</TableCell>
+                        <TableCell>{r.mission.parallel_worksite ?? "—"}</TableCell>
                         <TableCell className="text-right">
-                          {l.duplicateOfMission && <Badge variant="outline">Déjà en mission</Badge>}
+                          {r.hours != null ? r.hours.toFixed(1) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">{formatEuro(r.cost)}</TableCell>
+                        <TableCell className="text-right">{formatEuro(r.revenue)}</TableCell>
+                        <TableCell
+                          className="text-right font-medium"
+                          style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}
+                        >
+                          {formatEuro(r.margin)}
+                        </TableCell>
+                        <TableCell className="text-right">{pct(r.marginPct)}</TableCell>
+                        <TableCell className="text-center">
+                          <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {r.mission.internal_rating != null
+                            ? `${r.mission.internal_rating}/5`
+                            : "—"}
+                        </TableCell>
+                        <TableCell
+                          className="max-w-[220px] truncate"
+                          title={r.mission.report_notes ?? undefined}
+                        >
+                          {r.mission.report_notes ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Modifier"
+                              onClick={() => setEditing(r.mission)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Dupliquer"
+                              onClick={() => duplicate.mutate(r)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={r.mission.archived_at ? "Restaurer" : "Archiver"}
+                              onClick={() => archive.mutate(r)}
+                            >
+                              <Archive className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Supprimer"
+                              onClick={() => {
+                                if (confirm("Supprimer définitivement cette ligne ?"))
+                                  remove.mutate(r);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
+                    {rows.length > visibleMissionRows && (
+                      <TableRow>
+                        <TableCell colSpan={14} className="border-t-0 text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setVisibleMissionRows((count) => count + 5)}
+                          >
+                            Voir plus
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    <TableRow className="border-t-2 font-semibold">
+                      <TableCell colSpan={5}>Total</TableCell>
+                      <TableCell className="text-right">{totals.hours.toFixed(1)}</TableCell>
+                      <TableCell className="text-right">{formatEuro(totals.cost)}</TableCell>
+                      <TableCell className="text-right">{formatEuro(totals.revenue)}</TableCell>
+                      <TableCell className="text-right">{formatEuro(totals.margin)}</TableCell>
+                      <TableCell className="text-right">{pct(totals.marginPct)}</TableCell>
+                      <TableCell colSpan={2} />
+                      <TableCell />
+                    </TableRow>
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Version mobile : une carte par mission plutôt qu'un tableau à
+                  faire défiler horizontalement. */}
+              <div className="space-y-3 md:hidden">
+                {rows.slice(0, visibleMissionRows).map((r) => (
+                  <div
+                    key={r.mission.id}
+                    className={`rounded-lg border p-4 ${r.mission.archived_at ? "opacity-50" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate font-medium">{r.mission.service_requested}</p>
+                          {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{r.sstName}</p>
+                      </div>
+                      <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Temps</p>
+                        <p>{r.hours != null ? `${formatHours(r.hours)}` : "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Prix SST</p>
+                        <p>{formatEuro(r.cost)}</p>
+                      </div>
+                      <div>
+                        <p className="flex items-center text-xs text-muted-foreground">
+                          Prix HT vente
+                          <SstInfoTip text={PRIX_CLIENT_TIP} />
+                        </p>
+                        <p>{formatEuro(r.revenue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Marge nette HT</p>
+                        <p
+                          className="font-medium"
+                          style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}
+                        >
+                          {formatEuro(r.margin)} · {pct(r.marginPct)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {(r.mission.autonomy ||
+                      r.mission.parallel_worksite ||
+                      r.mission.internal_rating != null ||
+                      r.mission.report_notes) && (
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        {r.mission.autonomy && <span>Autonomie : {r.mission.autonomy}</span>}
+                        {r.mission.parallel_worksite && (
+                          <span>Chantier parallèle : {r.mission.parallel_worksite}</span>
+                        )}
+                        {r.mission.internal_rating != null && (
+                          <span>Difficulté : {r.mission.internal_rating}/5</span>
+                        )}
+                        {r.mission.report_notes && (
+                          <span className="w-full truncate">
+                            Détails : {r.mission.report_notes}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex justify-end gap-1 border-t pt-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Modifier"
+                        onClick={() => setEditing(r.mission)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Dupliquer"
+                        onClick={() => duplicate.mutate(r)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={r.mission.archived_at ? "Restaurer" : "Archiver"}
+                        onClick={() => archive.mutate(r)}
+                      >
+                        <Archive className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Supprimer"
+                        onClick={() => {
+                          if (confirm("Supprimer définitivement cette ligne ?")) remove.mutate(r);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {rows.length > visibleMissionRows && (
+                  <div className="flex justify-center pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVisibleMissionRows((count) => count + 5)}
+                    >
+                      Voir plus
+                    </Button>
+                  </div>
+                )}
+
+                <div className="rounded-lg border-2 p-4 text-sm">
+                  <div className="flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>{formatEuro(totals.revenue)}</span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span>
+                      Temps {formatHours(totals.hours)} · Coût {formatEuro(totals.cost)}
+                    </span>
+                    <span>
+                      Marge {formatEuro(totals.margin)} ({pct(totals.marginPct)})
+                    </span>
+                  </div>
+                </div>
               </div>
             </>
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Doublons potentiels de sous-traitance (rapport)</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Lignes identiques (même libellé, même mois, même montant) présentes sur plusieurs
-            exercices — typiquement une recopie d'année lors des imports. Signalement uniquement :
-            aucune ligne n'est supprimée ni modifiée.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {duplicateGroups.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Aucun doublon potentiel détecté.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm">
-                <strong>{duplicateGroups.length}</strong> groupe(s) suspect(s) — montant
-                potentiellement compté en double :{" "}
-                <strong style={{ color: PP_COLORS.charges }}>{formatEuro(duplicateTotal)}</strong>
-              </p>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Libellé</TableHead>
-                      <TableHead>Mois</TableHead>
-                      <TableHead>Exercices concernés</TableHead>
-                      <TableHead className="text-right">Montant unitaire</TableHead>
-                      <TableHead className="text-right">Écart potentiel</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {duplicateGroups.map((g) => (
-                      <TableRow key={g.key}>
-                        <TableCell>{g.designation}</TableCell>
-                        <TableCell>{String(g.month).padStart(2, "0")}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{g.years.join(" / ")}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">{formatEuro(g.amount)}</TableCell>
-                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
-                          {formatEuro(g.suspectedAmount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+      {!journalOnly && (
+        <>
+          {/* C — Graphiques configurables (indicateur + type de visualisation) */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <PilotFlexChart
+              title="Coût, CA et marge par mois"
+              subtitle="Missions sous-traitées de la période sélectionnée"
+              datasets={monthlyDatasets}
+              storageKey="sst-journal:mois"
+              isLoading={chartsLoading}
+              error={chartsError}
+              onRetry={refresh}
+            />
+            <PilotFlexChart
+              title="Marge par sous-traitant"
+              subtitle="Classement par prestataire"
+              datasets={perSstDatasets}
+              storageKey="sst-journal:sous-traitant"
+              isLoading={chartsLoading}
+              error={chartsError}
+              onRetry={refresh}
+            />
+            <div className="lg:col-span-2">
+              <PilotFlexChart
+                title="Répartition du CA sous-traité par prestation"
+                subtitle="Nature des missions confiées"
+                datasets={perPrestaDatasets}
+                storageKey="sst-journal:prestation"
+                isLoading={chartsLoading}
+                error={chartsError}
+                onRetry={refresh}
+              />
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Journal des missions sous-traitées</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          {rows.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Aucune mission sur cette période. Créez-la depuis l'onglet <strong>Missions</strong>.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Chantier</TableHead>
-                  <TableHead>Sous-traitant</TableHead>
-                  <TableHead>Autonomie</TableHead>
-                  <TableHead>Chantier parallèle</TableHead>
-                  <TableHead className="text-right">Temps</TableHead>
-                  <TableHead className="text-right">Prix SST</TableHead>
-                  <TableHead className="text-right">Prix HT vente</TableHead>
-                  <TableHead className="text-right">Marge nette HT</TableHead>
-                  <TableHead className="text-right">%</TableHead>
-                  <TableHead className="text-center">Rentabilité</TableHead>
-                  <TableHead className="text-right">Difficulté</TableHead>
-                  <TableHead>Détails</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.mission.id} className={r.mission.archived_at ? "opacity-50" : undefined}>
-                    <TableCell className="whitespace-nowrap">
-                      {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{r.mission.service_requested}</span>
-                        {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{r.sstName}</TableCell>
-                    <TableCell>{r.mission.autonomy ?? "—"}</TableCell>
-                    <TableCell>{r.mission.parallel_worksite ?? "—"}</TableCell>
-                    <TableCell className="text-right">{r.hours != null ? r.hours.toFixed(1) : "—"}</TableCell>
-                    <TableCell className="text-right">{formatEuro(r.cost)}</TableCell>
-                    <TableCell className="text-right">{formatEuro(r.revenue)}</TableCell>
-                    <TableCell
-                      className="text-right font-medium"
-                      style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}
-                    >
-                      {formatEuro(r.margin)}
-                    </TableCell>
-                    <TableCell className="text-right">{pct(r.marginPct)}</TableCell>
-                    <TableCell className="text-center">
-                      <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {r.mission.internal_rating != null ? `${r.mission.internal_rating}/5` : "—"}
-                    </TableCell>
-                    <TableCell className="max-w-[220px] truncate" title={r.mission.report_notes ?? undefined}>
-                      {r.mission.report_notes ?? "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Modifier" onClick={() => setEditing(r.mission)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" title="Dupliquer" onClick={() => duplicate.mutate(r)}>
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title={r.mission.archived_at ? "Restaurer" : "Archiver"}
-                          onClick={() => archive.mutate(r)}
-                        >
-                          <Archive className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Supprimer"
-                          onClick={() => {
-                            if (confirm("Supprimer définitivement cette ligne ?")) remove.mutate(r);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="border-t-2 font-semibold">
-                  <TableCell colSpan={5}>Total</TableCell>
-                  <TableCell className="text-right">{totals.hours.toFixed(1)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.cost)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.revenue)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.margin)}</TableCell>
-                  <TableCell className="text-right">{pct(totals.marginPct)}</TableCell>
-                  <TableCell colSpan={2} />
-                  <TableCell />
-                </TableRow>
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          {/* D — Analyse */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Analyse automatique</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {insights.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Pas encore assez de données pour analyser.
+                </p>
+              ) : (
+                insights.map((i, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-lg border p-3"
+                    style={{
+                      borderColor:
+                        i.tone === "positive"
+                          ? PP_COLORS.primary
+                          : i.tone === "negative"
+                            ? PP_COLORS.charges
+                            : PP_COLORS.mid,
+                    }}
+                  >
+                    <p className="text-sm font-medium">{i.title}</p>
+                    <p className="text-xs text-muted-foreground">{i.detail}</p>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
 
-      {/* C — Graphiques configurables (indicateur + type de visualisation) */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <PilotFlexChart
-          title="Coût, CA et marge par mois"
-          subtitle="Missions sous-traitées de la période sélectionnée"
-          datasets={monthlyDatasets}
-          storageKey="sst-journal:mois"
-          isLoading={chartsLoading}
-          error={chartsError}
-          onRetry={refresh}
-        />
-        <PilotFlexChart
-          title="Marge par sous-traitant"
-          subtitle="Classement par prestataire"
-          datasets={perSstDatasets}
-          storageKey="sst-journal:sous-traitant"
-          isLoading={chartsLoading}
-          error={chartsError}
-          onRetry={refresh}
-        />
-        <div className="lg:col-span-2">
-          <PilotFlexChart
-            title="Répartition du CA sous-traité par prestation"
-            subtitle="Nature des missions confiées"
-            datasets={perPrestaDatasets}
-            storageKey="sst-journal:prestation"
-            isLoading={chartsLoading}
-            error={chartsError}
-            onRetry={refresh}
-          />
-        </div>
-      </div>
+          {/* F — Sous-traitance repérée dans les charges existantes (lecture seule) */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Sous-traitance repérée dans les charges</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune
+                ressaisie n'est nécessaire. Une ligne couverte par une mission SST du même mois et
+                du même montant est exclue des totaux pour éviter tout double comptage.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {chargeLines.length === 0 ? (
+                <EmptyState
+                  icon={ReceiptText}
+                  title="Aucune charge de sous-traitance sur cette période."
+                  compact
+                />
+              ) : (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <PilotCard
+                      storageId="sst-charges-total"
+                      label="Coût sous-traitance (charges)"
+                      value={formatEuro(chargeTotals.amount)}
+                      sub={`${chargeTotals.lines} ligne(s)`}
+                      tone="negative"
+                      help="Somme des charges dont le libellé mentionne la sous-traitance."
+                    />
+                    <PilotCard
+                      storageId="sst-charges-part"
+                      label="Part du CA"
+                      value={
+                        chargeTotals.shareOfCaPct != null ? pct(chargeTotals.shareOfCaPct) : "—"
+                      }
+                      sub={
+                        caPeriod != null
+                          ? `CA de référence ${formatEuro(caPeriod)}`
+                          : "CA non disponible"
+                      }
+                      help="Poids de la sous-traitance dans le chiffre d'affaires de la période."
+                    />
+                    <PilotCard
+                      storageId="sst-charges-dup"
+                      label="Lignes déjà en mission"
+                      value={String(chargeTotals.duplicates)}
+                      sub={formatEuro(chargeTotals.duplicatesAmount)}
+                      help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
+                    />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
-      {/* D — Analyse */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Analyse automatique</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {insights.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Pas encore assez de données pour analyser.</p>
-          ) : (
-            insights.map((i, idx) => (
-              <div
-                key={idx}
-                className="rounded-lg border p-3"
-                style={{
-                  borderColor:
-                    i.tone === "positive"
-                      ? PP_COLORS.primary
-                      : i.tone === "negative"
-                        ? PP_COLORS.charges
-                        : PP_COLORS.mid,
-                }}
-              >
-                <p className="text-sm font-medium">{i.title}</p>
-                <p className="text-xs text-muted-foreground">{i.detail}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      {/* E — Historique */}
+      {/* G — Historique */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -901,7 +1020,10 @@ export function SstProfitabilityTab() {
             <p className="text-sm text-muted-foreground">Aucune modification enregistrée.</p>
           ) : (
             audit.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 border-b py-2 text-sm last:border-0">
+              <div
+                key={a.id}
+                className="flex items-center justify-between gap-3 border-b py-2 text-sm last:border-0"
+              >
                 <div className="min-w-0">
                   <p className="truncate">
                     <span className="font-medium">{a.action}</span> — {a.label ?? "Mission"}
@@ -965,8 +1087,7 @@ function SstRowDialog({
     report_notes: mission.report_notes ?? "",
   });
   const [saving, setSaving] = useState(false);
-  const opts = (kind: SstListKind) =>
-    valuesOf(lists as never, kind);
+  const opts = (kind: SstListKind) => valuesOf(lists as never, kind);
 
   const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
@@ -1034,10 +1155,17 @@ function SstRowDialog({
     </div>
   );
 
-  const selectField = (label: string, key: "prestation" | "category" | "payment_method", kind: SstListKind) => (
+  const selectField = (
+    label: string,
+    key: "prestation" | "category" | "payment_method",
+    kind: SstListKind,
+  ) => (
     <div className="space-y-1.5">
       <Label>{label}</Label>
-      <Select value={form[key] || "none"} onValueChange={(v) => setForm((f) => ({ ...f, [key]: v === "none" ? "" : v }))}>
+      <Select
+        value={form[key] || "none"}
+        onValueChange={(v) => setForm((f) => ({ ...f, [key]: v === "none" ? "" : v }))}
+      >
         <SelectTrigger>
           <SelectValue placeholder="—" />
         </SelectTrigger>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { BarChart3, Loader2 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-} from "recharts";
+} from "@/components/ui/lazy-recharts";
 
 export function AdminStatsDashboard() {
   const [days, setDays] = useState(30);

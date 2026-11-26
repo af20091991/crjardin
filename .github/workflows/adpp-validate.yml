@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, "adpp/*"]
   workflow_dispatch:
     inputs:
       ref:
@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: adpp-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.sha }}
@@ -57,6 +58,12 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/check-protected-files.mjs
 
+      - name: Check SST Google Static Maps contract
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/check-sst-map-contract.mjs
+
       - name: Format check changed files
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -80,3 +87,21 @@ jobs:
 
       - name: Validation summary
         run: echo "ADPP validation passed for $GITHUB_SHA"
+
+      - name: Publish required status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${STATUS_SHA}" \
+            -f state="${STATE}" \
+            -f context="ADPP Validation / validate" \
+            -f description="ADPP validation ${STATE}"
+          if [ "${STATUS_SHA}" != "${GITHUB_SHA}" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+              -f state="${STATE}" \
+              -f context="ADPP Validation / validate" \
+              -f description="ADPP validation ${STATE}"
+          fi

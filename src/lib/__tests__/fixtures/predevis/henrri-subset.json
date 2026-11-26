@@ -1,0 +1,167 @@
+{
+ "source": "Export Henrri, sous-ensemble des références du devis (sans données client)",
+ "items": [
+  {
+   "reference": "BIOSAR",
+   "designation": "Biosarrasin 60L",
+   "pa_ht": 9.49,
+   "unit": "Unité"
+  },
+  {
+   "reference": "E6",
+   "designation": "Goutteur auto-régulé",
+   "pa_ht": 0.33,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "CAPILL",
+   "designation": "Couronne capillaire PVC souple 25mL",
+   "pa_ht": 13.76,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "PCAPILL",
+   "designation": "Piquet capillaire",
+   "pa_ht": 0.1,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "E41",
+   "designation": "Crampon de sol acier D13-32",
+   "pa_ht": 0.33,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "PE1625",
+   "designation": "Tuyau PE D16 25mL",
+   "pa_ht": 8.05,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "E30",
+   "designation": "Ruban teflon",
+   "pa_ht": 0.38,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "P9V",
+   "designation": "Pile 9v",
+   "pa_ht": 2.93,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "E24",
+   "designation": "Doublez nez robinet métal",
+   "pa_ht": 29.72,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "NEZ3/4",
+   "designation": "Nez de robinet 3/4\"",
+   "pa_ht": 1.27,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "E2",
+   "designation": "Programmateur robinet 1 voie - Bluetooth - E2",
+   "pa_ht": 62.24,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "H2",
+   "designation": "Arbuste de haie - C3/C7 - H2",
+   "pa_ht": 16,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "TVC35",
+   "designation": "Terre végétale criblée enrichie - 35L",
+   "pa_ht": 0.68,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "AM2",
+   "designation": "Amendement organique racinaire - Am2 (sac 25 kg)",
+   "pa_ht": 17,
+   "unit": "Unité"
+  },
+  {
+   "reference": "T4",
+   "designation": "Terreau biologique professionnel - T4",
+   "pa_ht": 16.5,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "EVAC",
+   "designation": "Valorisation des déchets verts en décharge payante",
+   "pa_ht": 0,
+   "unit": ""
+  },
+  {
+   "reference": "COUP3/4",
+   "designation": "Coupleur auto 3/4\"",
+   "pa_ht": 4.07,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "CD16",
+   "designation": "Coude vissé D16",
+   "pa_ht": 1,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "PAL3/4",
+   "designation": "Embout PAL 3/4\"",
+   "pa_ht": 1.27,
+   "unit": "pièce(s)"
+  },
+  {
+   "reference": "JD16",
+   "designation": "Jonction vissée D16",
+   "pa_ht": 0.74,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "AEF0,5AC",
+   "designation": "Vivace 0,5L A-C AEF",
+   "pa_ht": 2.73,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "FOUR",
+   "designation": "Fournitures",
+   "pa_ht": 0,
+   "unit": ""
+  },
+  {
+   "reference": "AEF1,4AC",
+   "designation": "Vivace 1,4L A-C AEF",
+   "pa_ht": 3.8,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "AEF3L",
+   "designation": "Vivace 3L AEF",
+   "pa_ht": 8.18,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "AEF2L",
+   "designation": "Vivace 2L AEF",
+   "pa_ht": 4.36,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "AEF1L",
+   "designation": "Vivace 1L AEF",
+   "pa_ht": 3.6,
+   "unit": "Pièce"
+  },
+  {
+   "reference": "T5",
+   "designation": "Billes d'argile - T5",
+   "pa_ht": 10.87,
+   "unit": "Pièce"
+  }
+ ]
+}

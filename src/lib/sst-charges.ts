@@ -9,18 +9,134 @@ import type { SubcontractorMission } from "@/lib/subcontractors";
 // « ss-trait » / « ss trait » sont ajoutés sur cause démontrée : la charge
 // « Ss-traitance d'Aboville » (278,55 € — 02/2026) échappait à la détection et
 // n'apparaissait donc ni dans le Journal SST ni dans le rapprochement.
-const SST_MARKERS = [
-  "sous-trait",
-  "sous trait",
-  "soustrait",
-  "ss-trait",
-  "ss trait",
-  "sst",
-];
+const SST_MARKERS = ["sous-trait", "sous trait", "soustrait", "ss-trait", "ss trait", "sst"];
 
 export function isSubcontractingLabel(label: string | null): boolean {
   const l = (label ?? "").toLowerCase();
   return SST_MARKERS.some((m) => l.includes(m));
+}
+
+/** Libellé contenant « SST » comme mot (« SST Dupont », « Facture SST Dupont », « Dupont-SST »). */
+export function hasSstPrefix(label: string | null | undefined): boolean {
+  return /(^|[^a-z0-9À-ÿ])sst(?![a-z0-9À-ÿ])/i.test(label ?? "");
+}
+
+/** « SST » ou formulations équivalentes (« Sous-traitance X », « Ss-traitance X »). */
+export function mentionsSst(label: string | null | undefined): boolean {
+  return hasSstPrefix(label) || /sous[-\s]?trait|\bss[-\s]?trait/i.test(label ?? "");
+}
+
+/** Classements explicites qu'un classement automatique ne remplace jamais. */
+const PROTECTED_CATEGORIES = new Set(["SST", "Charge fixe", "Rémunération", "Investissement"]);
+
+/**
+ * Une charge doit-elle être classée « SST » ? Vrai si son libellé mentionne SST, sauf charge
+ * fixe, rémunération ou investissement. Un classement générique (Charge chantier, Charge
+ * variable, À classer…) est remplacé : la mention SST fait foi.
+ */
+export function shouldAutoClassifySst(row: {
+  designation: string | null | undefined;
+  charge_category?: string | null;
+  charge_class?: string | null;
+  is_fixed?: boolean | null;
+  is_investment?: boolean | null;
+}): boolean {
+  if (row.is_fixed || row.is_investment || row.charge_class === "fixe") return false;
+  if (!mentionsSst(row.designation)) return false;
+  return !PROTECTED_CATEGORIES.has((row.charge_category ?? "").trim());
+}
+
+/**
+ * Règle SST : une charge du Chiffre d'affaires est SST dès que sa désignation ou son type
+ * (« Charge SST ») la mentionne. Elle est comptabilisée telle quelle, sans rattachement.
+ * Les charges d'investissement et de rémunération sont exclues.
+ */
+export function isSstCharge(row: {
+  kind?: string | null;
+  designation?: string | null;
+  charge_category?: string | null;
+  is_investment?: boolean | null;
+}): boolean {
+  if (row.kind && row.kind !== "charge") return false;
+  if (row.is_investment) return false;
+  return mentionsSst(row.designation) || (row.charge_category ?? "").trim() === "SST";
+}
+
+export interface SstChargeMissionLink {
+  missionId: string | null;
+  /** Conservé pour compatibilité : une charge n'est jamais exclue, même si sa mission est déjà rattachée. */
+  duplicate: boolean;
+}
+
+/** Qualification d'une charge SST : autonome (prestataire seul) ou chantier accompagné. */
+export type SstMode = "autonome" | "accompagnee";
+
+export interface SstChargeInput {
+  id: string;
+  year: number;
+  month: number;
+  amount: number;
+  /** null = à qualifier. Une charge « chantier » n'est jamais rattachée à une mission. */
+  sstMode?: SstMode | null;
+  /** Mission choisie à la main (rattachement explicite) : prime sur la correspondance automatique. */
+  manualMissionId?: string | null;
+}
+
+function missionYearMonth(m: SubcontractorMission): { year: number; month: number } {
+  return { year: Number(m.mission_date.slice(0, 4)), month: Number(m.mission_date.slice(5, 7)) };
+}
+
+/** Mission accompagnée : le coût SST est une charge de chantier, jamais une marge de mission. */
+export function isAccompanied(m: Pick<SubcontractorMission, "sst_mode">): boolean {
+  return m.sst_mode === "accompagnee";
+}
+
+function missionCostOf(m: SubcontractorMission): number {
+  return Number(m.invoiced_amount ?? m.agreed_price ?? 0);
+}
+
+/**
+ * Règle de rapprochement : une charge SST inscrite dans le Chiffre d'affaires est toujours
+ * comptée. Elle se rattache à une mission SST du même mois (montant le plus proche, une mission
+ * n'accueille qu'une charge). Le montant n'est pas une condition : une charge sans mission
+ * reste comptée et apparaît comme « à rattacher ». Lecture seule.
+ */
+export function linkChargesToMissions(
+  charges: SstChargeInput[],
+  missions: SubcontractorMission[],
+): Map<string, SstChargeMissionLink> {
+  const result = new Map<string, SstChargeMissionLink>();
+  const used = new Set<string>();
+  for (const c of charges) {
+    if (!c.manualMissionId) continue;
+    used.add(c.manualMissionId);
+    result.set(c.id, { missionId: c.manualMissionId, duplicate: false });
+  }
+  for (const c of charges) {
+    if (!c.manualMissionId && c.sstMode === "accompagnee") {
+      result.set(c.id, { missionId: null, duplicate: false });
+    }
+  }
+  const automatic = charges
+    .filter((c) => !c.manualMissionId && c.sstMode !== "accompagnee")
+    .sort((a, b) => b.amount - a.amount || a.id.localeCompare(b.id));
+  for (const c of automatic) {
+    const candidates = missions.filter((m) => {
+      if (m.archived_at || used.has(m.id) || isAccompanied(m)) return false;
+      const ym = missionYearMonth(m);
+      return ym.year === c.year && ym.month === c.month;
+    });
+    if (candidates.length === 0) {
+      result.set(c.id, { missionId: null, duplicate: false });
+      continue;
+    }
+    const best = candidates.reduce((b, m) =>
+      Math.abs(missionCostOf(m) - c.amount) < Math.abs(missionCostOf(b) - c.amount) ? m : b,
+    );
+    used.add(best.id);
+    result.set(c.id, { missionId: best.id, duplicate: false });
+  }
+  return result;
 }
 
 export interface SstChargeLine {
@@ -33,7 +149,9 @@ export interface SstChargeLine {
   provider: string;
   /** Client reconnu dans le libellé, sinon null (jamais deviné). */
   clientName: string | null;
-  /** true si une mission SST couvre déjà cette dépense → exclue des totaux. */
+  /** Mission SST du même mois à laquelle la charge est rattachée (null si aucune). */
+  missionId: string | null;
+  /** true si la charge est rattachée à une mission. La charge reste comptée dans tous les cas. */
   duplicateOfMission: boolean;
 }
 
@@ -55,19 +173,6 @@ function normalize(s: string): string {
     .toLowerCase();
 }
 
-/**
- * Protection anti double comptage : une charge est considérée déjà suivie
- * si une mission SST non archivée porte le même mois et le même montant.
- */
-function coveredByMission(row: ChargeRow, missions: SubcontractorMission[]): boolean {
-  return missions.some((m) => {
-    const d = new Date(m.mission_date);
-    if (d.getFullYear() !== row.year || d.getMonth() + 1 !== row.month) return false;
-    const cost = Number(m.invoiced_amount ?? m.agreed_price ?? 0);
-    return cost > 0 && Math.abs(cost - row.amount_ht) < 0.01;
-  });
-}
-
 export function sstChargeLines(params: {
   chargeRows: ChargeRow[];
   missions?: SubcontractorMission[];
@@ -79,8 +184,20 @@ export function sstChargeLines(params: {
     .map((c) => ({ name: c.name, key: normalize(c.name) }))
     .filter((c) => c.key.length >= 4);
 
+  const links = linkChargesToMissions(
+    chargeRows.map((r) => ({
+      id: r.id,
+      year: r.year,
+      month: r.month,
+      amount: r.amount_ht,
+      manualMissionId: r.subcontractor_mission_id ?? null,
+      sstMode: (r.sst_mode as SstMode | null) ?? null,
+    })),
+    missions,
+  );
+
   return chargeRows
-    .filter((r) => !r.is_investment && isSubcontractingLabel(r.designation))
+    .filter((r) => isSstCharge(r))
     .filter((r) => (year === "all" ? true : r.year === year))
     .map((r) => {
       const designation = r.designation ?? "";
@@ -97,7 +214,8 @@ export function sstChargeLines(params: {
         amount: r.amount_ht,
         provider: rest || "Non identifié",
         clientName: matched?.name ?? null,
-        duplicateOfMission: coveredByMission(r, missions),
+        missionId: links.get(r.id)?.missionId ?? null,
+        duplicateOfMission: Boolean(links.get(r.id)?.missionId),
       };
     })
     .sort((a, b) => b.year - a.year || b.month - a.month);
@@ -114,7 +232,6 @@ export interface SstProviderStat {
 export function sstByProvider(lines: SstChargeLine[]): SstProviderStat[] {
   const map = new Map<string, SstProviderStat>();
   for (const l of lines) {
-    if (l.duplicateOfMission) continue;
     const key = l.provider;
     const g = map.get(key) ?? { provider: key, lines: 0, amount: 0, years: [], clients: [] };
     g.lines += 1;

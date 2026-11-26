@@ -3,6 +3,7 @@
 import type { MissionPnl, Subcontractor, SubcontractorMission } from "@/lib/subcontractors";
 import type { RealProjectionMode } from "@/lib/pilot-realized";
 import { todayIso } from "@/lib/pilot-realized";
+import { formatHours, formatPercent } from "@/lib/format-utils";
 
 export interface SstRow {
   mission: SubcontractorMission;
@@ -64,8 +65,18 @@ export function sstRows(params: {
   mode?: RealProjectionMode;
   includeArchived?: boolean;
   year?: number | "all";
+  /** Coût retenu par mission quand la charge comptabilisée fait foi (missionId → montant). */
+  costOverride?: Map<string, number>;
 }): SstRow[] {
-  const { missions, ssts, clients, mode = "reel", includeArchived = false, year = "all" } = params;
+  const {
+    missions,
+    ssts,
+    clients,
+    mode = "reel",
+    includeArchived = false,
+    year = "all",
+    costOverride,
+  } = params;
   const sstById = new Map(ssts.map((s) => [s.id, s]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
   const today = todayIso();
@@ -75,7 +86,17 @@ export function sstRows(params: {
     .filter((m) => (year === "all" ? true : new Date(m.mission_date).getFullYear() === year))
     .filter((m) => (mode === "reel" ? m.mission_date <= today : true))
     .map((m) => {
-      const fin = computeMissionFinancials(m);
+      const override = costOverride?.get(m.id);
+      // Mission accompagnée : son coût SST est une charge de chantier (comptée à part),
+      // il ne doit pas réduire la marge de la mission une seconde fois.
+      const accompanied = m.sst_mode === "accompagnee";
+      const fin = computeMissionFinancials(
+        accompanied
+          ? { ...m, invoiced_amount: 0, agreed_price: 0 }
+          : override != null
+            ? { ...m, invoiced_amount: override }
+            : m,
+      );
       return {
         mission: m,
         sstName: sstById.get(m.subcontractor_id)?.name ?? "—",
@@ -123,7 +144,15 @@ function group(rows: SstRow[], keyOf: (r: SstRow) => string): SstGroup[] {
   const map = new Map<string, SstGroup>();
   for (const r of rows) {
     const key = keyOf(r);
-    const g = map.get(key) ?? { key, revenue: 0, cost: 0, margin: 0, marginPct: null, missions: 0, hours: 0 };
+    const g = map.get(key) ?? {
+      key,
+      revenue: 0,
+      cost: 0,
+      margin: 0,
+      marginPct: null,
+      missions: 0,
+      hours: 0,
+    };
     g.revenue += r.revenue;
     g.cost += r.cost;
     g.margin += r.margin;
@@ -142,7 +171,9 @@ export const byPrestation = (rows: SstRow[]) =>
 export const byClient = (rows: SstRow[]) => group(rows, (r) => r.clientName);
 
 export function byMonth(rows: SstRow[]): SstGroup[] {
-  return group(rows, (r) => r.mission.mission_date.slice(0, 7)).sort((a, b) => a.key.localeCompare(b.key));
+  return group(rows, (r) => r.mission.mission_date.slice(0, 7)).sort((a, b) =>
+    a.key.localeCompare(b.key),
+  );
 }
 
 export interface SstInsight {
@@ -177,7 +208,7 @@ export function sstInsights(rows: SstRow[], totals: SstTotals, marginTarget = 25
     out.push({
       tone: "warning",
       title: "Marge globale sous l'objectif",
-      detail: `Marge sous-traitance ${totals.marginPct.toFixed(1)} % pour un objectif de ${marginTarget} %. Revoir les prix client ou renégocier les coûts.`,
+      detail: `Marge sous-traitance ${formatPercent(totals.marginPct)} pour un objectif de ${marginTarget} %. Revoir les prix client ou renégocier les coûts.`,
     });
   }
   const negatives = rows.filter((r) => r.revenue > 0 && r.margin < 0);
@@ -201,8 +232,8 @@ export function sstInsights(rows: SstRow[], totals: SstTotals, marginTarget = 25
   if (totals.hoursSaved > 0) {
     out.push({
       tone: "positive",
-      title: "Temps dégagé par la sous-traitance",
-      detail: `${totals.hoursSaved.toFixed(1)} h libérées sur la période, soit autant de capacité pour vos propres chantiers.`,
+      title: "Temps économisé par la sous-traitance",
+      detail: `${formatHours(totals.hoursSaved)} libérées sur la période, soit autant de capacité pour vos propres chantiers.`,
     });
   }
   return out;

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { SiteWebDashboard } from "@/components/pilot/SiteWebDashboard";
 
 export const Route = createFileRoute("/_authenticated/pilot/site-web")({
@@ -8,13 +8,12 @@ export const Route = createFileRoute("/_authenticated/pilot/site-web")({
       {
         name: "description",
         content:
-          "Vue de pilotage du site web : visibilité, SEO local, contenus, opportunités et actions.",
+          "Centre de pilotage du site web : SEO, audience, présence locale, concurrence, performance technique et GEO.",
       },
     ],
   }),
-  component: SiteWebPage,
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.site-web"),
+    "SiteWebPage",
+  ),
 });
-
-function SiteWebPage() {
-  return <SiteWebDashboard />;
-}

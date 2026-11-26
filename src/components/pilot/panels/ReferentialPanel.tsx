@@ -1,6 +1,7 @@
 // Centre de contrôle du référentiel client économique (Chantier critique 0).
 // Rapport d'audit + décisions humaines. Aucune migration automatique : chaque
 // changement de statut exige une justification et est journalisé.
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +25,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AlertTriangle, BadgeCheck, History, ShieldQuestion, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatEuro } from "@/lib/pilot";
@@ -86,12 +100,19 @@ export function ReferentialPanel() {
       .filter((r) => {
         if (filter === "contacts") return r.proposedStatus === "probable_contact";
         if (filter === "duplicates") return r.proposedStatus === "duplicate_candidate";
-        if (filter === "probable") return r.proposedStatus === "probable_client" && r.status !== "certified_client";
-        if (filter === "review") return r.status !== "certified_client" && r.proposedStatus === "manual_review_required";
+        if (filter === "probable")
+          return r.proposedStatus === "probable_client" && r.status !== "certified_client";
+        if (filter === "review")
+          return r.status !== "certified_client" && r.proposedStatus === "manual_review_required";
         if (filter === "certified") return r.status === "certified_client";
         return true;
       })
-      .filter((r) => !q || r.name.toLowerCase().includes(q) || (r.dominantDesignation ?? "").toLowerCase().includes(q))
+      .filter(
+        (r) =>
+          !q ||
+          r.name.toLowerCase().includes(q) ||
+          (r.dominantDesignation ?? "").toLowerCase().includes(q),
+      )
       .sort((a, b) => b.caTotal - a.caTotal)
       .slice(0, 200);
   }, [audit.data, filter, search]);
@@ -101,7 +122,9 @@ export function ReferentialPanel() {
 
   function openDecision(row: ReferentialRow) {
     setTarget(row);
-    setStatus(row.proposedStatus === "manual_review_required" ? "certified_client" : row.proposedStatus);
+    setStatus(
+      row.proposedStatus === "manual_review_required" ? "certified_client" : row.proposedStatus,
+    );
     setEntityName(row.suggestedEntityName ?? "");
     setReason("");
   }
@@ -113,15 +136,19 @@ export function ReferentialPanel() {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />
           <p className="text-muted-foreground">
             Une fiche « client » n'est pas automatiquement un client économique. Tant qu'une fiche
-            n'est pas <strong>certifiée</strong>, ses indicateurs stratégiques sont affichés comme non
-            fiables. Aucune fusion, aucun transfert de CA et aucune suppression d'historique n'est
-            effectué ici : seul le statut de référence change, avec justification et journal.
+            n'est pas <strong>certifiée</strong>, ses indicateurs stratégiques sont affichés comme
+            non fiables. Aucune fusion, aucun transfert de CA et aucune suppression d'historique
+            n'est effectué ici : seul le statut de référence change, avec justification et journal.
           </p>
         </CardContent>
       </Card>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={<Users className="h-4 w-4" />} label="Fiches analysées" value={t?.analysed ?? "—"} />
+        <StatCard
+          icon={<Users className="h-4 w-4" />}
+          label="Fiches analysées"
+          value={t?.analysed ?? "—"}
+        />
         <StatCard
           icon={<BadgeCheck className="h-4 w-4 text-emerald-600" />}
           label="Clients certifiés"
@@ -138,7 +165,11 @@ export function ReferentialPanel() {
           icon={<AlertTriangle className="h-4 w-4 text-amber-600" />}
           label="Doublons détectés"
           value={t?.duplicates ?? "—"}
-          hint={t ? `${formatEuro(t.caAtRisk)} et ${Math.round(t.hoursAtRisk)} h à identité incertaine` : undefined}
+          hint={
+            t
+              ? `${formatEuro(t.caAtRisk)} et ${Math.round(t.hoursAtRisk)} h à identité incertaine`
+              : undefined
+          }
         />
       </div>
 
@@ -184,9 +215,13 @@ export function ReferentialPanel() {
             />
           </div>
 
-          {audit.isLoading && <p className="text-sm text-muted-foreground">Audit du référentiel en cours…</p>}
+          {audit.isLoading && (
+            <p className="text-sm text-muted-foreground">Audit du référentiel en cours…</p>
+          )}
           {audit.error && (
-            <p className="text-sm text-destructive">Audit impossible : {(audit.error as Error).message}</p>
+            <p className="text-sm text-destructive">
+              Audit impossible : {(audit.error as Error).message}
+            </p>
           )}
 
           {audit.data && (
@@ -210,7 +245,8 @@ export function ReferentialPanel() {
                       <TableCell className="align-top">
                         <div className="font-medium">{r.name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {[r.civility, r.email, r.phone].filter(Boolean).join(" · ") || "Aucune coordonnée"}
+                          {[r.civility, r.email, r.phone].filter(Boolean).join(" · ") ||
+                            "Aucune coordonnée"}
                         </div>
                       </TableCell>
                       <TableCell className="align-top">
@@ -219,10 +255,15 @@ export function ReferentialPanel() {
                         </Badge>
                       </TableCell>
                       <TableCell className="align-top">
-                        <Badge variant="outline" className={ENTITY_STATUS_META[r.proposedStatus].badge}>
+                        <Badge
+                          variant="outline"
+                          className={ENTITY_STATUS_META[r.proposedStatus].badge}
+                        >
                           {ENTITY_STATUS_META[r.proposedStatus].short}
                         </Badge>
-                        <div className="mt-1 text-xs text-muted-foreground">confiance {r.confidence} %</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          confiance {r.confidence} %
+                        </div>
                       </TableCell>
                       <TableCell className="align-top text-sm">
                         {r.dominantDesignation ? (
@@ -241,7 +282,8 @@ export function ReferentialPanel() {
                         <div className="text-xs text-muted-foreground">{r.caLines} ligne(s)</div>
                       </TableCell>
                       <TableCell className="align-top text-right text-sm">
-                        {Math.round(r.hoursReal)} / {Math.round(r.hoursHistoric)} / {Math.round(r.hoursSold)} h
+                        {Math.round(r.hoursReal)} / {Math.round(r.hoursHistoric)} /{" "}
+                        {Math.round(r.hoursSold)} h
                       </TableCell>
                       <TableCell className="align-top">
                         <ul className="space-y-0.5 text-xs text-muted-foreground">
@@ -249,7 +291,9 @@ export function ReferentialPanel() {
                             <li key={s.code}>• {s.label}</li>
                           ))}
                           {r.attachmentWarnings.slice(0, 2).map((w) => (
-                            <li key={w} className="text-orange-700">⚠ {w}</li>
+                            <li key={w} className="text-orange-700">
+                              ⚠ {w}
+                            </li>
                           ))}
                         </ul>
                       </TableCell>
@@ -262,8 +306,12 @@ export function ReferentialPanel() {
                   ))}
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
-                        Aucune fiche dans ce filtre.
+                      <TableCell colSpan={8}>
+                        <EmptyState
+                          compact
+                          title="Aucune fiche dans ce filtre"
+                          description="Modifiez le filtre pour afficher d'autres fiches."
+                        />
                       </TableCell>
                     </TableRow>
                   )}
@@ -290,7 +338,8 @@ export function ReferentialPanel() {
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {new Date(e.created_at).toLocaleString("fr-FR")} · CA concerné{" "}
-                    {formatEuro(Number(e.ca_impacted) || 0)} · {Math.round(Number(e.hours_impacted) || 0)} h
+                    {formatEuro(Number(e.ca_impacted) || 0)} ·{" "}
+                    {Math.round(Number(e.hours_impacted) || 0)} h
                   </div>
                   {e.reason && <div className="mt-1 text-xs italic">« {e.reason} »</div>}
                 </li>
@@ -328,7 +377,9 @@ export function ReferentialPanel() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="mt-1 text-xs text-muted-foreground">{ENTITY_STATUS_META[status].hint}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {ENTITY_STATUS_META[status].hint}
+              </p>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">
@@ -342,7 +393,9 @@ export function ReferentialPanel() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Justification (obligatoire)</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                Justification (obligatoire)
+              </label>
               <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -365,7 +418,12 @@ export function ReferentialPanel() {
   );
 }
 
-function StatCard(props: { icon: React.ReactNode; label: string; value: React.ReactNode; hint?: string }) {
+function StatCard(props: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+}) {
   return (
     <Card>
       <CardContent className="space-y-1 py-4">

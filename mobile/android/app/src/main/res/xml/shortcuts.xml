@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="ca" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_ca" android:shortcutLongLabel="@string/sc_ca_long">
+        <intent android:action="android.intent.action.VIEW" android:data="pilotpro://open/pilot/ca" android:targetPackage="fr.delagraineaujardin.pp" android:targetClass="fr.delagraineaujardin.pp.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="clients" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_clients" android:shortcutLongLabel="@string/sc_clients_long">
+        <intent android:action="android.intent.action.VIEW" android:data="pilotpro://open/clients" android:targetPackage="fr.delagraineaujardin.pp" android:targetClass="fr.delagraineaujardin.pp.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="sst" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_sst" android:shortcutLongLabel="@string/sc_sst_long">
+        <intent android:action="android.intent.action.VIEW" android:data="pilotpro://open/pilot/calendrier" android:targetPackage="fr.delagraineaujardin.pp" android:targetClass="fr.delagraineaujardin.pp.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="newcr" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_cr" android:shortcutLongLabel="@string/sc_cr_long">
+        <intent android:action="android.intent.action.VIEW" android:data="pilotpro://open/interventions/new" android:targetPackage="fr.delagraineaujardin.pp" android:targetClass="fr.delagraineaujardin.pp.MainActivity" />
+    </shortcut>
+</shortcuts>

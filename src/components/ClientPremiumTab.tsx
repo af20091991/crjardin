@@ -1,0 +1,1131 @@
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { getClient } from "@/lib/clients";
+import { ClientCompletenessCard } from "@/components/clients/ClientCompletenessCard";
+import { Link } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  Crown,
+  CalendarDays,
+  Upload,
+  Trash2,
+  Download,
+  Eye,
+  EyeOff,
+  ImageIcon,
+  Loader2,
+  LayoutDashboard,
+  Pencil,
+  RefreshCw,
+  User,
+  ArrowLeft,
+  FileText,
+  Star,
+  type LucideIcon,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { FilePicker } from "@/components/FilePicker";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { ViewDocumentButton } from "@/components/PdfViewerDialog";
+import { Label } from "@/components/ui/label";
+import {
+  getClientPremium,
+  setClientPremiumEnabled,
+  updateClientPremium,
+  releaseCoverDocument,
+  renamePremiumDocument,
+  replacePremiumDocumentFile,
+  listPremiumDocuments,
+  uploadPremiumDocument,
+  updatePremiumDocumentVisibility,
+  deletePremiumDocument,
+  signedPremiumDocumentUrl,
+  listClientPhotosForCover,
+  imageDocuments,
+  listPremiumWorkCalendar,
+  replacePremiumWorkCalendar,
+  type PremiumDocument,
+} from "@/lib/client-premium";
+import { signedPhotoUrl } from "@/lib/interventions";
+import { parsePlanning } from "@/lib/file-parser";
+import { detectAndImportWorkCalendar } from "@/lib/premium-calendar-detect";
+import { planningRowsToCalendarItems } from "@/lib/premium-planning-items";
+import { getCeevPlanningUrlByClientId } from "@/lib/client-portal.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+type PremiumSection = "cover" | "calendar" | "documents" | "note";
+
+function NotePanel({
+  commercialNote,
+  setCommercialNote,
+  googleReviewUrl,
+  setGoogleReviewUrl,
+  canEdit,
+  onSave,
+  saving,
+}: {
+  commercialNote: string;
+  setCommercialNote: (v: string) => void;
+  googleReviewUrl: string;
+  setGoogleReviewUrl: (v: string) => void;
+  canEdit: boolean;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-3 pt-6">
+        <div>
+          <Label htmlFor="commercial-note">Note commerciale (visible du client)</Label>
+          <Textarea
+            id="commercial-note"
+            value={commercialNote}
+            disabled={!canEdit}
+            onChange={(e) => setCommercialNote(e.target.value)}
+            placeholder="Message libre affiché dans l'espace client"
+            rows={2}
+            className="mt-1.5"
+          />
+        </div>
+        <div>
+          <Label htmlFor="google-review">Lien avis Google</Label>
+          <Input
+            id="google-review"
+            value={googleReviewUrl}
+            disabled={!canEdit}
+            onChange={(e) => setGoogleReviewUrl(e.target.value)}
+            placeholder="https://g.page/r/..."
+            className="mt-1.5"
+          />
+        </div>
+        <Button type="button" size="sm" disabled={!canEdit || saving} onClick={onSave}>
+          Enregistrer
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FeatureTile({
+  icon: Icon,
+  title,
+  detail,
+  onOpen,
+}: {
+  icon: LucideIcon;
+  title: string;
+  detail: string;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex items-start gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+    >
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+      <div className="min-w-0">
+        <p className="font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{detail}</p>
+      </div>
+    </button>
+  );
+}
+
+export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
+  const qc = useQueryClient();
+
+  const { data: client } = useQuery({
+    queryKey: ["client", clientId],
+    queryFn: () => getClient(clientId),
+  });
+  const { data: premium, isLoading } = useQuery({
+    queryKey: ["client-premium", clientId],
+    queryFn: () => getClientPremium(clientId),
+  });
+  const { data: documents } = useQuery({
+    queryKey: ["client-premium-documents", clientId],
+    queryFn: () => listPremiumDocuments(clientId),
+  });
+  const { data: workCalendar } = useQuery({
+    queryKey: ["client-premium-work-calendar", clientId],
+    queryFn: () => listPremiumWorkCalendar(clientId),
+  });
+
+  const [section, setSection] = useState<PremiumSection | null>(null);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
+  const [commercialNote, setCommercialNote] = useState("");
+  const [initialized, setInitialized] = useState(false);
+  if (premium && !initialized) {
+    setGoogleReviewUrl(premium.google_review_url ?? "");
+    setCommercialNote(premium.commercial_note ?? "");
+    setInitialized(true);
+  }
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+
+  const importExistingPlanning = async () => {
+    const existingPlanning = (documents ?? []).find(
+      (doc) =>
+        doc.title.toLowerCase() === "calendrier travaux" ||
+        /calendrier|planning/.test(doc.filename.toLowerCase()),
+    );
+    if (existingPlanning && (workCalendar?.length ?? 0) > 0) return true;
+
+    let file: File | null = null;
+    if (existingPlanning) {
+      const signedUrl = await signedPremiumDocumentUrl(existingPlanning.storage_path);
+      const response = await fetch(signedUrl);
+      if (!response.ok) throw new Error("Impossible de télécharger le PDF du calendrier Premium.");
+      const blob = await response.blob();
+      file = new File([blob], existingPlanning.filename, { type: "application/pdf" });
+    } else {
+      try {
+        const source = await getCeevPlanningUrlByClientId({ data: { clientId } });
+        const response = await fetch(source.url);
+        if (!response.ok) {
+          throw new Error("Impossible de télécharger le PDF du calendrier client.");
+        }
+        const blob = await response.blob();
+        file = new File([blob], source.filename, { type: "application/pdf" });
+      } catch (error) {
+        if (error instanceof Error && error.message === "Aucun calendrier disponible") return false;
+        throw error;
+      }
+    }
+
+    if (!file) throw new Error("Impossible de récupérer le PDF du calendrier travaux.");
+
+    const rows = await parsePlanning(file);
+    if (rows.length === 0) {
+      throw new Error("Le PDF du calendrier client ne contient aucune intervention exploitable.");
+    }
+
+    const items = planningRowsToCalendarItems(rows);
+
+    const document = existingPlanning
+      ? existingPlanning
+      : await uploadPremiumDocument(clientId, file, "Calendrier travaux");
+    await replacePremiumWorkCalendar(clientId, document.id, items, "pdf");
+    return true;
+  };
+
+  const calendarSyncAttempted = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !canEdit ||
+      !premium?.enabled ||
+      documents === undefined ||
+      workCalendar === undefined ||
+      calendarSyncAttempted.current === clientId ||
+      workCalendar.length > 0
+    ) {
+      return;
+    }
+
+    calendarSyncAttempted.current = clientId;
+    importExistingPlanning()
+      .then((imported) => {
+        if (!imported) return;
+        qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+        toast.success("Calendrier travaux synchronisé depuis la fiche client.");
+      })
+      .catch((error) => {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Impossible de synchroniser le calendrier travaux.",
+        );
+      });
+  }, [canEdit, premium?.enabled, documents, workCalendar, clientId, importExistingPlanning]);
+
+  // Un planning ajouté depuis un autre écran (ex. dashboard) après le dernier import est
+  // détecté ici à l'ouverture de la fiche et fusionné par année avec le calendrier existant.
+  const resyncedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!canEdit || !premium?.enabled || !documents || !workCalendar || workCalendar.length === 0)
+      return;
+    if (resyncedFor.current === clientId) return;
+    const lastImport = workCalendar.reduce((max, item) => {
+      const at = item.created_at ?? "";
+      return at > max ? at : max;
+    }, "");
+    if (!lastImport) return;
+    const fresh = documents
+      .filter(
+        (doc) =>
+          doc.created_at > lastImport &&
+          doc.uploaded_by === "gardener" &&
+          /\.pdf$/i.test(doc.filename) &&
+          /calendrier|planning/i.test(`${doc.title} ${doc.filename}`),
+      )
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+    if (fresh.length === 0) return;
+    resyncedFor.current = clientId;
+    void (async () => {
+      let total = 0;
+      for (const doc of fresh) {
+        try {
+          const response = await fetch(await signedPremiumDocumentUrl(doc.storage_path));
+          if (!response.ok) continue;
+          const file = new File([await response.blob()], doc.filename, {
+            type: "application/pdf",
+          });
+          total = await detectAndImportWorkCalendar(clientId, file, doc);
+        } catch {
+          /* document illisible : ignoré */
+        }
+      }
+      if (total > 0) {
+        toast.success("Nouveau planning détecté et ajouté au calendrier travaux.");
+        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+      }
+    })();
+  }, [canEdit, premium?.enabled, documents, workCalendar, clientId, qc]);
+
+  const [activationOpen, setActivationOpen] = useState(false);
+  const [activationFile, setActivationFile] = useState<File | null>(null);
+
+  const activatePremium = useMutation({
+    mutationFn: async (useClientPlanning: boolean) => {
+      let file = activationFile;
+      if (useClientPlanning) {
+        const source = await getCeevPlanningUrlByClientId({ data: { clientId } });
+        const response = await fetch(source.url);
+        if (!response.ok) throw new Error("Impossible de télécharger le PDF de la fiche client.");
+        file = new File([await response.blob()], source.filename, { type: "application/pdf" });
+      }
+      if (!file) throw new Error("Choisissez le PDF du calendrier travaux.");
+      if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
+        throw new Error("Le calendrier travaux doit être fourni au format PDF.");
+      }
+      const rows = await parsePlanning(file);
+      if (rows.length === 0) {
+        throw new Error("Aucune intervention exploitable n'a été trouvée dans ce PDF.");
+      }
+      await setClientPremiumEnabled(clientId, true);
+      const document = await uploadPremiumDocument(clientId, file, "Calendrier travaux");
+      await replacePremiumWorkCalendar(
+        clientId,
+        document.id,
+        planningRowsToCalendarItems(rows),
+        "pdf",
+      );
+      return rows.length;
+    },
+    onSuccess: (count) => {
+      toast.success(`Espace Premium activé : ${count} interventions importées depuis le PDF.`);
+      setActivationOpen(false);
+      setActivationFile(null);
+      qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+      qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Activation impossible"),
+  });
+
+  const deactivatePremium = useMutation({
+    mutationFn: () => setClientPremiumEnabled(clientId, false),
+    onSuccess: () => {
+      toast.success("Espace Premium désactivé");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const saveFields = useMutation({
+    mutationFn: () =>
+      updateClientPremium(clientId, {
+        google_review_url: googleReviewUrl || null,
+        commercial_note: commercialNote || null,
+      }),
+    onSuccess: () => {
+      toast.success("Enregistré");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  if (isLoading) {
+    return (
+      <Card className="mt-3">
+        <CardContent className="flex items-center justify-center py-10">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-4">
+      {client && (
+        <ClientCompletenessCard
+          client={client}
+          scope="premium"
+          onEdit={() => undefined}
+          onGestion={() => undefined}
+          onPremium={(next) => setSection(next)}
+        />
+      )}
+
+      <Card>
+        <CardContent className="flex items-center justify-between gap-3 pt-6">
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-primary" />
+            <div>
+              <p className="font-medium">Espace Premium</p>
+              <p className="text-xs text-muted-foreground">
+                Active un espace enrichi pour ce client (état du jardin, documents, messagerie).
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={premium?.enabled ?? false}
+            disabled={!canEdit || deactivatePremium.isPending}
+            onCheckedChange={(v) => (v ? setActivationOpen(true) : deactivatePremium.mutate())}
+          />
+        </CardContent>
+      </Card>
+
+      {premium?.enabled && (
+        <Button asChild variant="outline" className="w-full">
+          <Link to="/clients/premium-dashboard/$clientId" params={{ clientId }}>
+            <LayoutDashboard className="mr-1.5 h-4 w-4" />
+            Dashboard
+          </Link>
+        </Button>
+      )}
+
+      <Dialog
+        open={activationOpen}
+        onOpenChange={(open) => !activatePremium.isPending && setActivationOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Activer l'espace Premium</DialogTitle>
+            <DialogDescription>
+              Fournissez le PDF du calendrier travaux : il sera classé dans Documents, converti en
+              planning et alimentera « Prochaine intervention » sur l'accueil du client.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="activation-pdf">Calendrier travaux (PDF)</Label>
+            <FilePicker
+              id="activation-pdf"
+              accept="application/pdf,.pdf"
+              fileName={activationFile?.name}
+              label="Choisir le PDF"
+              onFile={setActivationFile}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              disabled={activatePremium.isPending}
+              onClick={() => activatePremium.mutate(true)}
+            >
+              Utiliser le PDF de la fiche client
+            </Button>
+            <Button
+              disabled={!activationFile || activatePremium.isPending}
+              onClick={() => activatePremium.mutate(false)}
+            >
+              {activatePremium.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Activer et importer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {premium?.enabled && workCalendar !== undefined && workCalendar.length === 0 && (
+        <Card className="border-accent bg-accent/10">
+          <CardContent className="pt-6 text-sm">
+            Aucun calendrier travaux n'est encore importé. Importez le PDF dans l'onglet Calendrier
+            de cette fiche : il sera copié dans Documents et converti ici automatiquement ; l'encart
+            « Prochaine intervention » sera alimenté.
+          </CardContent>
+        </Card>
+      )}
+
+      {section === null ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FeatureTile
+            icon={ImageIcon}
+            title="Photo de couverture"
+            detail={
+              premium?.cover_photo_id || premium?.cover_document_id
+                ? "Couverture définie"
+                : "Aucune couverture"
+            }
+            onOpen={() => setSection("cover")}
+          />
+          <FeatureTile
+            icon={CalendarDays}
+            title="Calendrier travaux"
+            detail={`${workCalendar?.length ?? 0} intervention(s) au calendrier`}
+            onOpen={() => setSection("calendar")}
+          />
+          <FeatureTile
+            icon={FileText}
+            title="Photos et documents"
+            detail={`${documents?.length ?? 0} document(s)`}
+            onOpen={() => setSection("documents")}
+          />
+          <FeatureTile
+            icon={Star}
+            title="Note et avis Google"
+            detail={commercialNote || googleReviewUrl ? "Renseignés" : "À renseigner"}
+            onOpen={() => setSection("note")}
+          />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setSection(null)}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Retour aux fonctionnalités
+          </Button>
+          {section === "cover" && (
+            <CoverPhotoPicker
+              clientId={clientId}
+              canEdit={canEdit}
+              currentPhotoId={premium?.cover_photo_id ?? null}
+              currentDocumentId={premium?.cover_document_id ?? null}
+              coverSetBy={premium?.cover_set_by ?? null}
+              coverSetAt={premium?.cover_set_at ?? null}
+              documents={documents ?? []}
+              onSelected={invalidate}
+            />
+          )}
+          {section === "calendar" && (
+            <PremiumWorkCalendarCard
+              clientId={clientId}
+              documents={documents ?? []}
+              workCalendar={workCalendar ?? []}
+              canEdit={canEdit}
+              onUpdated={() => {
+                qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+                qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+              }}
+            />
+          )}
+          {section === "documents" && (
+            <PremiumDocumentsCard
+              clientId={clientId}
+              documents={documents ?? []}
+              canEdit={canEdit}
+            />
+          )}
+          {section === "note" && (
+            <NotePanel
+              commercialNote={commercialNote}
+              setCommercialNote={setCommercialNote}
+              googleReviewUrl={googleReviewUrl}
+              setGoogleReviewUrl={setGoogleReviewUrl}
+              canEdit={canEdit}
+              onSave={() => saveFields.mutate()}
+              saving={saveFields.isPending}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CoverPhotoPicker({
+  clientId,
+  currentPhotoId,
+  currentDocumentId,
+  coverSetBy,
+  coverSetAt,
+  documents,
+  canEdit,
+  onSelected,
+}: {
+  clientId: string;
+  currentPhotoId: string | null;
+  currentDocumentId: string | null;
+  coverSetBy: "client" | "gardener" | null;
+  coverSetAt: string | null;
+  documents: PremiumDocument[];
+  canEdit: boolean;
+  onSelected: () => void;
+}) {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const images = imageDocuments(documents);
+  const hasCover = Boolean(currentPhotoId || currentDocumentId);
+  const chosenByClient = hasCover && coverSetBy === "client";
+  // Si le client a choisi sa couverture, on ne la remplace qu'après confirmation.
+  const confirmReplace = () => {
+    if (!chosenByClient) return true;
+    const when = coverSetAt ? ` le ${new Date(coverSetAt).toLocaleDateString("fr-FR")}` : "";
+    return window.confirm(
+      `Le client a choisi cette photo de couverture${when}. La remplacer par la vôtre ?`,
+    );
+  };
+
+  const { data: photos } = useQuery({
+    queryKey: ["client-premium-cover-options", clientId],
+    queryFn: () => listClientPhotosForCover(clientId),
+  });
+  const { data: urls } = useQuery({
+    queryKey: ["client-premium-cover-urls", clientId, photos?.map((p) => p.id).join(",")],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        (photos ?? []).map(async (p) => [p.id, await signedPhotoUrl(p.storage_path)] as const),
+      );
+      return Object.fromEntries(entries);
+    },
+    enabled: (photos?.length ?? 0) > 0,
+  });
+  const { data: docUrls } = useQuery({
+    queryKey: ["client-premium-cover-doc-urls", clientId, images.map((d) => d.id).join(",")],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        images.map(async (d) => [d.id, await signedPremiumDocumentUrl(d.storage_path)] as const),
+      );
+      return Object.fromEntries(entries);
+    },
+    enabled: images.length > 0,
+  });
+
+  const done = () => {
+    toast.success("Photo de couverture mise à jour");
+    qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+    qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+    onSelected();
+  };
+  const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Erreur");
+
+  // Ancien fichier de couverture (envoyé depuis PP) supprimé quand il est remplacé.
+  const releasePrevious = (newDocId: string | null) =>
+    currentDocumentId && currentDocumentId !== newDocId
+      ? releaseCoverDocument(currentDocumentId)
+      : Promise.resolve();
+
+  const selectPhoto = useMutation({
+    mutationFn: async (photoId: string) => {
+      await updateClientPremium(clientId, {
+        cover_photo_id: photoId,
+        cover_document_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      });
+      await releasePrevious(null);
+    },
+    onSuccess: done,
+    onError,
+  });
+  const selectDocument = useMutation({
+    mutationFn: async (docId: string) => {
+      await updateClientPremium(clientId, {
+        cover_document_id: docId,
+        cover_photo_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      });
+      await releasePrevious(docId);
+    },
+    onSuccess: done,
+    onError,
+  });
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const doc = await uploadPremiumDocument(clientId, file, "Photo de couverture", {
+        coverOnly: true,
+      });
+      await updateClientPremium(clientId, {
+        cover_document_id: doc.id,
+        cover_photo_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      });
+      await releasePrevious(doc.id);
+    },
+    onSuccess: done,
+    onError,
+  });
+
+  const busy = selectPhoto.isPending || selectDocument.isPending || upload.isPending;
+
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez choisir une image");
+      return;
+    }
+    if (!confirmReplace()) return;
+    upload.mutate(file);
+  };
+
+  const tile = (key: string, src: string | undefined, selected: boolean, onClick: () => void) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onClick}
+      disabled={!canEdit || busy}
+      className={`aspect-square overflow-hidden rounded-lg border-2 ${
+        selected ? "border-primary" : "border-transparent"
+      }`}
+    >
+      {src ? (
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div className="h-full w-full animate-pulse bg-muted" />
+      )}
+    </button>
+  );
+
+  const photoList = photos ?? [];
+  const hasAny = images.length > 0 || photoList.length > 0;
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <p className="font-medium">Photo de couverture</p>
+          </div>
+          {hasCover && (
+            <p className="text-xs text-muted-foreground">
+              {chosenByClient
+                ? `Choisie par le client${coverSetAt ? ` le ${new Date(coverSetAt).toLocaleDateString("fr-FR")}` : ""}`
+                : "Choisie par vous"}
+            </p>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!canEdit || busy}
+            onClick={() => fileRef.current?.click()}
+          >
+            {upload.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            Importer depuis mon PC
+          </Button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+        </div>
+
+        {images.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Documents et photos
+            </p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {images.map((d) =>
+                tile(d.id, docUrls?.[d.id], currentDocumentId === d.id, () => {
+                  if (confirmReplace()) selectDocument.mutate(d.id);
+                }),
+              )}
+            </div>
+          </div>
+        )}
+
+        {photoList.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              CR chantier
+            </p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {photoList.map((p) =>
+                tile(p.id, urls?.[p.id], currentPhotoId === p.id, () => {
+                  if (confirmReplace()) selectPhoto.mutate(p.id);
+                }),
+              )}
+            </div>
+          </div>
+        )}
+
+        {!hasAny && (
+          <p className="text-sm text-muted-foreground">
+            Aucune photo disponible. Importez une photo depuis votre PC.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PremiumWorkCalendarCard({
+  clientId,
+  documents,
+  workCalendar,
+  canEdit,
+  onUpdated,
+}: {
+  clientId: string;
+  documents: PremiumDocument[];
+  workCalendar: Awaited<ReturnType<typeof listPremiumWorkCalendar>>;
+  canEdit: boolean;
+  onUpdated: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const planningDocument = documents.find(
+    (doc) =>
+      doc.title.toLowerCase() === "calendrier travaux" ||
+      /calendrier|planning/.test(doc.filename.toLowerCase()),
+  );
+
+  const importCalendar = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
+      toast.error("Le calendrier travaux doit être fourni au format PDF.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const rows = await parsePlanning(file);
+      if (rows.length === 0)
+        throw new Error("Aucune intervention exploitable n'a été trouvée dans ce PDF.");
+      const items = planningRowsToCalendarItems(rows);
+      const document = await uploadPremiumDocument(clientId, file, "Calendrier travaux");
+      await replacePremiumWorkCalendar(clientId, document.id, items, "pdf");
+      toast.success("Calendrier travaux importé depuis le PDF.");
+      onUpdated();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible d'importer le calendrier.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card
+      className={
+        planningDocument && workCalendar.length > 0 ? "" : "border-primary/40 bg-primary/5"
+      }
+    >
+      <CardContent className="space-y-4 pt-6">
+        <div className="flex items-start gap-3">
+          <CalendarDays className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">Calendrier travaux</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Le PDF source est conservé dans Documents et son contenu est repris dans l'onglet «
+              Calendrier travaux » du Compte Premium.
+            </p>
+          </div>
+        </div>
+
+        {planningDocument ? (
+          <div className="rounded-lg border bg-background p-3 text-sm">
+            <p className="font-medium truncate">{planningDocument.filename}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {workCalendar.length} passage{workCalendar.length > 1 ? "s" : ""} structuré
+              {workCalendar.length > 1 ? "s" : ""}.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed bg-background p-5">
+            <p className="font-medium">Le calendrier travaux n'est pas encore associé.</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Importez le PDF du calendrier d'entretien à la création du Compte Premium. Il sera
+              automatiquement ajouté aux Documents et transformé en liste de prochaines
+              interventions.
+            </p>
+          </div>
+        )}
+
+        <Button
+          type="button"
+          variant={planningDocument ? "outline" : "default"}
+          disabled={!canEdit || busy}
+          asChild
+        >
+          <label className="cursor-pointer">
+            {busy ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 size-4" />
+            )}
+            {busy
+              ? "Analyse du calendrier…"
+              : planningDocument
+                ? "Remplacer le calendrier PDF"
+                : "Importer le calendrier PDF"}
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={importCalendar}
+              disabled={!canEdit || busy}
+            />
+          </label>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+const UPLOADER_LABEL: Record<PremiumDocument["uploaded_by"], string> = {
+  gardener: "Vous",
+  client: "Client",
+};
+
+function PremiumDocumentsCard({
+  clientId,
+  documents,
+  canEdit,
+}: {
+  clientId: string;
+  documents: PremiumDocument[];
+  canEdit: boolean;
+}) {
+  const qc = useQueryClient();
+  const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+
+  const upload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const added = await uploadPremiumDocument(clientId, file, title || file.name);
+      setTitle("");
+      invalidate();
+      toast.success("Document ajouté");
+      const detected = await detectAndImportWorkCalendar(clientId, file, added).catch(() => 0);
+      if (detected > 0) {
+        toast.success(`Calendrier de travaux détecté : ${detected} interventions importées.`);
+        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Échec de l'envoi");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleVisibility = useMutation({
+    mutationFn: ({ id, visible }: { id: string; visible: boolean }) =>
+      updatePremiumDocumentVisibility(id, visible),
+    onSuccess: invalidate,
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replacingDocId, setReplacingDocId] = useState<string | null>(null);
+
+  const rename = useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => renamePremiumDocument(id, title),
+    onSuccess: () => {
+      setEditingDocId(null);
+      toast.success("Document renommé");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const replace = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) =>
+      replacePremiumDocumentFile(id, clientId, file),
+    onSuccess: () => {
+      toast.success("Fichier remplacé");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+    onSettled: () => setReplacingDocId(null),
+  });
+
+  const saveRename = (doc: PremiumDocument) => {
+    const title = draftTitle.trim();
+    if (!title || title === doc.title) {
+      setEditingDocId(null);
+      return;
+    }
+    rename.mutate({ id: doc.id, title });
+  };
+
+  const remove = useMutation({
+    mutationFn: ({ id, storagePath }: { id: string; storagePath: string }) =>
+      deletePremiumDocument(id, storagePath),
+    onSuccess: () => {
+      toast.success("Document supprimé");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const download = async (doc: PremiumDocument) => {
+    try {
+      const url = await signedPremiumDocumentUrl(doc.storage_path);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Document indisponible");
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <p className="mb-3 font-medium">Documents</p>
+        <div className="mb-3 flex gap-2">
+          <Input
+            value={title}
+            disabled={!canEdit}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Titre du document"
+          />
+          <Button type="button" variant="outline" disabled={!canEdit || busy} asChild>
+            <label className="cursor-pointer">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              <input type="file" className="hidden" onChange={upload} disabled={!canEdit || busy} />
+            </label>
+          </Button>
+        </div>
+
+        <input
+          ref={replaceInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file && replacingDocId) replace.mutate({ id: replacingDocId, file });
+            else setReplacingDocId(null);
+          }}
+        />
+        {documents.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun document pour le moment.</p>
+        ) : (
+          <div className="space-y-2">
+            {documents.map((doc) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between gap-2 rounded-lg border p-2.5"
+              >
+                <div className="min-w-0 flex-1">
+                  {editingDocId === doc.id ? (
+                    <Input
+                      autoFocus
+                      value={draftTitle}
+                      aria-label="Titre du document"
+                      disabled={rename.isPending}
+                      onChange={(e) => setDraftTitle(e.target.value)}
+                      onBlur={() => saveRename(doc)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setEditingDocId(null);
+                      }}
+                      className="h-8 text-sm"
+                    />
+                  ) : (
+                    <p className="truncate text-sm font-medium">{doc.title}</p>
+                  )}
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <Badge variant="outline" className="gap-1 text-[10px]">
+                      <User className="h-3 w-3" /> {UPLOADER_LABEL[doc.uploaded_by]}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Renommer"
+                    disabled={!canEdit || rename.isPending}
+                    onClick={() => {
+                      setDraftTitle(doc.title);
+                      setEditingDocId(doc.id);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remplacer le fichier"
+                    disabled={!canEdit || replace.isPending}
+                    onClick={() => {
+                      setReplacingDocId(doc.id);
+                      replaceInputRef.current?.click();
+                    }}
+                  >
+                    {replacingDocId === doc.id && replace.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={doc.visible_to_client ? "Masquer au client" : "Rendre visible"}
+                    disabled={!canEdit || toggleVisibility.isPending}
+                    onClick={() =>
+                      toggleVisibility.mutate({ id: doc.id, visible: !doc.visible_to_client })
+                    }
+                  >
+                    {doc.visible_to_client ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                  <ViewDocumentButton
+                    title={doc.title}
+                    getUrl={() => signedPremiumDocumentUrl(doc.storage_path)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Télécharger"
+                    onClick={() => download(doc)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    aria-label="Supprimer"
+                    disabled={!canEdit || remove.isPending}
+                    onClick={() => remove.mutate({ id: doc.id, storagePath: doc.storage_path })}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

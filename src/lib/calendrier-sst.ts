@@ -1,0 +1,169 @@
+import { supabase } from "@/integrations/supabase/client";
+import { signalSstCalendarWrite } from "@/lib/sst-calendar-changes";
+
+// La table de disponibilités SST est restaurée par migration mais n’est pas encore dans les types générés de main.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sstFrom = (table: string) => (supabase.from as any)(table);
+
+/**
+ * Calendrier SST — calendrier partagé des disponibilités des utilisateurs.
+ * Une seule notion : « disponible » un jour donné, avec commentaire facultatif.
+ */
+export interface SstAvailabilityEntry {
+  id: string;
+  user_id: string;
+  date: string;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SstAvailabilityWithUser extends SstAvailabilityEntry {
+  userLabel: string;
+}
+
+/** Numéro de semaine ISO 8601 (présentation seule). */
+export function isoWeekNumber(date: Date): number {
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = (target.getDay() + 6) % 7;
+  target.setDate(target.getDate() - day + 3);
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const firstDay = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - firstDay + 3);
+  return 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 24 * 3600 * 1000));
+}
+
+export async function getCurrentSstLabel(userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("display_name, company_name")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.display_name?.trim() || data?.company_name?.trim() || "Utilisateur PP";
+}
+
+export function isoDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function monthWindow(year: number, month: number): { start: string; end: string } {
+  return {
+    start: isoDate(new Date(year, month, 1)),
+    end: isoDate(new Date(year, month + 1, 0)),
+  };
+}
+
+/** Grille mensuelle complète (lundi → dimanche). */
+export function monthGridDates(year: number, month: number): Date[] {
+  const first = new Date(year, month, 1);
+  const offset = (first.getDay() + 6) % 7;
+  const start = new Date(year, month, 1 - offset);
+  const dates: Date[] = [];
+  for (let i = 0; i < 42; i += 1) {
+    dates.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+  }
+  return dates;
+}
+
+export function groupByDate(
+  entries: SstAvailabilityWithUser[],
+): Map<string, SstAvailabilityWithUser[]> {
+  const map = new Map<string, SstAvailabilityWithUser[]>();
+  for (const entry of entries) {
+    const list = map.get(entry.date) ?? [];
+    list.push(entry);
+    map.set(entry.date, list);
+  }
+  for (const list of map.values()) {
+    list.sort((a, b) => a.userLabel.localeCompare(b.userLabel, "fr"));
+  }
+  return map;
+}
+
+type RpcResult = { data: unknown; error: Error | null };
+const rpcMemberLabels = (args: { p_ids: string[] }) =>
+  (supabase.rpc as unknown as (fn: string, a: object) => Promise<RpcResult>)(
+    "sst_member_labels",
+    args,
+  );
+
+async function addUserLabels(rows: SstAvailabilityEntry[]): Promise<SstAvailabilityWithUser[]> {
+  const ids = Array.from(new Set(rows.map((row) => row.user_id)));
+  const labels = new Map<string, string>();
+  if (ids.length > 0) {
+    // Fonction dédiée : les profils bruts ne sont lisibles que par leur propriétaire.
+    const { data, error } = await rpcMemberLabels({ p_ids: ids });
+    if (error) throw error;
+    for (const row of (data ?? []) as Array<{ id: string; label: string | null }>) {
+      if (row.label?.trim()) labels.set(row.id, row.label.trim());
+    }
+  }
+  return rows.map((row) => ({
+    ...row,
+    userLabel: labels.get(row.user_id) ?? "Utilisateur PP",
+  }));
+}
+
+export async function listAvailabilities(
+  start: string,
+  end: string,
+): Promise<SstAvailabilityWithUser[]> {
+  const { data, error } = await supabase
+    .from("sst_availability_calendar")
+    .select("*")
+    .gte("date", start)
+    .lte("date", end)
+    .order("date", { ascending: true });
+  if (error) throw error;
+  const rows = (data ?? []) as SstAvailabilityEntry[];
+  return addUserLabels(rows);
+}
+
+/** Dernières déclarations réellement ajoutées ou modifiées, toutes dates confondues. */
+export async function listRecentAvailabilities(limit = 5): Promise<SstAvailabilityWithUser[]> {
+  const { data, error } = await supabase
+    .from("sst_availability_calendar")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return addUserLabels((data ?? []) as SstAvailabilityEntry[]);
+}
+
+export async function declareAvailability(date: string, comment: string | null) {
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  if (!auth.user) throw new Error("Compte non authentifié.");
+  if (!auth.user.email?.trim()) {
+    throw new Error(
+      "Votre compte SST ne dispose pas d'adresse e-mail. Faites renseigner l'adresse e-mail du compte avant d'ajouter une disponibilité au calendrier SST.",
+    );
+  }
+
+  const value = comment?.trim() ? comment.trim() : null;
+  const { error } = await supabase
+    .from("sst_availability_calendar")
+    .upsert({ date, comment: value }, { onConflict: "user_id,date" });
+  if (error) throw error;
+  signalSstCalendarWrite();
+}
+
+export async function updateAvailabilityComment(id: string, comment: string | null) {
+  const value = comment?.trim() ? comment.trim() : null;
+  const { error } = await supabase
+    .from("sst_availability_calendar")
+    .update({ comment: value })
+    .eq("id", id);
+  if (error) throw error;
+  signalSstCalendarWrite();
+}
+
+export async function removeAvailability(id: string) {
+  const { error } = await sstFrom("sst_availability_calendar").delete().eq("id", id);
+  if (error) throw error;
+  signalSstCalendarWrite();
+}

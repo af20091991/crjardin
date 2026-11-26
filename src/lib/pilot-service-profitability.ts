@@ -9,6 +9,7 @@ import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import { canonicalPrestation, PRESTATIONS } from "@/lib/pilot-ca-designation";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
+import { formatHourlyRate, formatHours } from "@/lib/format-utils";
 
 export type ServiceClass = "rentable" | "faible" | "strategique" | "non_classe";
 
@@ -140,11 +141,11 @@ export function analyzeServices(params: {
         classe = share >= 0.2 || v.clients.size >= 10 ? "strategique" : "rentable";
         why =
           classe === "strategique"
-            ? `Taux ${taux.toFixed(0)} €/h ≥ cible et ${(share * 100).toFixed(0)} % du CA de l'exercice ${year} sur ${v.clients.size} clients : prestation structurante.`
-            : `Taux ${taux.toFixed(0)} €/h au-dessus de la cible (${targetHourlyRate} €/h) sur ${v.lignes} lignes.`;
+            ? `Taux ${formatHourlyRate(taux)} ≥ cible et ${(share * 100).toFixed(0)} % du CA de l'exercice ${year} sur ${v.clients.size} clients : prestation structurante.`
+            : `Taux ${formatHourlyRate(taux)} au-dessus de la cible (${targetHourlyRate} €/h) sur ${v.lignes} lignes.`;
       } else {
         classe = "faible";
-        why = `Taux ${taux.toFixed(0)} €/h sous la cible (${targetHourlyRate} €/h) sur ${hours.toFixed(0)} h vendues.`;
+        why = `Taux ${formatHourlyRate(taux)} sous la cible (${targetHourlyRate} €/h) sur ${formatHours(hours)} vendues.`;
       }
     }
 

@@ -15,15 +15,13 @@ export type DecisionPriority = "critique" | "elevee" | "moyenne" | "faible";
 
 export type DecisionCategory = "action" | "opportunite" | "risque" | "donnee";
 
-export const DECISION_CATEGORY_META: Record<
-  DecisionCategory,
-  { label: string; question: string }
-> = {
-  action: { label: "Priorités", question: "Que dois-je faire aujourd'hui ?" },
-  opportunite: { label: "Opportunités", question: "Où puis-je gagner du chiffre d'affaires ?" },
-  risque: { label: "Risques", question: "Qu'est-ce qui menace mon entreprise ?" },
-  donnee: { label: "Corrections", question: "Quelles données dois-je fiabiliser ?" },
-};
+export const DECISION_CATEGORY_META: Record<DecisionCategory, { label: string; question: string }> =
+  {
+    action: { label: "Priorités", question: "Que dois-je faire aujourd'hui ?" },
+    opportunite: { label: "Opportunités", question: "Où puis-je gagner du chiffre d'affaires ?" },
+    risque: { label: "Risques", question: "Qu'est-ce qui menace mon entreprise ?" },
+    donnee: { label: "Corrections", question: "Quelles données dois-je fiabiliser ?" },
+  };
 
 export const DECISION_PRIORITY_META: Record<
   DecisionPriority,
@@ -113,8 +111,7 @@ export function buildDecisions(input: {
 
   // 2 — Opportunités commerciales (relance, renouvellement CEEV, développement).
   for (const o of input.opportunities) {
-    const weight =
-      o.category === "renouvellement" ? 85 : o.category === "relance" ? 65 : 40;
+    const weight = o.category === "renouvellement" ? 85 : o.category === "relance" ? 65 : 40;
     all.push({
       key: `decision:${o.key}`,
       title:
@@ -141,7 +138,7 @@ export function buildDecisions(input: {
       priority: priorityFromWeight(weight),
       category: "opportunite",
       weight,
-      to: o.clientId ? "/pilot/fiche/$clientId" : "/pilot/clients",
+      to: o.clientId ? "/clients/$clientId" : "/pilot/clients",
       params: o.clientId ? { clientId: o.clientId } : undefined,
     });
   }

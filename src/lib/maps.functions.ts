@@ -1,19 +1,28 @@
 import { createServerFn } from "@tanstack/react-start";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
+// Google Static Maps: serveur + fallback navigateur pour l'export PDF SST.
+
+const PLACES_API = "https://places.googleapis.com/v1";
+const GEOCODE_API = "https://maps.googleapis.com/maps/api/geocode/json";
+
+/** Clé serveur Google Maps (GOOGLE_MAPS_API_KEY). */
+function mapsKey(): string {
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) throw new Error("Clé Google Maps indisponible (GOOGLE_MAPS_API_KEY)");
+  return key;
+}
 
 function headers(extra?: Record<string, string>) {
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!lovableKey || !mapsKey) throw new Error("Connecteur Google Maps indisponible");
   return {
-    Authorization: `Bearer ${lovableKey}`,
-    "X-Connection-Api-Key": mapsKey,
+    "X-Goog-Api-Key": mapsKey(),
     ...extra,
   };
 }
 
-export interface PlaceSuggestion { description: string; placeId: string }
+export interface PlaceSuggestion {
+  description: string;
+  placeId: string;
+}
 
 /** Autocomplétion d'adresse (Places API New). */
 export const placeAutocomplete = createServerFn({ method: "POST" })
@@ -21,7 +30,7 @@ export const placeAutocomplete = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PlaceSuggestion[]> => {
     const input = (data.input ?? "").trim();
     if (input.length < 3) return [];
-    const res = await fetch(`${GATEWAY}/places/v1/places:autocomplete`, {
+    const res = await fetch(`${PLACES_API}/places:autocomplete`, {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ input, languageCode: "fr", regionCode: "FR" }),
@@ -31,7 +40,9 @@ export const placeAutocomplete = createServerFn({ method: "POST" })
       return [];
     }
     const json = (await res.json()) as {
-      suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[];
+      suggestions?: {
+        placePrediction?: { placeId?: string; text?: { text?: string } };
+      }[];
     };
     return (json.suggestions ?? [])
       .map((s) => s.placePrediction)
@@ -39,7 +50,11 @@ export const placeAutocomplete = createServerFn({ method: "POST" })
       .map((p) => ({ description: p.text?.text ?? "", placeId: p.placeId! }));
   });
 
-export interface GeoResult { lat: number; lng: number; formatted: string }
+export interface GeoResult {
+  lat: number;
+  lng: number;
+  formatted: string;
+}
 
 /** Géocode une adresse (lat/lng). */
 export const geocodeAddress = createServerFn({ method: "POST" })
@@ -48,16 +63,25 @@ export const geocodeAddress = createServerFn({ method: "POST" })
     const address = (data.address ?? "").trim();
     if (!address) return null;
     const res = await fetch(
-      `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}&language=fr&region=fr`,
-      { headers: headers() },
+      `${GEOCODE_API}?address=${encodeURIComponent(address)}&language=fr&region=fr&key=${encodeURIComponent(mapsKey())}`,
     );
-    if (!res.ok) { console.error("geocode failed", res.status, await res.text()); return null; }
+    if (!res.ok) {
+      console.error("geocode failed", res.status, await res.text());
+      return null;
+    }
     const json = (await res.json()) as {
-      results?: { geometry?: { location?: { lat: number; lng: number } }; formatted_address?: string }[];
+      results?: {
+        geometry?: { location?: { lat: number; lng: number } };
+        formatted_address?: string;
+      }[];
     };
     const r = json.results?.[0];
     if (!r?.geometry?.location) return null;
-    return { lat: r.geometry.location.lat, lng: r.geometry.location.lng, formatted: r.formatted_address ?? address };
+    return {
+      lat: r.geometry.location.lat,
+      lng: r.geometry.location.lng,
+      formatted: r.formatted_address ?? address,
+    };
   });
 
 export interface RecyclingCenter {
@@ -86,22 +110,31 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<RecyclingCenter | null> => {
     const { lat, lng } = data;
     if (typeof lat !== "number" || typeof lng !== "number") return null;
-    const res = await fetch(`${GATEWAY}/places/v1/places:searchText`, {
+    const res = await fetch(`${PLACES_API}/places:searchText`, {
       method: "POST",
       headers: headers({
         "Content-Type": "application/json",
         "X-Goog-FieldMask":
-          "places.displayName,places.formattedAddress,places.location,places.regularOpeningHours,places.currentOpeningHours",
+          "places.displayName,places.formattedAddress,places.location," +
+          "places.regularOpeningHours,places.currentOpeningHours",
       }),
       body: JSON.stringify({
         textQuery: "déchèterie",
         languageCode: "fr",
         regionCode: "FR",
         maxResultCount: 10,
-        locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 25000 } },
+        locationBias: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: 25000,
+          },
+        },
       }),
     });
-    if (!res.ok) { console.error("searchText failed", res.status, await res.text()); return null; }
+    if (!res.ok) {
+      console.error("searchText failed", res.status, await res.text());
+      return null;
+    }
     const json = (await res.json()) as {
       places?: {
         displayName?: { text?: string };
@@ -130,29 +163,287 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
     };
   });
 
-/** Image statique (vue aérienne) du plan jardin avec repères, en data URL pour le PDF. */
+/**
+ * Génère l'image réellement utilisée par l'export PDF.
+ *
+ * Le connecteur Lovable Google Maps ne fournit pas une clé Google Static Maps
+ * serveur utilisable : sa clé serveur est une clé de connexion au gateway et
+ * renvoie 403 pour Maps Static. Pour le PDF, on utilise donc la clé navigateur
+ * Google Static Maps déjà fournie par le connecteur, mais l'appel est effectué
+ * depuis le runtime de l'application avec le Referer de production autorisé.
+ *
+ * Google Static Maps renvoie directement une image PNG/JPEG ; nous la
+ * convertissons ici en data URL afin que jsPDF puisse l'intégrer sans
+ * dépendre du chargement d'une image cross-origin dans un canvas navigateur.
+ */
+export interface StaticGardenMapMarker {
+  lat: number;
+  lng: number;
+}
+
+export const SST_PDF_MAP_REFERER = "https://pp.delagraineaujardin.com/";
+
+const STATIC_MAP_WIDTH = 640;
+const STATIC_MAP_HEIGHT = 540;
+const STATIC_MAP_MAX_ZOOM = 21;
+const STATIC_MAP_PADDING = 1.16;
+const WEB_MERCATOR_LAT_LIMIT = 85.05112878;
+
+export interface StaticGardenMapViewport {
+  centerLat: number;
+  centerLng: number;
+  zoom: number;
+}
+
+export interface StaticGardenMapMarkerLayout {
+  index: number;
+  anchorX: number;
+  anchorY: number;
+  labelX: number;
+  labelY: number;
+}
+
+function webMercatorY(lat: number): number {
+  const clampedLat = Math.max(-WEB_MERCATOR_LAT_LIMIT, Math.min(WEB_MERCATOR_LAT_LIMIT, lat));
+  const radians = (clampedLat * Math.PI) / 180;
+  return (1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2;
+}
+
+/**
+ * Calcule le niveau de zoom maximal permettant de contenir tous les repères
+ * dans l'image, avec une petite marge. Le positionnement implicite de Google
+ * utilise des marges généreuses qui peuvent trop dézoomer les chantiers denses.
+ */
+export function calculateStaticGardenMapViewport(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): StaticGardenMapViewport {
+  const points = [{ lat, lng }, ...markers];
+  const minLat = Math.min(...points.map((point) => point.lat));
+  const maxLat = Math.max(...points.map((point) => point.lat));
+  const minLng = Math.min(...points.map((point) => point.lng));
+  const maxLng = Math.max(...points.map((point) => point.lng));
+
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLng = (minLng + maxLng) / 2;
+  const xSpan = Math.max((maxLng - minLng) / 360, Number.EPSILON);
+  const ySpan = Math.max(webMercatorY(minLat) - webMercatorY(maxLat), Number.EPSILON);
+
+  let zoom = 0;
+  for (let candidate = STATIC_MAP_MAX_ZOOM; candidate >= 0; candidate -= 1) {
+    const worldPixels = 256 * 2 ** candidate;
+    const fitsWidth = xSpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_WIDTH;
+    const fitsHeight = ySpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_HEIGHT;
+    if (fitsWidth && fitsHeight) {
+      zoom = candidate;
+      break;
+    }
+  }
+
+  return { centerLat, centerLng, zoom };
+}
+
+/**
+ * Projette les repères dans le même espace pixel logique que l'API Static Maps
+ * et écarte automatiquement les repères qui se chevaucheraient.
+ *
+ * Les points géographiques restent inchangés : seuls les badges numérotés sont
+ * déplacés dans un petit anneau autour d'un groupe dense, avec un trait de
+ * rappel dessiné ensuite dans le PDF.
+ */
+export function calculateStaticGardenMapMarkerLayout(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): StaticGardenMapMarkerLayout[] {
+  const viewport = calculateStaticGardenMapViewport(lat, lng, markers);
+  const worldPixels = 256 * 2 ** viewport.zoom;
+  const width = STATIC_MAP_WIDTH;
+  const height = STATIC_MAP_HEIGHT;
+  const centerX = ((viewport.centerLng + 180) / 360) * worldPixels;
+  const centerY = webMercatorY(viewport.centerLat) * worldPixels;
+
+  const project = (marker: StaticGardenMapMarker) => ({
+    x: width / 2 + (((marker.lng + 180) / 360) * worldPixels - centerX),
+    y: height / 2 + (webMercatorY(marker.lat) * worldPixels - centerY),
+  });
+
+  const anchors = markers.map(project);
+  if (!anchors.length) return [];
+
+  // The density is arbitrary: there may be 2, 14, 40 or many more markers.
+  // Adapt the minimum separation to the number of badges rather than tuning
+  // the layout for one particular worksite.
+  const minDistance =
+    anchors.length <= 20 ? 28 : anchors.length <= 40 ? 24 : anchors.length <= 80 ? 20 : 18;
+  const edgePadding = Math.max(10, minDistance / 2);
+  const positions = anchors.map((point) => ({ x: point.x, y: point.y }));
+
+  // Deterministic force layout:
+  // - anchors remain fixed at their real geographic positions;
+  // - badges repel each other;
+  // - each badge is attracted back toward its own anchor;
+  // - all badges remain inside the map image.
+  // This works for any marker count without relying on a special cluster size.
+  for (let iteration = 0; iteration < 160; iteration += 1) {
+    let moved = false;
+    const strength = 1 - iteration / 190;
+
+    for (let i = 0; i < positions.length; i += 1) {
+      let dx = (anchors[i].x - positions[i].x) * 0.035;
+      let dy = (anchors[i].y - positions[i].y) * 0.035;
+
+      for (let j = 0; j < positions.length; j += 1) {
+        if (i === j) continue;
+        const deltaX = positions[i].x - positions[j].x;
+        const deltaY = positions[i].y - positions[j].y;
+        const distance = Math.hypot(deltaX, deltaY);
+
+        if (distance < minDistance) {
+          if (distance < 0.001) {
+            const angle = ((i * 37 + j * 17) % 360) * (Math.PI / 180);
+            dx += Math.cos(angle) * (minDistance * 0.18);
+            dy += Math.sin(angle) * (minDistance * 0.18);
+          } else {
+            const push = ((minDistance - distance) / distance) * 0.55;
+            dx += deltaX * push;
+            dy += deltaY * push;
+          }
+        }
+      }
+
+      const nextX = Math.max(
+        edgePadding,
+        Math.min(width - edgePadding, positions[i].x + dx * strength),
+      );
+      const nextY = Math.max(
+        edgePadding,
+        Math.min(height - edgePadding, positions[i].y + dy * strength),
+      );
+
+      if (Math.abs(nextX - positions[i].x) > 0.01 || Math.abs(nextY - positions[i].y) > 0.01) {
+        moved = true;
+      }
+      positions[i] = { x: nextX, y: nextY };
+    }
+
+    if (!moved) break;
+  }
+
+  return positions.map((point, index) => ({
+    index,
+    anchorX: anchors[index].x,
+    anchorY: anchors[index].y,
+    labelX: point.x,
+    labelY: point.y,
+  }));
+}
+
+export function buildStaticGardenMapParams(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): URLSearchParams {
+  const viewport = calculateStaticGardenMapViewport(lat, lng, markers);
+  const params = new URLSearchParams({
+    size: `${STATIC_MAP_WIDTH}x${STATIC_MAP_HEIGHT}`,
+    scale: "2",
+    format: "png",
+    maptype: "satellite",
+    language: "fr",
+    center: `${viewport.centerLat},${viewport.centerLng}`,
+    zoom: String(viewport.zoom),
+    style: "feature:poi|visibility:off",
+  });
+
+  params.append("visible", `${lat},${lng}`);
+  markers.forEach((marker) => {
+    params.append("visible", `${marker.lat},${marker.lng}`);
+  });
+
+  // Aucun marqueur natif Google : les repères SST sont dessinés
+  // exclusivement par le PDF, ce qui garantit un badge vert numéroté
+  // pour chaque repère et supprime les doublons/pastilles blanches.
+  return params;
+}
+
 export const staticGardenMap = createServerFn({ method: "POST" })
-  .inputValidator((d: { lat: number; lng: number; markers?: { lat: number; lng: number }[] }) => d)
+  .inputValidator((d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d)
   .handler(async ({ data }): Promise<string | null> => {
     const { lat, lng, markers = [] } = data;
-    if (typeof lat !== "number" || typeof lng !== "number") return null;
-    const params = new URLSearchParams({
-      center: `${lat},${lng}`,
-      zoom: "19",
-      size: "640x400",
-      scale: "2",
-      maptype: "satellite",
-      language: "fr",
-    });
-    markers.forEach((m, i) => {
-      params.append("markers", `color:0x4F8E33|label:${i + 1}|${m.lat},${m.lng}`);
-    });
-    const res = await fetch(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, { headers: headers() });
-    if (!res.ok) { console.error("staticmap failed", res.status, await res.text()); return null; }
-    const buf = await res.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let bin = "";
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(buf).toString("base64");
-    return `data:image/png;base64,${b64}`;
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      console.error("staticGardenMap: coordonnées du chantier invalides");
+      return null;
+    }
+
+    const mapsBrowserKey =
+      import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY ??
+      import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+
+    if (!mapsBrowserKey) {
+      console.error("staticGardenMap: clé Google Maps navigateur indisponible");
+      return null;
+    }
+
+    const validMarkers = markers.filter(
+      (marker) => Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
+    );
+
+    const params = buildStaticGardenMapParams(lat, lng, validMarkers);
+    params.set("key", mapsBrowserKey);
+
+    const url = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          // La clé du connecteur est une clé Web/HTTP-referrer. Le PDF est
+          // produit pour l'application publiée sur ce domaine.
+          Referer: SST_PDF_MAP_REFERER,
+        },
+      });
+    } catch (error) {
+      console.error("staticGardenMap: erreur réseau Google Static Maps", error);
+      return null;
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error(
+        "staticGardenMap: requête Google Static Maps échouée",
+        response.status,
+        body.slice(0, 500),
+      );
+      return null;
+    }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().startsWith("image/")) {
+      const body = await response.text();
+      console.error(
+        "staticGardenMap: Google n'a pas renvoyé une image",
+        contentType,
+        body.slice(0, 500),
+      );
+      return null;
+    }
+
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    const chunkSize = 0x8000;
+
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode(
+        ...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)),
+      );
+    }
+
+    const base64 =
+      typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
+
+    return `data:${contentType.split(";")[0]};base64,${base64}`;
   });

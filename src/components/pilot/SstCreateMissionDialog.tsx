@@ -1,0 +1,258 @@
+import { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  createMission,
+  MISSION_STATUS_META,
+  type MissionStatus,
+  type SubcontractorMission,
+} from "@/lib/subcontractors";
+import { listClients } from "@/lib/clients";
+import { SstInfoTip, PRIX_CLIENT_TIP } from "@/components/pilot/SstInfoTip";
+import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { sendSstMissionAssignedEmail } from "@/lib/sst-mission-email.functions";
+
+type Client = Awaited<ReturnType<typeof listClients>>[number];
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  subcontractors: SubcontractorMission["subcontractor_id"] extends string
+    ? Array<{ id: string; name: string }>
+    : never;
+  onCreated: (mission: SubcontractorMission) => void;
+}
+
+const CATEGORIES = ["AP", "Entretien", "CEEV", "Conseil", "Autre"] as const;
+
+const num = (value: string) => (value.trim() === "" ? null : Number(value));
+
+export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onCreated }: Props) {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [saving, setSaving] = useState(false);
+  const sendMissionEmail = useServerFn(sendSstMissionAssignedEmail);
+  const [form, setForm] = useState({
+    subcontractor_id: "",
+    client_id: "none",
+    mission_date: new Date().toISOString().slice(0, 10),
+    service_requested: "",
+    category: "",
+    status: "planned" as MissionStatus,
+    hours_spent: "",
+    invoiced_amount: "",
+    client_price: "",
+    autonomy: "",
+    parallel_worksite: "",
+    internal_rating: "",
+    instructions: "",
+    report_notes: "",
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    listClients()
+      .then(setClients)
+      .catch((error) =>
+        toast.error(error instanceof Error ? error.message : "Impossible de charger les clients"),
+      );
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setForm((current) => ({
+      ...current,
+      subcontractor_id: current.subcontractor_id || subcontractors[0]?.id || "",
+    }));
+  }, [open, subcontractors]);
+
+  const set = (key: keyof typeof form, value: string) =>
+    setForm((current) => ({ ...current, [key]: value }));
+
+  async function save() {
+    if (!form.subcontractor_id || !form.mission_date || !form.service_requested.trim()) {
+      toast.error("Sous-traitant, date et prestation / chantier sont obligatoires.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const created = await createMission({
+        subcontractor_id: form.subcontractor_id,
+        client_id: form.client_id === "none" ? null : form.client_id,
+        worksite_sheet_id: null,
+        intervention_id: null,
+        service_id: null,
+        mission_date: form.mission_date,
+        service_requested: form.service_requested.trim(),
+        objective: null,
+        context_notes: null,
+        instructions: form.instructions.trim() || null,
+        status: form.status,
+        report_notes: form.report_notes.trim() || null,
+        anomalies: null,
+        recommendations: null,
+        hours_spent: num(form.hours_spent),
+        internal_rating: num(form.internal_rating),
+        agreed_price: null,
+        invoiced_amount: num(form.invoiced_amount),
+        client_price: num(form.client_price),
+        prestation: null,
+        category: form.category.trim() || null,
+        payment_method: null,
+        invoice_ref: null,
+        hours_saved: null,
+        autonomy: form.autonomy.trim() || null,
+        parallel_worksite: form.parallel_worksite.trim() || null,
+      });
+      void sendMissionEmail({ data: { missionId: created.id } }).catch(() => undefined);
+      toast.success("Mission SST créée");
+      onCreated(created);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Impossible de créer la mission SST");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const field = (
+    label: string,
+    key: keyof typeof form,
+    type = "text",
+    required = false,
+    tip?: string,
+  ) => (
+    <div className="space-y-1.5">
+      <Label className="flex items-center">
+        {label}
+        {required && " *"}
+        {tip && <SstInfoTip text={tip} />}
+      </Label>
+      <Input
+        type={type}
+        step={type === "number" ? "0.01" : undefined}
+        value={form[key]}
+        onChange={(e) => set(key, e.target.value)}
+      />
+    </div>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Nouvelle mission SST</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Sous-traitant *</Label>
+            <Select value={form.subcontractor_id} onValueChange={(v) => set("subcontractor_id", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                {subcontractors.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Client</Label>
+            <Select value={form.client_id} onValueChange={(v) => set("client_id", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Aucun client" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Aucun client</SelectItem>
+                {clients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {field("Date", "mission_date", "date", true)}
+          {field("Prestation / chantier", "service_requested", "text", true)}
+          <div className="space-y-1.5">
+            <Label>Catégorie</Label>
+            <Select value={form.category} onValueChange={(v) => set("category", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Statut</Label>
+            <Select value={form.status} onValueChange={(v) => set("status", v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(MISSION_STATUS_META).map(([value, meta]) => (
+                  <SelectItem key={value} value={value}>
+                    {meta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {field("Heures SST", "hours_spent", "number")}
+          {field("Facturé par le SST (€)", "invoiced_amount", "number")}
+          {field("Prix client (€)", "client_price", "number", false, PRIX_CLIENT_TIP)}
+          {field("Autonomie", "autonomy")}
+          {field("Chantier parallèle", "parallel_worksite")}
+          {field("Difficulté (/5)", "internal_rating", "number")}
+        </div>
+        <div className="space-y-1.5">
+          <Label>Instructions</Label>
+          <Textarea
+            value={form.instructions}
+            onChange={(e) => set("instructions", e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Détails</Label>
+          <Textarea
+            value={form.report_notes}
+            onChange={(e) => set("report_notes", e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Annuler
+          </Button>
+          <Button onClick={save} disabled={saving || !form.subcontractor_id}>
+            {saving ? "Enregistrement…" : "Créer la mission"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

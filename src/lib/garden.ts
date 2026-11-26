@@ -8,7 +8,10 @@ async function uid(): Promise<string> {
 
 export type HealthRating = "excellent" | "bon" | "moyen" | "fragile" | "critique";
 
-export const HEALTH_RATING_META: Record<HealthRating, { label: string; tone: string; dot: string }> = {
+export const HEALTH_RATING_META: Record<
+  HealthRating,
+  { label: string; tone: string; dot: string }
+> = {
   excellent: { label: "Excellent", tone: "text-emerald-700 bg-emerald-100", dot: "bg-emerald-500" },
   bon: { label: "Bon", tone: "text-green-700 bg-green-100", dot: "bg-green-500" },
   moyen: { label: "Moyen", tone: "text-amber-700 bg-amber-100", dot: "bg-amber-500" },
@@ -57,14 +60,14 @@ export interface Recommendation {
   client_viewed_at?: string | null;
 }
 
-export function recommendationPrice(r: Pick<Recommendation, "estimated_hours" | "unit_price">): number | null {
+export function recommendationPrice(
+  r: Pick<Recommendation, "estimated_hours" | "unit_price">,
+): number | null {
   if (r.estimated_hours == null) return null;
   return Math.round(r.estimated_hours * (r.unit_price ?? 70));
 }
 
-export function formatEuro(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
-}
+export { formatEuro } from "@/lib/pilot";
 
 const STALE_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -123,7 +126,7 @@ export const RECO_SEASONS = ["printemps", "été", "automne", "hiver", "toute-sa
 export type RecommendationSeason = (typeof RECO_SEASONS)[number];
 export const RECO_SEASON_LABELS: Record<RecommendationSeason, string> = {
   printemps: "Printemps",
-  "été": "Été",
+  été: "Été",
   automne: "Automne",
   hiver: "Hiver",
   "toute-saison": "Toute saison",
@@ -234,13 +237,30 @@ export async function addRecommendation(input: {
 
 export async function updateRecommendation(
   id: string,
-  patch: Partial<Pick<Recommendation,
-    "title" | "description" | "category" | "status" | "estimated_hours" | "unit_price"
-    | "priority" | "recommended_season" | "include_in_report" | "report_position"
-    | "responded_at" | "planned_intervention_id" | "pilot_ca_entry_id" | "refusal_reason"
-  >>,
+  patch: Partial<
+    Pick<
+      Recommendation,
+      | "title"
+      | "description"
+      | "category"
+      | "status"
+      | "estimated_hours"
+      | "unit_price"
+      | "priority"
+      | "recommended_season"
+      | "include_in_report"
+      | "report_position"
+      | "responded_at"
+      | "planned_intervention_id"
+      | "pilot_ca_entry_id"
+      | "refusal_reason"
+    >
+  >,
 ): Promise<void> {
-  const { error } = await supabase.from("recommendations").update(patch as never).eq("id", id);
+  const { error } = await supabase
+    .from("recommendations")
+    .update(patch as never)
+    .eq("id", id);
   if (error) throw error;
 }
 
@@ -303,7 +323,13 @@ export async function createInterventionFromRecommendation(recoId: string): Prom
     .eq("id", recoId)
     .single();
   if (rErr) throw rErr;
-  const r = reco as { id: string; client_id: string; title: string; category: string | null; description: string | null };
+  const r = reco as {
+    id: string;
+    client_id: string;
+    title: string;
+    category: string | null;
+    description: string | null;
+  };
 
   // Un seul jardin ? Le rattacher automatiquement.
   const { data: sheets } = await supabase
@@ -382,7 +408,10 @@ export async function createInterventionFromRecommendation(recoId: string): Prom
  * Rattache une ligne CA à une recommandation (statut → facturee).
  * À appeler depuis le mécanisme existant de création/rattachement d'une ligne CA.
  */
-export async function linkRecommendationToCaEntry(recoId: string, caEntryId: string): Promise<void> {
+export async function linkRecommendationToCaEntry(
+  recoId: string,
+  caEntryId: string,
+): Promise<void> {
   const { error } = await supabase
     .from("recommendations")
     .update({ status: "facturee", pilot_ca_entry_id: caEntryId } as never)
@@ -411,11 +440,17 @@ export async function listBillableRecommendations(): Promise<BillableRecommendat
     .is("pilot_ca_entry_id", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return ((data ?? []) as Array<{
-    id: string; client_id: string; title: string; category: string | null;
-    estimated_hours: number | null; unit_price: number | null;
-    clients: { name: string | null } | null;
-  }>).map((r) => ({
+  return (
+    (data ?? []) as Array<{
+      id: string;
+      client_id: string;
+      title: string;
+      category: string | null;
+      estimated_hours: number | null;
+      unit_price: number | null;
+      clients: { name: string | null } | null;
+    }>
+  ).map((r) => ({
     id: r.id,
     client_id: r.client_id,
     title: r.title,
@@ -450,9 +485,9 @@ export async function getInvoicedRecommendationsCa(): Promise<number> {
 
 /** KPI dashboard : valeur des opportunités commerciales (en attente + acceptées) et CA facturé. */
 export interface OpportunitiesValue {
-  pendingValue: number;    // en_attente + proposee + vue
-  acceptedValue: number;   // acceptee + planifiee
-  invoicedCa: number;      // facturee — somme des amount_ht des CA liés
+  pendingValue: number; // en_attente + proposee + vue
+  acceptedValue: number; // acceptee + planifiee
+  invoicedCa: number; // facturee — somme des amount_ht des CA liés
   count: { pending: number; accepted: number; invoiced: number };
 }
 
@@ -468,7 +503,7 @@ export async function getOpportunitiesValue(): Promise<OpportunitiesValue> {
     pilot_ca_entry_id: string | null;
   }>;
   const val = (r: { estimated_hours: number | null; unit_price: number | null }) =>
-    r.estimated_hours != null ? Math.round((r.estimated_hours) * (r.unit_price ?? 70)) : 0;
+    r.estimated_hours != null ? Math.round(r.estimated_hours * (r.unit_price ?? 70)) : 0;
 
   const pendingStatuses = new Set(["en_attente", "proposee", "vue"]);
   const acceptedStatuses = new Set(["acceptee", "planifiee"]);

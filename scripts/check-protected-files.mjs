@@ -1,15 +1,12 @@
 import { execFileSync } from "node:child_process";
 
 const protectedPaths = [
-  "src/routeTree.gen.ts",
   "src/integrations/supabase/client.ts",
   "src/integrations/supabase/client.server.ts",
-  "src/integrations/supabase/types.ts",
   "src/integrations/supabase/auth-middleware.ts",
   "src/integrations/supabase/auth-attacher.ts",
   "src/integrations/supabase/previewAuthStorage.ts",
   ".env",
-  "supabase/config.toml",
 ];
 
 const base = process.env.BASE_SHA;

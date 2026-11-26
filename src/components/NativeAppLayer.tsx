@@ -1,0 +1,231 @@
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Fingerprint, WifiOff } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  biometricAvailable,
+  biometricUnlock,
+  haptic,
+  isBiometricEnabled,
+  isNativeApp,
+  isStandalonePwa,
+  markBiometricOffered,
+  nativePlugin,
+  setBiometricEnabled,
+  shouldOfferBiometric,
+} from "@/lib/native-app";
+import { usePushRegistration } from "@/lib/push-notifications";
+
+const RELOCK_AFTER_MS = 60_000;
+const PULL_THRESHOLD = 90;
+
+/** Fonctions « appli » v2 : raccourcis (liens profonds), retour haptique, mode hors-ligne,
+ *  tirer pour actualiser et verrouillage biométrique. Inactif sur navigateur de bureau. */
+export function NativeAppLayer() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const native = isNativeApp();
+  const appLike = native || isStandalonePwa();
+  const [offline, setOffline] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const hiddenAt = useRef<number | null>(null);
+  usePushRegistration();
+
+  // Raccourcis d'icône : pilotpro://open/<chemin>
+  useEffect(() => {
+    if (!native) return;
+    const app = nativePlugin("App");
+    if (!app) return;
+    const go = (url?: string) => {
+      if (!url) return;
+      try {
+        const u = new URL(url);
+        // Lien d'e-mail https://pp.delagraineaujardin.com/... → même page dans l'appli
+        if (
+          u.protocol === "https:" &&
+          (u.hostname === "pp.delagraineaujardin.com" || u.hostname === "crjardin.lovable.app")
+        ) {
+          const target = `${u.pathname}${u.search}${u.hash}`;
+          if (target !== "/" && /^\/[\w/_.$%~:@!&=+,;?#-]*$/.test(target)) {
+            window.location.assign(target);
+          }
+          return;
+        }
+        if (u.protocol !== "pilotpro:" || u.hostname !== "open") return;
+        if (/^\/[a-z0-9/_.$-]*$/i.test(u.pathname)) void navigate({ to: u.pathname as never });
+      } catch {
+        /* lien invalide */
+      }
+    };
+    void app.getLaunchUrl?.().then((r: { url?: string } | undefined) => go(r?.url));
+    const handle = app.addListener?.("appUrlOpen", (e: { url?: string }) => go(e.url));
+    return () => {
+      void handle?.then?.((h: { remove?: () => void }) => h.remove?.());
+    };
+  }, [native, navigate]);
+
+  // Retour haptique sur la barre du bas
+  useEffect(() => {
+    if (!native) return;
+    const onClick = (e: Event) => {
+      const el = e.target as HTMLElement | null;
+      if (el?.closest?.("[data-bottom-nav] a, [data-bottom-nav] button")) haptic("LIGHT");
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [native]);
+
+  // Premier lancement : relit les données dès que la session est prête, et au retour au premier plan
+  useEffect(() => {
+    if (!appLike) return;
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        void queryClient.invalidateQueries();
+      }
+      // Première connexion sur l'appli : proposer le déverrouillage par empreinte / visage
+      if (event === "SIGNED_IN" && native && shouldOfferBiometric()) {
+        void biometricAvailable().then((ok) => {
+          if (!ok) return;
+          markBiometricOffered();
+          toast("Déverrouiller PilotPro avec votre empreinte ou votre visage ?", {
+            duration: 15_000,
+            action: {
+              label: "Activer",
+              onClick: () => {
+                void biometricUnlock().then((done) => {
+                  if (done) {
+                    setBiometricEnabled(true);
+                    toast.success("Verrouillage biométrique activé");
+                  }
+                });
+              },
+            },
+          });
+        });
+      }
+    });
+    let hiddenSince: number | null = null;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") hiddenSince = Date.now();
+      else if (hiddenSince && Date.now() - hiddenSince > 20_000) {
+        hiddenSince = null;
+        void queryClient.invalidateQueries();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      data.subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [appLike, native, queryClient]);
+
+  // Hors-ligne
+  useEffect(() => {
+    const update = () => setOffline(!navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
+  // Tirer pour actualiser : tout périphérique tactile (le geste n'existe pas à la souris)
+  useEffect(() => {
+    // Intention explicite uniquement : un simple retour en haut (défilement, élan, liste interne)
+    // ne déclenche jamais l'actualisation.
+    let startY: number | null = null;
+    let startX = 0;
+    let startAt = 0;
+    let lastScrollAt = 0;
+    const onScroll = () => {
+      lastScrollAt = Date.now();
+    };
+    const scrolledInside = (target: EventTarget | null) => {
+      let el = target instanceof Element ? target : null;
+      while (el && el !== document.body) {
+        if (el.scrollTop > 0) return true;
+        el = el.parentElement;
+      }
+      return false;
+    };
+    const onStart = (e: TouchEvent) => {
+      const atTop = window.scrollY <= 0 && !scrolledInside(e.target);
+      const settled = Date.now() - lastScrollAt > 800;
+      startY = atTop && settled ? e.touches[0].clientY : null;
+      startX = e.touches[0].clientX;
+      startAt = Date.now();
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (startY === null) return;
+      const dy = e.changedTouches[0].clientY - startY;
+      const dx = Math.abs(e.changedTouches[0].clientX - startX);
+      const held = Date.now() - startAt;
+      startY = null;
+      const deliberate = dy > PULL_THRESHOLD + 40 && dx < dy / 3 && held > 350;
+      if (deliberate && window.scrollY <= 0) {
+        haptic("MEDIUM");
+        toast.message("Actualisation…");
+        void queryClient.invalidateQueries();
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchend", onEnd);
+    };
+  }, [queryClient]);
+
+  // Verrouillage biométrique (option activée dans Personnalisation)
+  const unlock = async () => {
+    if (await biometricUnlock()) setLocked(false);
+  };
+  useEffect(() => {
+    if (!native || !isBiometricEnabled()) return;
+    setLocked(true);
+    void unlock();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt.current = Date.now();
+      } else if (
+        isBiometricEnabled() &&
+        hiddenAt.current &&
+        Date.now() - hiddenAt.current > RELOCK_AFTER_MS
+      ) {
+        setLocked(true);
+        void unlock();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [native]);
+
+  return (
+    <>
+      {offline && (
+        <div
+          role="status"
+          className="fixed inset-x-0 top-0 z-[60] flex items-center justify-center gap-2 bg-destructive px-3 pb-1.5 pt-[calc(env(safe-area-inset-top)+0.375rem)] text-xs font-medium text-destructive-foreground"
+        >
+          <WifiOff className="h-3.5 w-3.5" />
+          Hors connexion — les modifications ne seront pas enregistrées
+        </div>
+      )}
+      {locked && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+          <Fingerprint className="h-14 w-14 text-primary" />
+          <p className="font-serif text-xl font-semibold text-primary">PilotPro est verrouillé</p>
+          <Button onClick={unlock}>Déverrouiller</Button>
+        </div>
+      )}
+    </>
+  );
+}

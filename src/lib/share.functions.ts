@@ -1,7 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
+
+/** Lecture seule : bloque toute écriture déclenchée depuis l'aperçu administrateur. */
+function assertNotApercu() {
+  if (getRequestHeader("x-apercu") === "1") {
+    throw new Error("Aperçu en lecture seule : aucune modification n'est enregistrée.");
+  }
+}
+import type { PremiumPlanningDb } from "@/lib/premium-planning-import.server";
 import type { Database } from "@/integrations/supabase/types";
+import { formatPremiumClientName } from "@/lib/premium-client-name";
+import { attachmentError, attachmentOnlyContent } from "@/lib/message-attachments";
 
 export interface SharedTask {
   id: string;
@@ -15,6 +24,14 @@ export interface SharedPhoto {
   storage_path: string;
   caption: string | null;
   url: string | null;
+  album_id?: string | null;
+  created_at?: string;
+}
+
+export interface SharedPhotoAlbum {
+  id: string;
+  name: string;
+  created_at: string;
 }
 
 export interface SharedIntervention {
@@ -47,11 +64,15 @@ export interface SharedRecommendation {
   client_viewed_at: string | null;
 }
 
+export { formatPremiumClientName as premiumClientTitle };
+
 export interface SharedClientData {
   client: {
     id: string;
     name: string;
     civility?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
     address: string | null;
     phone: string | null;
     email: string | null;
@@ -60,16 +81,68 @@ export interface SharedClientData {
   };
   recommendations: SharedRecommendation[];
   interventions: SharedIntervention[];
+  free_photos?: SharedPhoto[];
+  photo_albums?: SharedPhotoAlbum[];
+}
+
+export interface SharedPremiumDocument {
+  id: string;
+  title: string;
+  filename: string;
+  size_bytes: number | null;
+  uploaded_by: "gardener" | "client";
+  created_at: string;
+  url: string | null;
+}
+
+export interface SharedPremiumUpcoming {
+  id: string;
+  scheduled_date: string;
+  title: string;
+  details: string | null;
+}
+
+export interface PremiumRecommendationGroup {
+  intervention_id: string | null;
+  title: string;
+  date: string | null;
+  items: SharedRecommendation[];
+}
+
+export interface SharedPremiumData {
+  recommendation_groups: PremiumRecommendationGroup[];
+  enabled: boolean;
+  garden_state: string | null;
+  garden_objectives: string | null;
+  garden_specificities: string | null;
+  google_review_url: string | null;
+  commercial_note: string | null;
+  cover_photo_url: string | null;
+  cover_photo_id: string | null;
+  documents: SharedPremiumDocument[];
+  upcoming: SharedPremiumUpcoming[];
+  work_calendar: SharedPremiumWorkCalendarItem[];
+}
+
+export interface SharedPremiumWorkCalendarItem {
+  id: string;
+  period_label: string;
+  year: number | null;
+  month: number | null;
+  sequence: number;
+  title: string;
+  details: string | null;
 }
 
 const BUCKET = "chantier-photos";
 
-function publicClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+/**
+ * Accès serveur uniquement (service role) : les fonctions à jeton ne sont plus exécutables
+ * par le navigateur ni par anon. Le jeton est toujours vérifié dans la fonction SQL.
+ */
+async function serviceDb() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
 }
 
 export interface ClientMessage {
@@ -80,6 +153,19 @@ export interface ClientMessage {
   author_name: string | null;
   sender: string;
   created_at: string;
+  archived_at?: string | null;
+  /** Date d'ouverture par le client (null = pas encore lu). Absent avant la migration 20261126090000. */
+  client_read_at?: string | null;
+  attachment_name?: string | null;
+  attachment_size?: number | null;
+  has_attachment?: boolean;
+}
+
+export interface SharedMessageAttachmentInput {
+  path: string;
+  filename: string;
+  size: number;
+  type: string;
 }
 
 export const markSharedRead = createServerFn({ method: "POST" })
@@ -88,10 +174,13 @@ export const markSharedRead = createServerFn({ method: "POST" })
     return { token: data.token };
   })
   .handler(async ({ data }) => {
+    assertNotApercu();
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
-    const { error } = await publicClient().rpc("mark_shared_read", {
+    const { error } = await (
+      await serviceDb()
+    ).rpc("mark_shared_read", {
       p_token: data.token,
       p_user_agent: ua ?? undefined,
       p_ip: ip ?? undefined,
@@ -106,13 +195,35 @@ export const markRecommendationsViewed = createServerFn({ method: "POST" })
     return { token: data.token };
   })
   .handler(async ({ data }) => {
+    assertNotApercu();
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
-    const { error } = await publicClient().rpc("mark_recommendations_viewed", {
+    const { error } = await (
+      await serviceDb()
+    ).rpc("mark_recommendations_viewed", {
       p_token: data.token,
       p_user_agent: ua ?? undefined,
       p_ip: ip ?? undefined,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+// prettier-ignore
+export const markGardenerMessagesRead = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    return { token: data.token };
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    // Fonction absente des types générés (migration 20261117140000)
+    const untyped = (await serviceDb()) as unknown as {
+      rpc: (fn: string, args: object) => Promise<{ error: unknown }>;
+    };
+    const { error } = await untyped.rpc("mark_gardener_messages_read", {
+      p_token: data.token,
     });
     if (error) throw error;
     return { ok: true };
@@ -124,46 +235,214 @@ export const getSharedMessages = createServerFn({ method: "GET" })
     return { token: data.token };
   })
   .handler(async ({ data }): Promise<ClientMessage[]> => {
-    const { data: rows, error } = await publicClient().rpc("get_shared_messages", { p_token: data.token });
+    const { data: rows, error } = await (
+      await serviceDb()
+    ).rpc("get_shared_messages", {
+      p_token: data.token,
+    });
     if (error) throw error;
     return (rows as unknown as ClientMessage[]) ?? [];
   });
 
 export const addClientMessage = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    token: string; interventionId: string | null; kind: string; content: string; authorName?: string | null;
-  }) => {
-    if (!data?.token) throw new Error("Lien invalide");
-    if (!data.content || data.content.trim().length === 0) throw new Error("Message vide");
-    return {
-      token: data.token,
-      interventionId: data.interventionId ?? null,
-      kind: data.kind === "question" ? "question" : "annotation",
-      content: data.content.trim().slice(0, 2000),
-      authorName: data.authorName ?? null,
-    };
-  })
+  .inputValidator(
+    (data: {
+      token: string;
+      interventionId: string | null;
+      kind: string;
+      content: string;
+      authorName?: string | null;
+      attachment?: SharedMessageAttachmentInput | null;
+    }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      const attachment = data.attachment ?? null;
+      if (attachment) {
+        const problem = attachmentError({
+          name: attachment.filename,
+          type: attachment.type,
+          size: attachment.size,
+        });
+        if (problem) throw new Error(problem);
+        if (!attachment.path) throw new Error("Chemin invalide");
+      }
+      if (!attachment && (!data.content || data.content.trim().length === 0)) {
+        throw new Error("Message vide");
+      }
+      return {
+        token: data.token,
+        interventionId: data.interventionId ?? null,
+        kind: data.kind === "question" || data.kind === "demande" ? data.kind : "annotation",
+        content: (data.content ?? "").trim().slice(0, 2000),
+        authorName: data.authorName ?? null,
+        attachment,
+      };
+    },
+  )
   .handler(async ({ data }) => {
-    const { error } = await publicClient().rpc("add_client_message", {
+    assertNotApercu();
+    const attachment = data.attachment;
+    const content =
+      data.content || (attachment ? attachmentOnlyContent(attachment.filename) : data.content);
+
+    // Pièce jointe : contrôle du client Premium et du fichier déjà déposé dans le stockage.
+    let premium: Awaited<ReturnType<typeof requireEnabledPremiumClient>> | null = null;
+    if (attachment) {
+      premium = await requireEnabledPremiumClient(data.token);
+      if (!attachment.path.startsWith(`${premium.client.id}/`)) {
+        throw new Error("Chemin de fichier invalide");
+      }
+      const stored = attachment.path.split("/").pop()!;
+      const { data: listed, error: listError } = await premium.supabaseAdmin.storage
+        .from(PREMIUM_BUCKET)
+        .list(premium.client.id, { search: stored, limit: 1 });
+      if (listError || !listed?.some((f) => f.name === stored)) {
+        throw new Error("Le fichier n'a pas été reçu par le stockage");
+      }
+    }
+    const discardFile = async () => {
+      if (premium && attachment) {
+        await premium.supabaseAdmin.storage.from(PREMIUM_BUCKET).remove([attachment.path]);
+      }
+    };
+
+    const { data: msgId, error } = await (
+      await serviceDb()
+    ).rpc("add_client_message", {
       p_token: data.token,
       p_intervention_id: data.interventionId as string,
       p_kind: data.kind,
-      p_content: data.content,
+      p_content: content,
       p_author_name: data.authorName ?? undefined,
     });
-    if (error) throw error;
+    if (error) {
+      await discardFile();
+      throw error;
+    }
+
+    if (premium && attachment) {
+      const { error: linkError } = await premium.supabaseAdmin
+        .from("client_messages")
+        .update({
+          attachment_path: attachment.path,
+          attachment_name: attachment.filename,
+          attachment_size: attachment.size,
+        } as never)
+        .eq("id", msgId as string);
+      if (linkError) {
+        await discardFile();
+        throw new Error(
+          linkError.message.includes("attachment_")
+            ? "Les pièces jointes ne sont pas encore activées sur la base de données."
+            : linkError.message,
+        );
+      }
+      // Classé aussi dans « Photos et Documents » ; un échec ici ne bloque pas le message.
+      await (
+        await serviceDb()
+      ).rpc("add_client_premium_document", {
+        p_token: data.token,
+        p_title: `Pièce jointe — ${attachment.filename}`.slice(0, 200),
+        p_filename: attachment.filename,
+        p_storage_path: attachment.path,
+        p_size_bytes: attachment.size,
+      });
+    }
+
+    // Email au jardinier — best-effort, ne doit jamais faire échouer l'envoi
+    // du message côté client. La notification PP (table notifications) est
+    // déjà garantie par la fonction SQL ci-dessus.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: client } = await supabaseAdmin
+        .from("clients")
+        .select("id, name, user_id")
+        .eq("share_token", data.token)
+        .maybeSingle();
+      if (client) {
+        const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
+        const email = userRes.user?.email;
+        if (email) {
+          const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+          await sendTemplateEmail("client-activity", email, {
+            templateData: {
+              clientName: client.name,
+              actionText:
+                data.kind === "question" ? "a posé une question" : "a ajouté une annotation",
+              contentPreview: attachment
+                ? `${content}\n\n📎 ${attachment.filename}`.slice(0, 2300)
+                : content,
+              clientUrl: `https://pp.delagraineaujardin.com/clients/${client.id}`,
+            },
+            idempotencyKey: `client-message-${msgId as string}`,
+          });
+        }
+      }
+    } catch {
+      // best-effort
+    }
+
     return { ok: true };
   });
 
-export const setRecommendationInterest = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; recoId: string; interest: "interested" | "not_interested" | "none" }) => {
+/** Lien temporaire (1 h) vers la pièce jointe d'un message du fil du client. */
+export const getSharedMessageAttachmentUrl = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; messageId: string }) => {
     if (!data?.token) throw new Error("Lien invalide");
-    if (!data?.recoId) throw new Error("Préconisation invalide");
-    if (!["interested", "not_interested", "none"].includes(data.interest)) throw new Error("Choix invalide");
-    return { token: data.token, recoId: data.recoId, interest: data.interest };
+    if (!data.messageId) throw new Error("Message invalide");
+    return data;
   })
   .handler(async ({ data }) => {
-    const { error } = await publicClient().rpc("set_recommendation_interest", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: client } = await supabaseAdmin
+      .from("clients")
+      .select("id")
+      .eq("share_token", data.token)
+      .maybeSingle();
+    if (!client) throw new Error("Lien invalide");
+    // Les pièces jointes sont des fichiers Premium : elles ne sont plus accessibles une fois Premium désactivé.
+    const { data: premiumState } = await supabaseAdmin
+      .from("client_premium")
+      .select("enabled")
+      .eq("client_id", client.id)
+      .maybeSingle();
+    if (!premiumState?.enabled) throw new Error("Espace Premium non actif");
+    const { data: row } = await supabaseAdmin
+      .from("client_messages")
+      .select("attachment_path, attachment_name" as never)
+      .eq("id", data.messageId)
+      .eq("client_id", client.id)
+      .maybeSingle();
+    const found = row as unknown as {
+      attachment_path: string | null;
+      attachment_name: string | null;
+    } | null;
+    if (!found?.attachment_path) throw new Error("Aucune pièce jointe");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from(PREMIUM_BUCKET)
+      .createSignedUrl(found.attachment_path, 60 * 60);
+    if (error) throw error;
+    return { url: signed.signedUrl };
+  });
+
+export const setRecommendationInterest = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      token: string;
+      recoId: string;
+      interest: "interested" | "not_interested" | "none";
+    }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!data?.recoId) throw new Error("Préconisation invalide");
+      if (!["interested", "not_interested", "none"].includes(data.interest))
+        throw new Error("Choix invalide");
+      return { token: data.token, recoId: data.recoId, interest: data.interest };
+    },
+  )
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { error } = await (
+      await serviceDb()
+    ).rpc("set_recommendation_interest", {
       p_token: data.token,
       p_reco_id: data.recoId,
       p_interest: data.interest,
@@ -178,11 +457,7 @@ export const getSharedClient = createServerFn({ method: "GET" })
     return { token: data.token };
   })
   .handler(async ({ data }): Promise<SharedClientData | null> => {
-    const publicClient = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
+    const publicClient = await serviceDb();
 
     const { data: payload, error } = await publicClient.rpc("get_shared_client", {
       p_token: data.token,
@@ -191,11 +466,50 @@ export const getSharedClient = createServerFn({ method: "GET" })
     if (!payload) return null;
 
     const result = payload as unknown as SharedClientData;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Même liste que l'espace Premium : une seule règle de visibilité (voir loadSharedRecommendationRows).
+    result.recommendations = (await loadSharedRecommendationRows(result.client.id)).map(
+      ({ intervention_id: _iv, ...reco }) => reco,
+    );
+
+    // The public RPC historically did not expose civility. Read it from the
+    // authoritative client record so Premium can always display the title
+    // configured in the PP client sheet.
+    const { data: clientMeta } = await supabaseAdmin
+      .from("clients")
+      .select("civility, default_contact_id")
+      .eq("id", result.client.id)
+      .maybeSingle();
+    result.client.civility = clientMeta?.civility ?? null;
+
+    if (clientMeta?.default_contact_id) {
+      const { data: contact } = await supabaseAdmin
+        .from("contacts")
+        .select("first_name, last_name")
+        .eq("id", clientMeta.default_contact_id)
+        .maybeSingle();
+      result.client.first_name = contact?.first_name ?? null;
+      result.client.last_name = contact?.last_name ?? null;
+    } else {
+      const { data: contact } = await supabaseAdmin
+        .from("contacts")
+        .select("first_name, last_name")
+        .eq("client_id", result.client.id)
+        .order("is_report_recipient", { ascending: false })
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      result.client.first_name = contact?.first_name ?? null;
+      result.client.last_name = contact?.last_name ?? null;
+    }
 
     // Sign photo URLs with the admin client (private bucket).
-    const paths = result.interventions.flatMap((iv) => iv.photos.map((p) => p.storage_path));
+    const freePhotos = result.free_photos ?? [];
+    const paths = [
+      ...result.interventions.flatMap((iv) => iv.photos.map((p) => p.storage_path)),
+      ...freePhotos.map((p) => p.storage_path),
+    ];
     if (paths.length > 0) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: signed } = await supabaseAdmin.storage
         .from(BUCKET)
         .createSignedUrls(paths, 60 * 60 * 24 * 7);
@@ -208,9 +522,283 @@ export const getSharedClient = createServerFn({ method: "GET" })
           p.url = map.get(p.storage_path) ?? null;
         });
       });
+      freePhotos.forEach((p) => {
+        p.url = map.get(p.storage_path) ?? null;
+      });
     }
 
     return result;
+  });
+
+const PREMIUM_BUCKET = "client-premium";
+
+/**
+ * Durée des liens vers les fichiers Premium (photos, documents) : courte, pour que l'accès
+ * s'arrête vite après désactivation. La page en génère de nouveaux à chaque ouverture.
+ */
+const PREMIUM_URL_SECONDS = 60 * 60;
+
+/** Identifiants des documents qui ne servent qu'à la photo de couverture. */
+async function coverOnlyDocumentIds(clientId: string): Promise<Set<string>> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // Colonne cover_only absente de types.ts (régénération à faire).
+  const loose = supabaseAdmin as unknown as {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: string | boolean,
+        ) => {
+          eq: (col: string, val: string | boolean) => Promise<{ data: { id: string }[] | null }>;
+        };
+      };
+    };
+  };
+  const { data } = await loose
+    .from("client_premium_documents")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("cover_only", true);
+  return new Set((data ?? []).map((row) => row.id));
+}
+
+/**
+ * Source unique des préconisations vues par le client (vue classique ET Premium).
+ * Règle : celles qui figurent dans le CR (include_in_report) et non refusées.
+ * Même critère que le texte du CR (trigger recommendations_text), donc aucun écart.
+ */
+export async function loadSharedRecommendationRows(clientId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("recommendations")
+    .select(
+      "id, title, description, category, status, estimated_hours, unit_price, client_interest, client_viewed_at, intervention_id",
+    )
+    .eq("client_id", clientId)
+    .eq("include_in_report", true)
+    .neq("status", "refusee")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export const getSharedPremium = createServerFn({ method: "GET" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token || typeof data.token !== "string") throw new Error("Lien invalide");
+    return { token: data.token };
+  })
+  .handler(async ({ data }): Promise<SharedPremiumData | null> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: client } = await supabaseAdmin
+      .from("clients")
+      .select("id, user_id, contract_type, ceev_planning_path, ceev_planning_filename")
+      .eq("share_token", data.token)
+      .maybeSingle();
+    if (!client || client.contract_type !== "Entretien annuel") return null;
+
+    const { data: payload, error } = await (
+      await serviceDb()
+    ).rpc("get_shared_premium", {
+      p_token: data.token,
+    });
+    if (error) throw error;
+    if (!payload) return null;
+
+    const raw = payload as unknown as {
+      enabled: boolean;
+      garden_state: string | null;
+      garden_objectives: string | null;
+      garden_specificities: string | null;
+      google_review_url: string | null;
+      commercial_note: string | null;
+      cover_photo_id: string | null;
+      documents: Array<{
+        id: string;
+        title: string;
+        filename: string;
+        storage_path: string;
+        size_bytes: number | null;
+        uploaded_by: "gardener" | "client";
+        created_at: string;
+      }>;
+      upcoming: SharedPremiumUpcoming[];
+    };
+
+    let coverPhotoUrl: string | null = null;
+    if (raw.cover_photo_id) {
+      const { data: photo } = await supabaseAdmin
+        .from("intervention_photos")
+        .select("storage_path, include_in_report")
+        .eq("id", raw.cover_photo_id)
+        .maybeSingle();
+      // Une photo retirée du CR ne doit plus apparaître en couverture côté client.
+      if (photo?.storage_path && photo.include_in_report) {
+        const { data: signed } = await supabaseAdmin.storage
+          .from(BUCKET)
+          .createSignedUrl(photo.storage_path, PREMIUM_URL_SECONDS);
+        coverPhotoUrl = signed?.signedUrl ?? null;
+      }
+    }
+    if (!coverPhotoUrl) {
+      const { data: coverDoc } = await supabaseAdmin
+        .from("client_premium")
+        .select("cover_document_id")
+        .eq("client_id", client.id)
+        .maybeSingle();
+      const coverDocumentId = (coverDoc as { cover_document_id?: string | null } | null)
+        ?.cover_document_id;
+      if (coverDocumentId) {
+        const { data: doc } = await supabaseAdmin
+          .from("client_premium_documents")
+          .select("storage_path")
+          .eq("id", coverDocumentId)
+          .maybeSingle();
+        if (doc?.storage_path) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from(PREMIUM_BUCKET)
+            .createSignedUrl(doc.storage_path, PREMIUM_URL_SECONDS);
+          coverPhotoUrl = signed?.signedUrl ?? null;
+        }
+      }
+    }
+
+    const premiumCalendarDb = supabaseAdmin as unknown as PremiumPlanningDb;
+    const { data: workCalendarRows, error: workCalendarError } = await premiumCalendarDb
+      .from("client_premium_work_calendar_items")
+      .select("id, period_label, year, month, sequence, title, details")
+      .eq("client_id", client.id)
+      .order("year", { ascending: true, nullsFirst: false })
+      .order("month", { ascending: true, nullsFirst: false })
+      .order("sequence", { ascending: true })
+      .order("position", { ascending: true });
+    if (workCalendarError) throw workCalendarError;
+
+    let syncedWorkCalendar = workCalendarRows ?? [];
+    let syncedDocuments = raw.documents;
+    if (syncedWorkCalendar.length === 0 && client.ceev_planning_path) {
+      try {
+        const { importPremiumPlanning } = await import("@/lib/premium-planning-import.server");
+        const result = await importPremiumPlanning(premiumCalendarDb, {
+          id: client.id,
+          user_id: client.user_id,
+          ceev_planning_path: client.ceev_planning_path,
+          ceev_planning_filename: client.ceev_planning_filename ?? null,
+        });
+        if (result.status === "imported") {
+          const { data: refreshed } = await premiumCalendarDb
+            .from("client_premium_work_calendar_items")
+            .select("id, period_label, year, month, sequence, title, details")
+            .eq("client_id", client.id)
+            .order("year", { ascending: true, nullsFirst: false })
+            .order("month", { ascending: true, nullsFirst: false })
+            .order("sequence", { ascending: true })
+            .order("position", { ascending: true });
+          syncedWorkCalendar = refreshed ?? [];
+          const { data: freshDocs } = await premiumCalendarDb
+            .from("client_premium_documents")
+            .select("id, title, filename, storage_path, size_bytes, uploaded_by, created_at")
+            .eq("client_id", client.id)
+            .eq("visible_to_client", true)
+            .order("created_at", { ascending: false });
+          if (freshDocs) syncedDocuments = freshDocs as typeof raw.documents;
+        }
+      } catch (error) {
+        console.error("[premium-calendar] import automatique impossible", error);
+      }
+    }
+
+    // Fichiers de couverture (envoyés depuis PP) : affichés uniquement comme couverture.
+    const coverOnly = await coverOnlyDocumentIds(client.id);
+    syncedDocuments = syncedDocuments.filter((d) => !coverOnly.has(d.id));
+    const docPaths = syncedDocuments.map((d) => d.storage_path);
+    const docUrlMap = new Map<string, string>();
+    if (docPaths.length > 0) {
+      const { data: signed } = await supabaseAdmin.storage
+        .from(PREMIUM_BUCKET)
+        .createSignedUrls(docPaths, PREMIUM_URL_SECONDS);
+      (signed ?? []).forEach((s) => {
+        if (s.path && s.signedUrl) docUrlMap.set(s.path, s.signedUrl);
+      });
+    }
+
+    const { data: latestGardenReport } = await supabaseAdmin
+      .from("interventions")
+      .select("garden_state, intervention_date")
+      .eq("client_id", client.id)
+      .not("sent_to_client_at", "is", null)
+      .not("garden_state", "is", null)
+      .order("intervention_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Préconisations rédigées dans les comptes-rendus de chantier, regroupées par intervention.
+    const recoRows = await loadSharedRecommendationRows(client.id);
+    const recoInterventionIds = Array.from(
+      new Set((recoRows ?? []).map((row) => row.intervention_id).filter(Boolean)),
+    ) as string[];
+    const { data: recoInterventions } = recoInterventionIds.length
+      ? await supabaseAdmin
+          .from("interventions")
+          .select("id, title, intervention_type, intervention_date")
+          .in("id", recoInterventionIds)
+      : {
+          data: [] as Array<{
+            id: string;
+            title: string | null;
+            intervention_type: string | null;
+            intervention_date: string;
+          }>,
+        };
+    const interventionById = new Map((recoInterventions ?? []).map((iv) => [iv.id, iv]));
+    const groupsMap = new Map<string, PremiumRecommendationGroup>();
+    for (const row of recoRows ?? []) {
+      const key = row.intervention_id ?? "none";
+      const iv = row.intervention_id ? interventionById.get(row.intervention_id) : undefined;
+      const group = groupsMap.get(key) ?? {
+        intervention_id: row.intervention_id ?? null,
+        title: iv?.title || iv?.intervention_type || "Préconisations",
+        date: iv?.intervention_date ?? null,
+        items: [],
+      };
+      group.items.push({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        category: row.category,
+        status: row.status,
+        estimated_hours: row.estimated_hours,
+        unit_price: row.unit_price,
+        client_interest: row.client_interest,
+        client_viewed_at: row.client_viewed_at,
+      });
+      groupsMap.set(key, group);
+    }
+    const recommendationGroups = Array.from(groupsMap.values()).sort((a, b) =>
+      (b.date ?? "").localeCompare(a.date ?? ""),
+    );
+
+    return {
+      recommendation_groups: recommendationGroups,
+      enabled: raw.enabled,
+      garden_state: latestGardenReport?.garden_state ?? raw.garden_state,
+      garden_objectives: raw.garden_objectives,
+      garden_specificities: raw.garden_specificities,
+      google_review_url: raw.google_review_url,
+      commercial_note: raw.commercial_note,
+      cover_photo_url: coverPhotoUrl,
+      cover_photo_id: raw.cover_photo_id ?? null,
+      upcoming: raw.upcoming,
+      work_calendar: syncedWorkCalendar as SharedPremiumWorkCalendarItem[],
+      documents: syncedDocuments.map((d) => ({
+        id: d.id,
+        title: d.title,
+        filename: d.filename,
+        size_bytes: d.size_bytes,
+        uploaded_by: d.uploaded_by,
+        created_at: d.created_at,
+        url: docUrlMap.get(d.storage_path) ?? null,
+      })),
+    };
   });
 
 /**
@@ -225,10 +813,13 @@ export const getSharedInterventionPdfUrl = createServerFn({ method: "POST" })
     return { token: data.token, interventionId: data.interventionId };
   })
   .handler(async ({ data }): Promise<{ url: string }> => {
+    assertNotApercu();
     const fwd = getRequestHeader("x-forwarded-for") ?? "";
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
-    const { data: payload, error } = await publicClient().rpc("record_shared_report_view", {
+    const { data: payload, error } = await (
+      await serviceDb()
+    ).rpc("record_shared_report_view", {
       p_token: data.token,
       p_intervention_id: data.interventionId,
       p_user_agent: ua ?? undefined,
@@ -244,4 +835,548 @@ export const getSharedInterventionPdfUrl = createServerFn({ method: "POST" })
       .createSignedUrl(path, 60 * 60);
     if (signErr) throw signErr;
     return { url: signed.signedUrl };
+  });
+
+const PREMIUM_DOC_MAX_BYTES = 15 * 1024 * 1024;
+
+async function requireSharedClientByToken(token: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("id, name, user_id")
+    .eq("share_token", token)
+    .maybeSingle();
+  if (!client) throw new Error("Lien invalide");
+  return { supabaseAdmin, client };
+}
+
+async function requireEnabledPremiumClient(token: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("id, name, user_id, contract_type")
+    .eq("share_token", token)
+    .maybeSingle();
+  if (!client) throw new Error("Lien invalide");
+  if (client.contract_type !== "Entretien annuel") {
+    throw new Error("Espace Premium réservé aux clients en entretien annuel");
+  }
+  const { data: premium } = await supabaseAdmin
+    .from("client_premium")
+    .select("enabled")
+    .eq("client_id", client.id)
+    .maybeSingle();
+  if (!premium?.enabled) throw new Error("Espace Premium non actif");
+  return { supabaseAdmin, client };
+}
+
+/** Crée un album de photos libres depuis le lien client sécurisé. */
+// prettier-ignore
+export const createSharedPremiumPhotoAlbum = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; name: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    const name = data.name?.trim();
+    if (!name || name.length > 100) {
+      throw new Error("Le nom de l'album doit contenir entre 1 et 100 caractères.");
+    }
+    return { token: data.token, name };
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireSharedClientByToken(data.token);
+    const { data: album, error } = await supabaseAdmin
+      .from("client_photo_albums")
+      .insert({
+        client_id: client.id,
+        user_id: client.user_id,
+        name: data.name,
+      })
+      .select("id,name,created_at")
+      .single();
+    if (error) {
+      throw new Error(`Création de l'album impossible : ${error.message}`);
+    }
+    await supabaseAdmin.from("notifications").insert({
+      user_id: client.user_id,
+      type: "client_activity",
+      title: `${client.name} a créé un album photo`,
+      body: `Album « ${data.name} » créé dans la galerie photos.`,
+      client_id: client.id,
+    });
+    return album;
+  });
+
+/** Prépare un dépôt de photo dans la galerie du client Premium. */
+// prettier-ignore
+export const createSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; filename: string; contentType: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.filename?.trim()) throw new Error("Nom de photo invalide");
+    if (!data.contentType?.startsWith("image/")) {
+      throw new Error("Le fichier doit être une image.");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireSharedClientByToken(data.token);
+    const rawExt = data.filename.split(".").pop()?.toLowerCase() || "img";
+    const ext = /^[a-z0-9]{2,8}$/.test(rawExt) ? rawExt : "img";
+    const path = `${client.id}/client-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("chantier-photos")
+      .createSignedUploadUrl(path);
+    if (error || !signed?.token) {
+      throw new Error(
+        `Préparation de l'envoi impossible : ${error?.message ?? "URL signée indisponible"}`,
+      );
+    }
+    return { path, token: signed.token };
+  });
+
+/** Vérifie le dépôt puis l'ajoute aux photos libres du client, visibles des deux côtés. */
+// prettier-ignore
+export const finalizeSharedPremiumPhotoUpload = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      token: string;
+      path: string;
+      filename: string;
+      size: number;
+      albumId?: string | null;
+    }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!data.path || !data.filename) throw new Error("Photo invalide");
+      if (!Number.isFinite(data.size) || data.size <= 0) {
+        throw new Error("Fichier vide ou invalide");
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireSharedClientByToken(data.token);
+    if (!data.path.startsWith(`${client.id}/client-`)) {
+      throw new Error("Chemin de fichier invalide");
+    }
+    const filename = data.path.split("/").pop()!;
+    const { data: listed, error: listError } = await supabaseAdmin.storage
+      .from("chantier-photos")
+      .list(client.id, { search: filename, limit: 1 });
+    const stored = listed?.find((file) => file.name === filename);
+    if (listError || !stored) throw new Error("La photo n'a pas été reçue par le stockage");
+    const actualSize = Number(stored.metadata?.size ?? data.size);
+    if (!Number.isFinite(actualSize) || actualSize <= 0) {
+      throw new Error("La photo enregistrée est invalide");
+    }
+    const mime = String(stored.metadata?.mimetype ?? "");
+    if (mime && !mime.startsWith("image/")) {
+      await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
+      throw new Error("Le fichier envoyé n'est pas une image.");
+    }
+
+    if (data.albumId) {
+      const { data: album, error: albumError } = await supabaseAdmin
+        .from("client_photo_albums")
+        .select("id")
+        .eq("id", data.albumId)
+        .eq("client_id", client.id)
+        .maybeSingle();
+      if (albumError || !album) {
+        await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
+        throw new Error("Album introuvable pour ce client.");
+      }
+    }
+
+    const { data: last } = await supabaseAdmin
+      .from("intervention_photos")
+      .select("position")
+      .eq("client_id", client.id)
+      .is("intervention_id", null)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { error: insertError } = await supabaseAdmin
+      .from("intervention_photos")
+      .insert({
+        client_id: client.id,
+        intervention_id: null,
+        album_id: data.albumId || null,
+        user_id: client.user_id,
+        storage_path: data.path,
+        caption: null,
+        position: (last?.position ?? 0) + 1,
+        include_in_report: false,
+      } as never);
+    if (insertError) {
+      await supabaseAdmin.storage.from("chantier-photos").remove([data.path]);
+      throw new Error(`Enregistrement de la photo impossible : ${insertError.message}`);
+    }
+
+    await supabaseAdmin.from("notifications").insert({
+      user_id: client.user_id,
+      type: "client_activity",
+      title: `${client.name} a ajouté une photo`,
+      body: "Une nouvelle photo a été ajoutée à la rubrique Photos de son espace client.",
+      client_id: client.id,
+    });
+
+    try {
+      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
+      const email = userRes.user?.email;
+      if (email) {
+        const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+        await sendTemplateEmail("client-activity", email, {
+          templateData: {
+            clientName: client.name,
+            actionText: "a ajouté une photo",
+            contentPreview: data.filename,
+            clientUrl: `https://pp.delagraineaujardin.com/clients/${client.id}`,
+          },
+          idempotencyKey: `client-premium-photo-${data.path}`,
+        });
+      }
+    } catch {
+      // Best effort : l'ajout de la photo ne dépend pas de l'envoi d'email.
+    }
+
+    return { ok: true, size: actualSize };
+  });
+
+/** Classe une photo libre dans un album du même client, ou la retire de son album. */
+export const moveSharedPhotoToAlbum = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; photoId: string; albumId: string | null }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.photoId) throw new Error("Photo invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireSharedClientByToken(data.token);
+    const { data: photo } = await supabaseAdmin
+      .from("intervention_photos")
+      .select("id")
+      .eq("id", data.photoId)
+      .eq("client_id", client.id)
+      .is("intervention_id", null)
+      .maybeSingle();
+    if (!photo) throw new Error("Photo introuvable pour ce client.");
+    if (data.albumId) {
+      const { data: album } = await supabaseAdmin
+        .from("client_photo_albums")
+        .select("id")
+        .eq("id", data.albumId)
+        .eq("client_id", client.id)
+        .maybeSingle();
+      if (!album) throw new Error("Album introuvable pour ce client.");
+    }
+    const { error } = await supabaseAdmin
+      .from("intervention_photos")
+      .update({ album_id: data.albumId } as never)
+      .eq("id", data.photoId);
+    if (error) throw new Error(`Classement impossible : ${error.message}`);
+    return { ok: true };
+  });
+
+/** Étape 1 — prépare une URL d'upload signée pour un document déposé par le client. */
+export const createSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; filename: string; size: number }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.filename) throw new Error("Nom de fichier invalide");
+    if (!Number.isFinite(data.size) || data.size <= 0 || data.size > PREMIUM_DOC_MAX_BYTES) {
+      throw new Error("Le fichier ne doit pas dépasser 15 Mo");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const ext = data.filename.split(".").pop() || "bin";
+    const path = `${client.id}/client-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from(PREMIUM_BUCKET)
+      .createSignedUploadUrl(path);
+    if (error || !signed?.token) {
+      throw new Error(
+        `Préparation de l'envoi impossible : ${error?.message ?? "URL signée indisponible"}`,
+      );
+    }
+    return { path, token: signed.token };
+  });
+
+/** Étape 2 — vérifie l'upload, enregistre le document et notifie le jardinier. */
+export const finalizeSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { token: string; path: string; filename: string; size: number; title: string }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!data.path) throw new Error("Chemin invalide");
+      if (!data.title || data.title.trim().length === 0) throw new Error("Titre requis");
+      return { ...data, title: data.title.trim().slice(0, 200) };
+    },
+  )
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    if (!data.path.startsWith(`${client.id}/`)) throw new Error("Chemin de fichier invalide");
+    const filename = data.path.split("/").pop()!;
+    const { data: listed, error: listError } = await supabaseAdmin.storage
+      .from(PREMIUM_BUCKET)
+      .list(client.id, { search: filename, limit: 1 });
+    if (listError || !listed?.some((f) => f.name === filename)) {
+      throw new Error("Le fichier n'a pas été reçu par le stockage");
+    }
+
+    const { error } = await (
+      await serviceDb()
+    ).rpc("add_client_premium_document", {
+      p_token: data.token,
+      p_title: data.title,
+      p_filename: data.filename,
+      p_storage_path: data.path,
+      p_size_bytes: data.size,
+    });
+    if (error) {
+      await supabaseAdmin.storage.from(PREMIUM_BUCKET).remove([data.path]);
+      throw error;
+    }
+
+    try {
+      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
+      const email = userRes.user?.email;
+      if (email) {
+        const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+        await sendTemplateEmail("client-activity", email, {
+          templateData: {
+            clientName: client.name,
+            actionText: "a ajouté un document",
+            contentPreview: data.title,
+            clientUrl: `https://pp.delagraineaujardin.com/clients/${client.id}`,
+          },
+          idempotencyKey: `client-premium-document-${data.path}`,
+        });
+      }
+    } catch {
+      // best-effort
+    }
+
+    return { ok: true };
+  });
+
+/** Définit n'importe quelle photo transmise au client comme couverture de son espace Premium. */
+export const setSharedPremiumCover = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; photoId: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.photoId || typeof data.photoId !== "string") throw new Error("Photo invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    // Mêmes critères que get_shared_client : photo d'une intervention terminée du client,
+    // incluse dans le compte-rendu (c'est-à-dire visible dans l'espace client).
+    const { data: photo } = await supabaseAdmin
+      .from("intervention_photos")
+      .select("id, intervention_id, include_in_report")
+      .eq("id", data.photoId)
+      .maybeSingle();
+    if (!photo || !photo.include_in_report || !photo.intervention_id) {
+      throw new Error("Photo introuvable");
+    }
+    const { data: intervention } = await supabaseAdmin
+      .from("interventions")
+      .select("client_id, status")
+      .eq("id", photo.intervention_id)
+      .maybeSingle();
+    if (
+      !intervention ||
+      intervention.client_id !== client.id ||
+      !["termine", "terminee"].includes(intervention.status)
+    ) {
+      throw new Error("Cette photo n'appartient pas à ce client");
+    }
+    // Colonnes cover_set_* absentes de types.ts (régénération à faire).
+    const loose = supabaseAdmin as unknown as {
+      from: (table: string) => {
+        update: (values: unknown) => {
+          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+        };
+      };
+    };
+    const { error } = await loose
+      .from("client_premium")
+      .update({
+        cover_photo_id: photo.id,
+        cover_document_id: null,
+        cover_set_by: "client",
+        cover_set_at: new Date().toISOString(),
+      })
+      .eq("client_id", client.id);
+    if (error) throw new Error(`Couverture non enregistrée : ${error.message}`);
+    return { ok: true };
+  });
+
+/** Enregistre la consultation par le client d'un document que le jardinier lui a transmis. */
+export const markSharedDocumentViewed = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; documentId: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.documentId || typeof data.documentId !== "string")
+      throw new Error("Document invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const db = supabaseAdmin as unknown as PremiumPlanningDb;
+    const { data: document } = await db
+      .from("client_premium_documents")
+      .select("id, uploaded_by, client_view_count")
+      .eq("id", data.documentId)
+      .eq("client_id", client.id)
+      .eq("visible_to_client", true)
+      .maybeSingle();
+    if (!document || document.uploaded_by !== "gardener") return { ok: false };
+    const { error } = await db
+      .from("client_premium_documents")
+      .update({
+        client_viewed_at: new Date().toISOString(),
+        client_view_count: (document.client_view_count ?? 0) + 1,
+      })
+      .eq("id", document.id);
+    return { ok: !error };
+  });
+
+/**
+ * Suivi de consultation : le client vient d'ouvrir la page Préconisations de son espace Premium.
+ * Marque les préconisations comme vues, journalise la consultation et prévient le jardinier
+ * dans l'appli (au plus une alerte toutes les 6 heures pour ne pas le submerger).
+ */
+export const trackPremiumRecommendationsConsulted = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const now = new Date().toISOString();
+    const forwarded = getRequestHeader("x-forwarded-for") ?? "";
+    const ip = forwarded.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
+
+    await supabaseAdmin.from("share_access_log").insert({
+      client_id: client.id,
+      user_agent: getRequestHeader("user-agent") ?? null,
+      ip_address: ip,
+      section: "preconisations",
+    } as never);
+
+    const { data: newlyViewed } = await supabaseAdmin
+      .from("recommendations")
+      .update({ client_viewed_at: now })
+      .eq("client_id", client.id)
+      .in("status", ["en_attente", "acceptee", "proposee"])
+      .is("client_viewed_at", null)
+      .select("id");
+
+    const title = `${client.name} a consulté la page Préconisations`;
+    const since = new Date(Date.now() - 6 * 3_600_000).toISOString();
+    const { data: recent } = await supabaseAdmin
+      .from("notifications")
+      .select("id")
+      .eq("client_id", client.id)
+      .eq("title", title)
+      .gte("created_at", since)
+      .limit(1);
+    if ((recent ?? []).length === 0) {
+      const fresh = newlyViewed?.length ?? 0;
+      await supabaseAdmin.from("notifications").insert({
+        user_id: client.user_id,
+        type: "read",
+        title,
+        body:
+          fresh > 0
+            ? `Il vient de découvrir ${fresh} nouvelle${fresh > 1 ? "s" : ""} préconisation${fresh > 1 ? "s" : ""}.`
+            : "Il vient de relire ses préconisations.",
+        client_id: client.id,
+      });
+    }
+    return { ok: true };
+  });
+
+const PREMIUM_VIEW_SECTIONS = [
+  "accueil",
+  "calendrier",
+  "jardin",
+  "interventions",
+  "messagerie",
+  "cr",
+  "photo",
+  "document",
+] as const;
+type PremiumViewSection = (typeof PREMIUM_VIEW_SECTIONS)[number];
+
+const PREMIUM_VIEW_LABELS: Record<PremiumViewSection, string> = {
+  accueil: "l'accueil de son espace Premium",
+  calendrier: "son calendrier travaux",
+  jardin: "la fiche de son jardin",
+  interventions: "la page Interventions",
+  messagerie: "la messagerie",
+  cr: "un compte-rendu",
+  photo: "une photo",
+  document: "un document",
+};
+
+/**
+ * Suivi détaillé : le client vient d'ouvrir une page ou un élément précis de son espace Premium
+ * (compte-rendu, photo, document). Journalisé dans share_access_log avec l'élément consulté, et
+ * notifié dans PP. Au plus une notification par élément toutes les 30 minutes.
+ */
+export const trackPremiumView = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { token: string; section: string; itemId?: string; itemLabel?: string }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!(PREMIUM_VIEW_SECTIONS as readonly string[]).includes(data.section))
+        throw new Error("Section invalide");
+      return data;
+    },
+  )
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const section = data.section as PremiumViewSection;
+    const itemId = data.itemId ? String(data.itemId).slice(0, 80) : null;
+    const itemLabel = data.itemLabel ? String(data.itemLabel).slice(0, 160) : null;
+    const forwarded = getRequestHeader("x-forwarded-for") ?? "";
+    const ip = forwarded.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
+
+    await supabaseAdmin.from("share_access_log").insert({
+      client_id: client.id,
+      user_agent: getRequestHeader("user-agent") ?? null,
+      ip_address: ip,
+      section,
+      item_id: itemId,
+      item_label: itemLabel,
+    } as never);
+
+    const what = itemLabel
+      ? `${PREMIUM_VIEW_LABELS[section]} : ${itemLabel}`
+      : PREMIUM_VIEW_LABELS[section];
+    const title = `${client.name} a consulté ${what}`.slice(0, 200);
+    const since = new Date(Date.now() - 30 * 60_000).toISOString();
+    const { data: recent } = await supabaseAdmin
+      .from("notifications")
+      .select("id")
+      .eq("client_id", client.id)
+      .eq("title", title)
+      .gte("created_at", since)
+      .limit(1);
+    if ((recent ?? []).length === 0) {
+      await supabaseAdmin.from("notifications").insert({
+        user_id: client.user_id,
+        type: "read",
+        title,
+        body: null,
+        client_id: client.id,
+      });
+    }
+    return { ok: true };
   });

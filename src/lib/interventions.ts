@@ -179,7 +179,8 @@ export async function listServiceCatalog(): Promise<ServiceCatalogItem[]> {
 
 export interface InterventionPhoto {
   id: string;
-  intervention_id: string;
+  intervention_id: string | null;
+  client_id?: string | null;
   user_id: string;
   storage_path: string;
   caption: string | null;
@@ -532,4 +533,38 @@ export async function signedPhotoUrl(storagePath: string): Promise<string> {
     .createSignedUrl(storagePath, 60 * 60);
   if (error) throw error;
   return data.signedUrl;
+}
+
+/** Photos libres : rattachées au client, sans intervention. */
+export async function listFreePhotos(clientId: string): Promise<InterventionPhoto[]> {
+  const { data, error } = await supabase
+    .from("intervention_photos")
+    .select("*")
+    .eq("client_id", clientId)
+    .is("intervention_id", null)
+    .order("position", { ascending: true });
+  if (error) throw error;
+  return data as InterventionPhoto[];
+}
+
+export async function addFreePhoto(
+  clientId: string,
+  storagePath: string,
+  position: number,
+): Promise<InterventionPhoto> {
+  const user_id = await uid();
+  const { data, error } = await supabase
+    .from("intervention_photos")
+    .insert({
+      client_id: clientId,
+      intervention_id: null,
+      user_id,
+      storage_path: storagePath,
+      position,
+      include_in_report: false,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as InterventionPhoto;
 }

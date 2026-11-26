@@ -3,6 +3,7 @@ import type { Goal } from "@/lib/pilot-goals";
 import type { ChargesAnalysis } from "@/lib/pilot-charges";
 import type { AnnualRow } from "@/lib/pilot-annual";
 import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
+import { formatHourlyRate, formatPercent } from "@/lib/format-utils";
 
 /**
  * Score de santé pragmatique Pilot Pro.
@@ -19,11 +20,30 @@ import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
  */
 export type HealthTheme = "financiere" | "commerciale" | "activite" | "objectifs";
 
-export const HEALTH_THEME_META: Record<HealthTheme, { label: string; question: string; color: string }> = {
-  financiere: { label: "Santé financière", question: "Est-ce que je gagne de l'argent ?", color: "#4F8E33" },
-  commerciale: { label: "Santé commerciale", question: "Est-ce que je vends assez, et à qui ?", color: "#EE8627" },
-  activite: { label: "Santé d'activité", question: "Est-ce que mon temps est bien employé ?", color: "#2E8CCC" },
-  objectifs: { label: "Objectifs", question: "Est-ce que j'avance sur mes priorités ?", color: "#9333EA" },
+export const HEALTH_THEME_META: Record<
+  HealthTheme,
+  { label: string; question: string; color: string }
+> = {
+  financiere: {
+    label: "Santé financière",
+    question: "Est-ce que je gagne de l'argent ?",
+    color: "#4F8E33",
+  },
+  commerciale: {
+    label: "Santé commerciale",
+    question: "Est-ce que je vends assez, et à qui ?",
+    color: "#EE8627",
+  },
+  activite: {
+    label: "Santé d'activité",
+    question: "Est-ce que mon temps est bien employé ?",
+    color: "#2E8CCC",
+  },
+  objectifs: {
+    label: "Objectifs",
+    question: "Est-ce que j'avance sur mes priorités ?",
+    color: "#9333EA",
+  },
 };
 
 export interface ThemeScore {
@@ -43,7 +63,7 @@ export interface PragmaticHealth {
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
-const pct = (n: number) => `${n.toFixed(0)} %`;
+const pct = (n: number) => `${formatPercent(n)}`;
 const eur = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 
 /** Interpolation linéaire décroissante : 100 tant que value <= good, 0 dès que value >= bad. */
@@ -68,25 +88,47 @@ function scoreUpward(value: number, bad: number, good: number): number {
  * réutilisé tel quel par tout affichage d'évolution de la marge (page Santé,
  * vue annuelle) — aucun autre calcul de score de marge ne doit exister.
  */
-export function margeHealthScore(margePct: number | null, thresholds: PilotThresholds = getThresholds()): number | null {
+export function margeHealthScore(
+  margePct: number | null,
+  thresholds: PilotThresholds = getThresholds(),
+): number | null {
   if (margePct == null) return null;
   return Math.round(scoreUpward(margePct, 0, thresholds.margeSaineMin));
 }
 
 /** Score du poids des charges d'exploitation / CA (0-100). */
-export function chargesWeightHealthScore(weightPct: number | null, thresholds: PilotThresholds = getThresholds()): number | null {
+export function chargesWeightHealthScore(
+  weightPct: number | null,
+  thresholds: PilotThresholds = getThresholds(),
+): number | null {
   if (weightPct == null) return null;
-  return Math.round(scoreDownward(weightPct, thresholds.poidsChargesSain, thresholds.poidsChargesAlerte));
+  return Math.round(
+    scoreDownward(weightPct, thresholds.poidsChargesSain, thresholds.poidsChargesAlerte),
+  );
 }
 
 /** Score du taux horaire facturé (0-100), entre seuil d'alerte et cible basse. */
-export function tauxHoraireHealthScore(taux: number, thresholds: PilotThresholds = getThresholds()): number {
-  return Math.round(scoreUpward(taux, thresholds.tauxHoraireAlerte, thresholds.tauxHoraireCibleMin));
+export function tauxHoraireHealthScore(
+  taux: number,
+  thresholds: PilotThresholds = getThresholds(),
+): number {
+  return Math.round(
+    scoreUpward(taux, thresholds.tauxHoraireAlerte, thresholds.tauxHoraireCibleMin),
+  );
 }
 
 /** Score de concentration client (0-100) : sain si le 1er client < seuil sain. */
-export function concentrationHealthScore(topClientSharePct: number, thresholds: PilotThresholds = getThresholds()): number {
-  return Math.round(scoreDownward(topClientSharePct, thresholds.concentrationClientSaine, thresholds.concentrationClientAlerte));
+export function concentrationHealthScore(
+  topClientSharePct: number,
+  thresholds: PilotThresholds = getThresholds(),
+): number {
+  return Math.round(
+    scoreDownward(
+      topClientSharePct,
+      thresholds.concentrationClientSaine,
+      thresholds.concentrationClientAlerte,
+    ),
+  );
 }
 
 export function pragmaticHealth(params: {
@@ -105,7 +147,12 @@ export function pragmaticHealth(params: {
   now?: Date;
 }): PragmaticHealth {
   const {
-    k, annual, settings, goals, dormantClients = 0, activeClients = 0,
+    k,
+    annual,
+    settings,
+    goals,
+    dormantClients = 0,
+    activeClients = 0,
     topClientSharePct = null,
   } = params;
   const thresholds = params.thresholds ?? getThresholds();
@@ -150,7 +197,9 @@ export function pragmaticHealth(params: {
     themes.push({
       theme: "financiere",
       score: parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : null,
-      reason: parts.length ? "Marge, bénéfice et poids des charges de l'exercice (annualSummary)." : "Aucun CA enregistré sur l'exercice.",
+      reason: parts.length
+        ? "Marge, bénéfice et poids des charges de l'exercice (annualSummary)."
+        : "Aucun CA enregistré sur l'exercice.",
       details,
     });
   }
@@ -161,13 +210,31 @@ export function pragmaticHealth(params: {
     const parts: number[] = [];
     if (k.caPrevYTD > 0) {
       parts.push(clamp(50 + k.progression * 2));
-      details.push({ label: "Progression vs N-1", value: pct(k.progression), ok: k.progression >= 0, origin: "CA cumulé à date, exercices N et N-1", why: "Décide s'il faut relancer la prospection." });
+      details.push({
+        label: "Progression vs N-1",
+        value: pct(k.progression),
+        ok: k.progression >= 0,
+        origin: "CA cumulé à date, exercices N et N-1",
+        why: "Décide s'il faut relancer la prospection.",
+      });
     }
     if (activeClients + dormantClients > 0) {
       const fidele = (activeClients / (activeClients + dormantClients)) * 100;
       parts.push(clamp(fidele));
-      details.push({ label: "Clients actifs", value: `${activeClients} / ${activeClients + dormantClients}`, ok: fidele >= 60, origin: "Référentiel clients + dernière facturation", why: "Mesure la vitalité du portefeuille." });
-      details.push({ label: "Clients dormants", value: String(dormantClients), ok: dormantClients === 0, origin: "Clients sans facturation récente", why: "CA le plus rapide à récupérer par relance." });
+      details.push({
+        label: "Clients actifs",
+        value: `${activeClients} / ${activeClients + dormantClients}`,
+        ok: fidele >= 60,
+        origin: "Référentiel clients + dernière facturation",
+        why: "Mesure la vitalité du portefeuille.",
+      });
+      details.push({
+        label: "Clients dormants",
+        value: String(dormantClients),
+        ok: dormantClients === 0,
+        origin: "Clients sans facturation récente",
+        why: "CA le plus rapide à récupérer par relance.",
+      });
     }
     if (topClientSharePct != null) {
       parts.push(concentrationHealthScore(topClientSharePct, thresholds));
@@ -179,11 +246,20 @@ export function pragmaticHealth(params: {
         why: `Sain sous ${thresholds.concentrationClientSaine} % du CA ; alerte au-delà de ${thresholds.concentrationClientAlerte} %. Décide s'il faut diversifier la clientèle.`,
       });
     }
-    if (k.panierMoyen > 0) details.push({ label: "Panier moyen", value: eur(k.panierMoyen), ok: null, origin: "CA / nombre de prestations facturées", why: "Sert à fixer un montant minimum de déplacement." });
+    if (k.panierMoyen > 0)
+      details.push({
+        label: "Panier moyen",
+        value: eur(k.panierMoyen),
+        ok: null,
+        origin: "CA / nombre de prestations facturées",
+        why: "Sert à fixer un montant minimum de déplacement.",
+      });
     themes.push({
       theme: "commerciale",
       score: parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : null,
-      reason: parts.length ? "Dynamique du CA, vitalité du portefeuille et concentration client." : "Pas d'historique N-1 ni de portefeuille exploitable.",
+      reason: parts.length
+        ? "Dynamique du CA, vitalité du portefeuille et concentration client."
+        : "Pas d'historique N-1 ni de portefeuille exploitable.",
       details,
     });
   }
@@ -197,17 +273,31 @@ export function pragmaticHealth(params: {
       parts.push(tauxHoraireHealthScore(k.tauxHoraireReel, thresholds));
       details.push({
         label: "Taux horaire réel",
-        value: `${k.tauxHoraireReel.toFixed(0)} €/h`,
+        value: `${formatHourlyRate(k.tauxHoraireReel)}`,
         ok: k.tauxHoraireReel >= (cible > 0 ? cible : thresholds.tauxHoraireCibleMin),
         origin: "CA / heures réellement consommées",
         why: `Repère TPE paysage : taux cible ${thresholds.tauxHoraireCibleMin}–${thresholds.tauxHoraireCibleMax} €/h, alerte sous ${thresholds.tauxHoraireAlerte} €/h.`,
       });
     }
     if (k.tauxHoraireVendu > 0) {
-      details.push({ label: "Taux horaire vendu", value: `${k.tauxHoraireVendu.toFixed(0)} €/h`, ok: k.tauxHoraireVendu >= (cible > 0 ? cible : thresholds.tauxHoraireCibleMin), origin: "CA / heures facturées", why: "Base de la grille tarifaire des devis." });
-      if (!(k.tauxHoraireReel > 0)) parts.push(tauxHoraireHealthScore(k.tauxHoraireVendu, thresholds));
+      details.push({
+        label: "Taux horaire vendu",
+        value: `${formatHourlyRate(k.tauxHoraireVendu)}`,
+        ok: k.tauxHoraireVendu >= (cible > 0 ? cible : thresholds.tauxHoraireCibleMin),
+        origin: "CA / heures facturées",
+        why: "Base de la grille tarifaire des devis.",
+      });
+      if (!(k.tauxHoraireReel > 0))
+        parts.push(tauxHoraireHealthScore(k.tauxHoraireVendu, thresholds));
     }
-    if (k.nbEntries > 0) details.push({ label: "Lignes de vente", value: String(k.nbEntries), ok: null, origin: "pilot_ca_entries", why: "Volume d'activité facturée sur l'exercice." });
+    if (k.nbEntries > 0)
+      details.push({
+        label: "Lignes de vente",
+        value: String(k.nbEntries),
+        ok: null,
+        origin: "pilot_ca_entries",
+        why: "Volume d'activité facturée sur l'exercice.",
+      });
     themes.push({
       theme: "activite",
       score: parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : null,
@@ -223,26 +313,52 @@ export function pragmaticHealth(params: {
     const actifs = goals.filter((g) => g.status !== "abandonne");
     const done = actifs.filter((g) => g.status === "termine").length;
     const today = (params.now ?? new Date()).toISOString().slice(0, 10);
-    const retard = actifs.filter((g) => g.status === "en_cours" && g.deadline && g.deadline < today).length;
+    const retard = actifs.filter(
+      (g) => g.status === "en_cours" && g.deadline && g.deadline < today,
+    ).length;
     const details: ThemeScore["details"] = actifs.length
       ? [
-          { label: "Objectifs atteints", value: `${done} / ${actifs.length}`, ok: done > 0, origin: "pilot_goals", why: "Mesure l'avancement réel du plan." },
-          { label: "Objectifs en retard", value: String(retard), ok: retard === 0, origin: "pilot_goals — échéances dépassées", why: "Décide s'il faut replanifier ou abandonner." },
+          {
+            label: "Objectifs atteints",
+            value: `${done} / ${actifs.length}`,
+            ok: done > 0,
+            origin: "pilot_goals",
+            why: "Mesure l'avancement réel du plan.",
+          },
+          {
+            label: "Objectifs en retard",
+            value: String(retard),
+            ok: retard === 0,
+            origin: "pilot_goals — échéances dépassées",
+            why: "Décide s'il faut replanifier ou abandonner.",
+          },
         ]
       : [];
     const base = actifs.length ? (done / actifs.length) * 100 - retard * 5 : null;
     themes.push({
       theme: "objectifs",
       score: base == null ? null : Math.round(clamp(base)),
-      reason: actifs.length ? "Objectifs terminés, pénalisés par les retards." : "Aucun objectif enregistré.",
+      reason: actifs.length
+        ? "Objectifs terminés, pénalisés par les retards."
+        : "Aucun objectif enregistré.",
       details,
     });
   }
 
   const scored = themes.filter((t) => t.score != null) as (ThemeScore & { score: number })[];
-  const score = scored.length ? Math.round(scored.reduce((s, t) => s + t.score, 0) / scored.length) : null;
+  const score = scored.length
+    ? Math.round(scored.reduce((s, t) => s + t.score, 0) / scored.length)
+    : null;
   const level: PragmaticHealth["level"] =
-    score == null ? "inconnu" : score >= 75 ? "solide" : score >= 55 ? "correct" : score >= 35 ? "fragile" : "critique";
+    score == null
+      ? "inconnu"
+      : score >= 75
+        ? "solide"
+        : score >= 55
+          ? "correct"
+          : score >= 35
+            ? "fragile"
+            : "critique";
 
   const weakest = scored.slice().sort((a, b) => a.score - b.score)[0];
   const interpretation =
@@ -258,23 +374,44 @@ export function pragmaticHealth(params: {
 
   const actions: string[] = [];
   if (annual && annual.margePct != null && annual.margePct < thresholds.margeSaineMin)
-    actions.push("Remonter la marge : revoir les prix des prestations les moins rentables ou réduire les charges d'exploitation.");
-  if (dormantClients > 0) actions.push(`Relancer les ${dormantClients} client(s) dormant(s) : c'est le CA le plus rapide à récupérer.`);
+    actions.push(
+      "Remonter la marge : revoir les prix des prestations les moins rentables ou réduire les charges d'exploitation.",
+    );
+  if (dormantClients > 0)
+    actions.push(
+      `Relancer les ${dormantClients} client(s) dormant(s) : c'est le CA le plus rapide à récupérer.`,
+    );
   if (topClientSharePct != null && topClientSharePct > thresholds.concentrationClientAlerte)
     actions.push("Diversifier la clientèle : le 1er client pèse trop lourd dans le CA.");
   if (k.tauxHoraireReel > 0 && k.tauxHoraireReel < thresholds.tauxHoraireAlerte)
-    actions.push("Le taux horaire réel est sous le seuil d'alerte : ajuster les devis ou le temps passé sur les chantiers concernés.");
-  if (themes.find((t) => t.theme === "objectifs")?.details.some((d) => d.label === "Objectifs en retard" && d.value !== "0"))
-    actions.push("Traiter les objectifs en retard ou repousser leur échéance pour garder un plan crédible.");
-  if (!actions.length && score != null) actions.push("Aucune action corrective urgente : poursuivre le suivi mensuel.");
+    actions.push(
+      "Le taux horaire réel est sous le seuil d'alerte : ajuster les devis ou le temps passé sur les chantiers concernés.",
+    );
+  if (
+    themes
+      .find((t) => t.theme === "objectifs")
+      ?.details.some((d) => d.label === "Objectifs en retard" && d.value !== "0")
+  )
+    actions.push(
+      "Traiter les objectifs en retard ou repousser leur échéance pour garder un plan crédible.",
+    );
+  if (!actions.length && score != null)
+    actions.push("Aucune action corrective urgente : poursuivre le suivi mensuel.");
 
   return { score, level, themes, interpretation, actions };
 }
 
-export const HEALTH_LEVEL_META: Record<PragmaticHealth["level"], { label: string; tone: string; color: string }> = {
+export const HEALTH_LEVEL_META: Record<
+  PragmaticHealth["level"],
+  { label: string; tone: string; color: string }
+> = {
   solide: { label: "Solide", tone: "bg-emerald-100 text-emerald-700", color: "#059669" },
   correct: { label: "Correct", tone: "bg-green-100 text-green-700", color: "#4F8E33" },
   fragile: { label: "Fragile", tone: "bg-amber-100 text-amber-700", color: "#EE8627" },
   critique: { label: "Critique", tone: "bg-rose-100 text-rose-700", color: "#DC2626" },
-  inconnu: { label: "Données insuffisantes", tone: "bg-slate-100 text-slate-600", color: "#94A3B8" },
+  inconnu: {
+    label: "Données insuffisantes",
+    tone: "bg-slate-100 text-slate-600",
+    color: "#94A3B8",
+  },
 };

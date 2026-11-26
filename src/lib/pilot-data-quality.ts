@@ -68,7 +68,12 @@ interface QualityDataset {
     intervention_type: string | null;
   }>;
   ceev: Array<{ id: string; client_id: string | null; label: string; pv_ht: number; year: number }>;
-  sst: Array<{ id: string; client_id: string | null; service_requested: string | null; mission_date: string }>;
+  sst: Array<{
+    id: string;
+    client_id: string | null;
+    service_requested: string | null;
+    mission_date: string;
+  }>;
   interventions: Array<{ id: string; client_id: string; hours_spent: number | null }>;
   recos: Array<{ id: string; client_id: string }>;
   histo: Array<{ client_id: string | null; hours: number }>;
@@ -77,7 +82,10 @@ interface QualityDataset {
 async function fetchAll(): Promise<QualityDataset> {
   const [c, ca, ceev, sst, iv, reco, histo] = await Promise.all([
     paged("clients", "id,name,address,phone,email,report_policy"),
-    paged("pilot_ca_entries", "id,client_id,kind,match_status,amount_ht,designation,hours,intervention_type,year"),
+    paged(
+      "pilot_ca_entries",
+      "id,client_id,kind,match_status,amount_ht,designation,hours,intervention_type,year",
+    ),
     paged("ceev_contracts", "id,client_id,label,pv_ht,year"),
     paged("subcontractor_missions", "id,client_id,service_requested,mission_date"),
     paged("interventions", "id,client_id,hours_spent"),
@@ -139,22 +147,37 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
   const caByClient = countBy(caLinked, "client_id");
   const amountByClient = new Map<string, number>();
   for (const r of caLinked) {
-    amountByClient.set(r.client_id!, (amountByClient.get(r.client_id!) ?? 0) + (Number(r.amount_ht) || 0));
+    amountByClient.set(
+      r.client_id!,
+      (amountByClient.get(r.client_id!) ?? 0) + (Number(r.amount_ht) || 0),
+    );
   }
   const ivByClient = countBy(interventions, "client_id");
   // Temps exploitable = source maître uniquement (lignes de vente du suivi CA).
   // 0 h sur une ligne SST compte comme donnée connue, jamais comme manquante.
-  const caHoursByClient = countBy(caLinked.filter((r) => saleTimeKnown(r)), "client_id");
+  const caHoursByClient = countBy(
+    caLinked.filter((r) => saleTimeKnown(r)),
+    "client_id",
+  );
   // Avant 2026, aucun Temps n'existe : seuls les exercices suivis peuvent
   // motiver une demande de Temps (règle centrale pilot-time-scope).
   const caTrackedByClient = countBy(
     caLinked.filter((r) => isTimeTrackedYear(Number((r as { year?: number | null }).year))),
     "client_id",
   );
-  const ceevByClient = countBy(ceev.filter((r) => r.client_id), "client_id");
-  const sstByClient = countBy(sst.filter((r) => r.client_id), "client_id");
+  const ceevByClient = countBy(
+    ceev.filter((r) => r.client_id),
+    "client_id",
+  );
+  const sstByClient = countBy(
+    sst.filter((r) => r.client_id),
+    "client_id",
+  );
   const recoByClient = countBy(recos, "client_id");
-  const histoByClient = countBy(histo.filter((r) => r.client_id && Number(r.hours) > 0), "client_id");
+  const histoByClient = countBy(
+    histo.filter((r) => r.client_id && Number(r.hours) > 0),
+    "client_id",
+  );
 
   // ---- Complétude fiche par fiche (moteur existant) ----
   let complete = 0;
@@ -248,13 +271,17 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
       (caHoursByClient.get(p.client.id) ?? 0) === 0,
   );
   if (noHours.length > 0) {
-    blockers.push(`${noHours.length} client(s) sans temps dans le suivi CA : rentabilité indisponible.`);
+    blockers.push(
+      `${noHours.length} client(s) sans temps dans le suivi CA : rentabilité indisponible.`,
+    );
   }
   const noCoords = perClient.filter(
     (p) => p.quality.hasAnyData && (!p.client.address || (!p.client.phone && !p.client.email)),
   );
-  if (noCoords.length > 0) blockers.push(`${noCoords.length} fiche(s) avec coordonnées incomplètes.`);
-  if (blockers.length === 0) blockers.push("Aucun frein détecté : la base est exploitable à 100 %.");
+  if (noCoords.length > 0)
+    blockers.push(`${noCoords.length} fiche(s) avec coordonnées incomplètes.`);
+  if (blockers.length === 0)
+    blockers.push("Aucun frein détecté : la base est exploitable à 100 %.");
 
   // ---- Priorités de qualification (10 actions à plus fort impact) ----
   const priorities: QualityPriority[] = [];
@@ -262,7 +289,8 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
   // 1) Groupes de désignations CA orphelines, par montant décroissant.
   const groups = new Map<string, { label: string; lines: number; amount: number }>();
   for (const r of caOrphan) {
-    const label = clientNameFromDesignation(r.designation ?? "") || (r.designation ?? "Sans libellé");
+    const label =
+      clientNameFromDesignation(r.designation ?? "") || (r.designation ?? "Sans libellé");
     const key = label.toLowerCase();
     const cur = groups.get(key) ?? { label, lines: 0, amount: 0 };
     cur.lines += 1;
@@ -317,7 +345,7 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
       modules: ["Rentabilité SST", "Fiche client 360°"],
       gain: "Marge de sous-traitance imputée au bon client",
       weight: 500,
-      to: "/journal-sst",
+      to: "/sst",
     });
   }
 

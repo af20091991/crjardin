@@ -4,6 +4,7 @@ import type { ChargesAnalysis, ProjectionBase } from "@/lib/pilot-charges";
 import type { AnnualRow } from "@/lib/pilot-annual";
 import type { PortfolioRow } from "@/lib/pilot-portfolio";
 import type { RealHoursResolution } from "@/lib/pilot-real-hours";
+import { formatPercent } from "@/lib/format-utils";
 
 /**
  * Analyse automatique du dirigeant.
@@ -27,7 +28,7 @@ export interface DirectorInsight {
 }
 
 const eur = (n: number) => formatEuro(n);
-const pct = (n: number) => `${n >= 0 ? "" : ""}${n.toFixed(0)} %`;
+const pct = (n: number) => `${n >= 0 ? "" : ""}${formatPercent(n)}`;
 const hrs = (n: number) => `${n.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} h`;
 
 export function buildDirectorInsights(params: {
@@ -41,7 +42,8 @@ export function buildDirectorInsights(params: {
   opportunities?: { pendingValue: number; acceptedValue: number; invoicedCa: number } | null;
   year: number;
 }): DirectorInsight[] {
-  const { k, settings, annual, charges, projection, portfolio, hours, opportunities, year } = params;
+  const { k, settings, annual, charges, projection, portfolio, hours, opportunities, year } =
+    params;
   const out: Omit<DirectorInsight, "source" | "decision">[] = [];
   const add = (id: string, theme: string, text: string, tone: InsightTone, weight: number) =>
     out.push({ id, theme, text, tone, weight });
@@ -51,7 +53,13 @@ export function buildDirectorInsights(params: {
 
   // ---- Économique / CA ----
   if (yearRow && yearRow.caHt > 0) {
-    add("ca-annuel", "CA", `CA ${year} enregistré à date : ${eur(yearRow.caHt)} sur ${yearRow.nbLignes} lignes facturées.`, "neutral", 90);
+    add(
+      "ca-annuel",
+      "CA",
+      `CA ${year} enregistré à date : ${eur(yearRow.caHt)} sur ${yearRow.nbLignes} lignes facturées.`,
+      "neutral",
+      90,
+    );
   }
   if (yearRow && prevRow && prevRow.caHt > 0) {
     const evo = ((yearRow.caHt - prevRow.caHt) / prevRow.caHt) * 100;
@@ -73,7 +81,13 @@ export function buildDirectorInsights(params: {
     );
   }
   if (k.projection > 0 && k.caYear > 0) {
-    add("ca-projection", "Projection", `Au rythme actuel, la projection de clôture ${year} est de ${eur(k.projection)}.`, "neutral", 80);
+    add(
+      "ca-projection",
+      "Projection",
+      `Au rythme actuel, la projection de clôture ${year} est de ${eur(k.projection)}.`,
+      "neutral",
+      80,
+    );
   }
 
   // ---- Bénéfice / budget ----
@@ -116,7 +130,13 @@ export function buildDirectorInsights(params: {
       );
     }
     if (cy.monthlyAverage > 0) {
-      add("charges-mensuel", "Charges", `Coût de fonctionnement moyen observé : ${eur(cy.monthlyAverage)} par mois.`, "neutral", 70);
+      add(
+        "charges-mensuel",
+        "Charges",
+        `Coût de fonctionnement moyen observé : ${eur(cy.monthlyAverage)} par mois.`,
+        "neutral",
+        70,
+      );
     }
   }
   if (charges && charges.unclassifiedCount > 0) {
@@ -130,7 +150,13 @@ export function buildDirectorInsights(params: {
   }
   const topCat = charges?.categories.filter((c) => c.charge_class !== "a_classer")[0] ?? null;
   if (topCat && topCat.total > 0) {
-    add("charges-top", "Charges", `Premier poste de dépense toutes années : ${topCat.label} (${eur(topCat.total)}).`, "neutral", 66);
+    add(
+      "charges-top",
+      "Charges",
+      `Premier poste de dépense toutes années : ${topCat.label} (${eur(topCat.total)}).`,
+      "neutral",
+      66,
+    );
   }
   const catYearEvol = charges?.categories
     .map((c) => ({ label: c.label, y: c.years.find((yy) => yy.year === year) }))
@@ -154,7 +180,11 @@ export function buildDirectorInsights(params: {
       "taux-reel",
       "Rentabilité",
       `Taux horaire réel ${year} : ${eur(rate)}/h sur ${hrs(hours.hours)} (${hours.sourceLabel}).`,
-      settings.target_hourly_rate > 0 ? (rate >= settings.target_hourly_rate ? "positive" : "warning") : "neutral",
+      settings.target_hourly_rate > 0
+        ? rate >= settings.target_hourly_rate
+          ? "positive"
+          : "warning"
+        : "neutral",
       92,
     );
     if (settings.target_hourly_rate > 0) {
@@ -185,20 +215,44 @@ export function buildDirectorInsights(params: {
     );
   }
   if (k.totalHours > 0 && k.workedDays > 0) {
-    add("charge-jour", "Travaux", `Volume facturé : ${hrs(k.totalHours)} sur ${k.workedDays} jours d'activité (${(k.totalHours / k.workedDays).toFixed(1)} h/jour).`, "neutral", 60);
+    add(
+      "charge-jour",
+      "Travaux",
+      `Volume facturé : ${hrs(k.totalHours)} sur ${k.workedDays} jours d'activité (${(k.totalHours / k.workedDays).toFixed(1)} h/jour).`,
+      "neutral",
+      60,
+    );
   }
   if (k.panierMoyen > 0) {
-    add("panier", "Économique", `Panier moyen par prestation facturée : ${eur(k.panierMoyen)}.`, "neutral", 64);
+    add(
+      "panier",
+      "Économique",
+      `Panier moyen par prestation facturée : ${eur(k.panierMoyen)}.`,
+      "neutral",
+      64,
+    );
   }
   if (k.tjm > 0) {
-    add("tjm", "Économique", `Taux journalier moyen réalisé : ${eur(k.tjm)} par jour d'activité.`, "neutral", 58);
+    add(
+      "tjm",
+      "Économique",
+      `Taux journalier moyen réalisé : ${eur(k.tjm)} par jour d'activité.`,
+      "neutral",
+      58,
+    );
   }
 
   // ---- Clients ----
   const withCa = portfolio.filter((p) => p.caYear > 0).sort((a, b) => b.caYear - a.caYear);
   if (withCa.length > 0 && k.caYear > 0) {
     const top = withCa[0];
-    add("client-top", "Clients", `Premier client ${year} : ${top.name} (${eur(top.caYear)}, ${pct((top.caYear / k.caYear) * 100)} du CA).`, "neutral", 87);
+    add(
+      "client-top",
+      "Clients",
+      `Premier client ${year} : ${top.name} (${eur(top.caYear)}, ${pct((top.caYear / k.caYear) * 100)} du CA).`,
+      "neutral",
+      87,
+    );
     const top5 = withCa.slice(0, 5).reduce((s, p) => s + p.caYear, 0);
     add(
       "client-concentration",
@@ -209,7 +263,11 @@ export function buildDirectorInsights(params: {
     );
   }
   const lowProfit = portfolio.filter(
-    (p) => p.rentabilite != null && settings.target_hourly_rate > 0 && p.rentabilite < settings.target_hourly_rate * 0.75 && p.hours >= 10,
+    (p) =>
+      p.rentabilite != null &&
+      settings.target_hourly_rate > 0 &&
+      p.rentabilite < settings.target_hourly_rate * 0.75 &&
+      p.hours >= 10,
   );
   if (lowProfit.length > 0) {
     add(
@@ -224,11 +282,23 @@ export function buildDirectorInsights(params: {
     .filter((p) => p.rentabilite != null && p.hours >= 10)
     .sort((a, b) => (b.rentabilite ?? 0) - (a.rentabilite ?? 0))[0];
   if (bestRate) {
-    add("client-best-rate", "Rentabilité", `Meilleure rentabilité horaire : ${bestRate.name} à ${eur(bestRate.rentabilite!)}/h sur ${hrs(bestRate.hours)}.`, "positive", 68);
+    add(
+      "client-best-rate",
+      "Rentabilité",
+      `Meilleure rentabilité horaire : ${bestRate.name} à ${eur(bestRate.rentabilite!)}/h sur ${hrs(bestRate.hours)}.`,
+      "positive",
+      68,
+    );
   }
   const noHours = portfolio.filter((p) => p.caYear > 0 && p.hours <= 0).length;
   if (noHours > 0) {
-    add("clients-sans-heures", "Travaux", `${noHours} clients facturés en ${year} sans aucune heure identifiée : leur rentabilité reste non calculable.`, "warning", 72);
+    add(
+      "clients-sans-heures",
+      "Travaux",
+      `${noHours} clients facturés en ${year} sans aucune heure identifiée : leur rentabilité reste non calculable.`,
+      "warning",
+      72,
+    );
   }
 
   // ---- Opportunités commerciales ----
@@ -242,7 +312,13 @@ export function buildDirectorInsights(params: {
     );
   }
   if (opportunities && opportunities.invoicedCa > 0) {
-    add("opportunites-ca", "Opportunités", `${eur(opportunities.invoicedCa)} de CA déjà généré par les recommandations facturées.`, "positive", 62);
+    add(
+      "opportunites-ca",
+      "Opportunités",
+      `${eur(opportunities.invoicedCa)} de CA déjà généré par les recommandations facturées.`,
+      "positive",
+      62,
+    );
   }
 
   // ---- Investissement ----
@@ -259,7 +335,13 @@ export function buildDirectorInsights(params: {
   if (annual.length >= 3) {
     const last3 = annual.slice(0, 3);
     const avg = last3.reduce((s, a) => s + a.caHt, 0) / last3.length;
-    add("historique", "Économique", `Moyenne de CA sur les ${last3.length} derniers exercices : ${eur(avg)}.`, "neutral", 54);
+    add(
+      "historique",
+      "Économique",
+      `Moyenne de CA sur les ${last3.length} derniers exercices : ${eur(avg)}.`,
+      "neutral",
+      54,
+    );
   }
 
   return out
@@ -273,31 +355,109 @@ export function buildDirectorInsights(params: {
 
 /** Origine de la donnée et intérêt décisionnel, par information produite. */
 const META: Record<string, { source: string; decision: string }> = {
-  "ca-annuel": { source: "pilot_ca_entries — ventes de l'exercice", decision: "Situer l'activité réelle avant tout arbitrage." },
-  "ca-evol": { source: "pilot_ca_entries — exercices N et N-1", decision: "Décider s'il faut relancer la prospection." },
-  "ca-ytd": { source: "pilot_ca_entries — cumul à date équivalente", decision: "Corriger le rythme commercial en cours d'année." },
-  "ca-projection": { source: "Rythme de facturation observé", decision: "Anticiper la trésorerie de fin d'exercice." },
-  benefice: { source: "CA HT − charges enregistrées (module charges)", decision: "Valider si la structure de coûts est tenable." },
-  "marge-dispo": { source: "CA à date − charges à date", decision: "Décider d'un investissement ou d'une embauche." },
-  "charges-mix": { source: "Charges classées fixes/variables", decision: "Cibler le levier d'économie le plus rapide." },
-  "charges-poids": { source: "Charges / CA de l'exercice", decision: "Arbitrer une hausse de prix ou une baisse de coûts." },
-  "charges-mensuel": { source: "Moyenne des charges sur les mois observés", decision: "Fixer le CA mensuel minimum à réaliser." },
-  "charges-a-classer": { source: "Lignes de charges sans catégorie", decision: "Fiabiliser l'analyse avant décision budgétaire." },
-  "charges-top": { source: "Cumul par catégorie de charge", decision: "Renégocier le premier poste de dépense." },
-  "charges-derive": { source: "Évolution annuelle par catégorie", decision: "Arbitrer ou plafonner un poste qui dérive." },
-  "taux-reel": { source: "CA / heures réelles (interventions + historiques)", decision: "Vérifier que le prix couvre le temps passé." },
-  "taux-cible": { source: "Taux réel vs cible des paramètres PP", decision: "Ajuster la grille tarifaire." },
-  "ecart-heures": { source: "Heures vendues vs heures réalisées", decision: "Corriger le chiffrage ou la traçabilité terrain." },
-  "charge-jour": { source: "Heures facturées / jours d'activité", decision: "Évaluer la charge de travail soutenable." },
-  panier: { source: "CA / nombre de prestations facturées", decision: "Décider d'un minimum de facturation." },
+  "ca-annuel": {
+    source: "pilot_ca_entries — ventes de l'exercice",
+    decision: "Situer l'activité réelle avant tout arbitrage.",
+  },
+  "ca-evol": {
+    source: "pilot_ca_entries — exercices N et N-1",
+    decision: "Décider s'il faut relancer la prospection.",
+  },
+  "ca-ytd": {
+    source: "pilot_ca_entries — cumul à date équivalente",
+    decision: "Corriger le rythme commercial en cours d'année.",
+  },
+  "ca-projection": {
+    source: "Rythme de facturation observé",
+    decision: "Anticiper la trésorerie de fin d'exercice.",
+  },
+  benefice: {
+    source: "CA HT − charges enregistrées (module charges)",
+    decision: "Valider si la structure de coûts est tenable.",
+  },
+  "marge-dispo": {
+    source: "CA à date − charges à date",
+    decision: "Décider d'un investissement ou d'une embauche.",
+  },
+  "charges-mix": {
+    source: "Charges classées fixes/variables",
+    decision: "Cibler le levier d'économie le plus rapide.",
+  },
+  "charges-poids": {
+    source: "Charges / CA de l'exercice",
+    decision: "Arbitrer une hausse de prix ou une baisse de coûts.",
+  },
+  "charges-mensuel": {
+    source: "Moyenne des charges sur les mois observés",
+    decision: "Fixer le CA mensuel minimum à réaliser.",
+  },
+  "charges-a-classer": {
+    source: "Lignes de charges sans catégorie",
+    decision: "Fiabiliser l'analyse avant décision budgétaire.",
+  },
+  "charges-top": {
+    source: "Cumul par catégorie de charge",
+    decision: "Renégocier le premier poste de dépense.",
+  },
+  "charges-derive": {
+    source: "Évolution annuelle par catégorie",
+    decision: "Arbitrer ou plafonner un poste qui dérive.",
+  },
+  "taux-reel": {
+    source: "CA / heures réelles (interventions + historiques)",
+    decision: "Vérifier que le prix couvre le temps passé.",
+  },
+  "taux-cible": {
+    source: "Taux réel vs cible des paramètres PP",
+    decision: "Ajuster la grille tarifaire.",
+  },
+  "ecart-heures": {
+    source: "Heures vendues vs heures réalisées",
+    decision: "Corriger le chiffrage ou la traçabilité terrain.",
+  },
+  "charge-jour": {
+    source: "Heures facturées / jours d'activité",
+    decision: "Évaluer la charge de travail soutenable.",
+  },
+  panier: {
+    source: "CA / nombre de prestations facturées",
+    decision: "Décider d'un minimum de facturation.",
+  },
   tjm: { source: "CA / jours d'activité", decision: "Comparer au TJM cible pour les devis." },
-  "client-top": { source: "CA par client de l'exercice", decision: "Sécuriser la relation du client principal." },
-  "client-concentration": { source: "Part des 5 premiers clients", decision: "Décider d'élargir le portefeuille si le risque est fort." },
-  "clients-peu-rentables": { source: "Rentabilité horaire par client", decision: "Renégocier ou arrêter les clients sous la cible." },
-  "client-best-rate": { source: "Rentabilité horaire par client", decision: "Répliquer ce profil de mission." },
-  "clients-sans-heures": { source: "Clients facturés sans heures identifiées", decision: "Compléter les heures pour fiabiliser la rentabilité." },
-  opportunites: { source: "Recommandations en attente / acceptées", decision: "Prioriser les relances commerciales." },
-  "opportunites-ca": { source: "Recommandations facturées", decision: "Mesurer le retour du travail de recommandation." },
-  investissement: { source: "Charges fixes de l'exercice", decision: "Calibrer la capacité d'investissement." },
-  historique: { source: "CA des trois derniers exercices", decision: "Fixer un objectif annuel réaliste." },
+  "client-top": {
+    source: "CA par client de l'exercice",
+    decision: "Sécuriser la relation du client principal.",
+  },
+  "client-concentration": {
+    source: "Part des 5 premiers clients",
+    decision: "Décider d'élargir le portefeuille si le risque est fort.",
+  },
+  "clients-peu-rentables": {
+    source: "Rentabilité horaire par client",
+    decision: "Renégocier ou arrêter les clients sous la cible.",
+  },
+  "client-best-rate": {
+    source: "Rentabilité horaire par client",
+    decision: "Répliquer ce profil de mission.",
+  },
+  "clients-sans-heures": {
+    source: "Clients facturés sans heures identifiées",
+    decision: "Compléter les heures pour fiabiliser la rentabilité.",
+  },
+  opportunites: {
+    source: "Recommandations en attente / acceptées",
+    decision: "Prioriser les relances commerciales.",
+  },
+  "opportunites-ca": {
+    source: "Recommandations facturées",
+    decision: "Mesurer le retour du travail de recommandation.",
+  },
+  investissement: {
+    source: "Charges fixes de l'exercice",
+    decision: "Calibrer la capacité d'investissement.",
+  },
+  historique: {
+    source: "CA des trois derniers exercices",
+    decision: "Fixer un objectif annuel réaliste.",
+  },
 };

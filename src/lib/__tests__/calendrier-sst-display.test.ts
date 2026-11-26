@@ -1,0 +1,110 @@
+import { describe, expect, it } from "bun:test";
+import {
+  DEFAULT_CALENDAR_FILTERS,
+  DEFAULT_CALENDAR_PREFERENCES,
+  addDaysIso,
+  firstWeekOfMonth,
+  mondayOfIso,
+  weekDatesIso,
+  isFilteringCalendar,
+  matchesPersonFilter,
+  personKey,
+  cornerClass,
+  gapClass,
+  heightClass,
+  mergePreferences,
+  splitDayItems,
+  styleClass,
+  toneClasses,
+} from "@/lib/calendrier-sst-display";
+import { isoWeekNumber } from "@/lib/calendrier-sst";
+
+describe("calendrier SST — préférences d'affichage", () => {
+  it("complète les préférences partielles avec les valeurs par défaut", () => {
+    const merged = mergePreferences({ tone: "accent", showWeekNumbers: true });
+    expect(merged.tone).toBe("accent");
+    expect(merged.showWeekNumbers).toBe(true);
+    expect(merged.style).toBe(DEFAULT_CALENDAR_PREFERENCES.style);
+    expect(merged.entriesPerDay).toBe(DEFAULT_CALENDAR_PREFERENCES.entriesPerDay);
+  });
+
+  it("retombe sur les valeurs par défaut pour une entrée invalide", () => {
+    expect(mergePreferences(null)).toEqual(DEFAULT_CALENDAR_PREFERENCES);
+    expect(mergePreferences("cassé")).toEqual(DEFAULT_CALENDAR_PREFERENCES);
+  });
+
+  it("n'utilise que des tokens sémantiques pour les couleurs", () => {
+    const classes = Object.values(toneClasses("accent")).join(" ");
+    expect(/#|white|black/.test(classes)).toBe(false);
+    expect(classes).toContain("accent");
+  });
+
+  it("produit une classe distincte par réglage", () => {
+    expect(styleClass("editorial")).not.toBe(styleClass("soft"));
+    expect(heightClass("spacious")).not.toBe(heightClass("compact"));
+    expect(cornerClass("square")).toBe("rounded-none");
+    expect(gapClass("wide")).not.toBe(gapClass("tight"));
+  });
+
+  it("calcule le numéro de semaine ISO", () => {
+    expect(isoWeekNumber(new Date(2026, 0, 1))).toBe(1);
+    expect(isoWeekNumber(new Date(2026, 8, 21))).toBe(39);
+  });
+
+  it("replie les éléments au-delà de la limite sans rien perdre", () => {
+    const { visible, hidden } = splitDayItems([1, 2, 3, 4, 5, 6], 3);
+    expect(visible).toEqual([1, 2, 3]);
+    expect(hidden).toEqual([4, 5, 6]);
+    expect([...visible, ...hidden]).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it("affiche l'élément en trop plutôt qu'un « +1 »", () => {
+    const { visible, hidden } = splitDayItems([1, 2, 3, 4], 3);
+    expect(visible).toEqual([1, 2, 3, 4]);
+    expect(hidden).toEqual([]);
+  });
+
+  it("normalise les prénoms pour les filtres (accents, casse)", () => {
+    expect(personKey(" Chloé ")).toBe("chloe");
+    expect(personKey(null)).toBe("");
+  });
+
+  it("filtre par personne sans accent ni casse, « all » laisse tout passer", () => {
+    expect(matchesPersonFilter(["Chloé", "Fanny"], "chloe")).toBe(true);
+    expect(matchesPersonFilter(["Fanny"], "chloe")).toBe(false);
+    expect(matchesPersonFilter([], "all")).toBe(true);
+  });
+
+  it("détecte qu'un filtre est actif", () => {
+    expect(isFilteringCalendar(DEFAULT_CALENDAR_FILTERS)).toBe(false);
+    expect(isFilteringCalendar({ ...DEFAULT_CALENDAR_FILTERS, worksiteStatus: "draft" })).toBe(
+      true,
+    );
+    expect(isFilteringCalendar({ ...DEFAULT_CALENDAR_FILTERS, showWorksites: false })).toBe(true);
+  });
+
+  it("calcule le lundi d'une semaine, y compris le dimanche", () => {
+    expect(mondayOfIso("2026-10-04")).toBe("2026-09-28"); // dimanche
+    expect(mondayOfIso("2026-10-05")).toBe("2026-10-05"); // lundi
+    expect(mondayOfIso("2026-10-08")).toBe("2026-10-05");
+  });
+
+  it("ajoute des jours à travers les mois et années", () => {
+    expect(addDaysIso("2026-10-30", 3)).toBe("2026-11-02");
+    expect(addDaysIso("2026-01-02", -3)).toBe("2025-12-30");
+  });
+
+  it("liste les 7 jours d'une semaine", () => {
+    const days = weekDatesIso("2026-09-28");
+    expect(days).toHaveLength(7);
+    expect(days[0]).toBe("2026-09-28");
+    expect(days[6]).toBe("2026-10-04");
+  });
+
+  it("trouve la première semaine d'un mois (règle du jeudi)", () => {
+    // 1er oct. 2026 = jeudi → semaine du 28 sept.
+    expect(firstWeekOfMonth(2026, 9)).toBe("2026-09-28");
+    // 1er nov. 2026 = dimanche, jeudi précédent en octobre → semaine suivante
+    expect(firstWeekOfMonth(2026, 10)).toBe("2026-11-02");
+  });
+});

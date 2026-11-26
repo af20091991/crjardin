@@ -35,11 +35,12 @@ import {
   XAxis,
   YAxis,
   ZAxis,
-} from "recharts";
+} from "@/components/ui/lazy-recharts";
 import { AlertTriangle, BarChart3, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import {
   Select,
   SelectContent,
@@ -58,6 +59,7 @@ import {
   type FlexChartType,
   type FlexDataset,
 } from "@/lib/pilot-flex-chart";
+import { formatPercent } from "@/lib/format-utils";
 
 interface Props {
   title: string;
@@ -147,12 +149,10 @@ export function PilotFlexChart({
     return (
       <Card className="p-4">
         <p className="text-sm font-medium">{title}</p>
-        <div className="flex flex-col items-center gap-2 py-10 text-center">
-          <BarChart3 className="h-6 w-6 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Aucune donnée enregistrée à représenter sur la période affichée.
-          </p>
-        </div>
+        <EmptyState
+          icon={BarChart3}
+          title="Aucune donnée enregistrée à représenter sur la période affichée."
+        />
       </Card>
     );
   }
@@ -168,7 +168,10 @@ export function PilotFlexChart({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={dataset.id} onValueChange={setDatasetId}>
-            <SelectTrigger className="h-8 w-[230px] text-xs" aria-label="Indicateur affiché">
+            <SelectTrigger
+              className="h-8 w-full max-w-[230px] text-xs"
+              aria-label="Indicateur affiché"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -180,7 +183,10 @@ export function PilotFlexChart({
             </SelectContent>
           </Select>
           <Select value={wantedType} onValueChange={setWantedType}>
-            <SelectTrigger className="h-8 w-[190px] text-xs" aria-label="Type de graphique">
+            <SelectTrigger
+              className="h-8 w-full max-w-[190px] text-xs"
+              aria-label="Type de graphique"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="max-h-[320px]">
@@ -207,7 +213,8 @@ export function PilotFlexChart({
       {!compat.ok && (
         <p className="mt-2 flex items-start gap-1.5 rounded-md bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          {compat.reason} Affichage replié sur « {FLEX_CHART_TYPES.find((t) => t.type === type)?.label} ».
+          {compat.reason} Affichage replié sur «{" "}
+          {FLEX_CHART_TYPES.find((t) => t.type === type)?.label} ».
         </p>
       )}
 
@@ -221,6 +228,17 @@ export function PilotFlexChart({
 }
 
 const H = "h-[260px] sm:h-[300px]";
+
+/**
+ * Nombre de catégories à sauter entre deux étiquettes affichées sur l'axe
+ * horizontal, pour éviter que les libellés (dates, mois, clients…) ne se
+ * chevauchent quand il y a beaucoup de points (ex : 90 jours de trafic).
+ * En dessous de `maxTicks` catégories, tout est affiché (interval 0).
+ */
+function xAxisInterval(count: number, maxTicks = 10) {
+  if (count <= maxTicks) return 0;
+  return Math.ceil(count / maxTicks) - 1;
+}
 
 function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartType }) {
   const { rows, series, unit } = dataset;
@@ -251,12 +269,25 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               {grid}
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={xAxisInterval(rows.length)}
+                angle={rows.length > 12 ? -30 : 0}
+                textAnchor={rows.length > 12 ? "end" : "middle"}
+                height={rows.length > 12 ? 48 : 30}
+              />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={axis} width={64} />
               {tooltip}
               {legend}
               {series.map((s, i) => (
-                <Bar key={s.key} dataKey={s.key} name={s.label} fill={color(i)} radius={[4, 4, 0, 0]} />
+                <Bar
+                  key={s.key}
+                  dataKey={s.key}
+                  name={s.label}
+                  fill={color(i)}
+                  radius={[4, 4, 0, 0]}
+                />
               ))}
             </BarChart>
           </ResponsiveContainer>
@@ -266,14 +297,24 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
       return (
         <div className={H}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+            <BarChart
+              data={rows}
+              layout="vertical"
+              margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+            >
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={axis} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={96} />
               {tooltip}
               {legend}
               {series.map((s, i) => (
-                <Bar key={s.key} dataKey={s.key} name={s.label} fill={color(i)} radius={[0, 4, 4, 0]} />
+                <Bar
+                  key={s.key}
+                  dataKey={s.key}
+                  name={s.label}
+                  fill={color(i)}
+                  radius={[0, 4, 4, 0]}
+                />
               ))}
             </BarChart>
           </ResponsiveContainer>
@@ -285,7 +326,14 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               {grid}
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={xAxisInterval(rows.length)}
+                angle={rows.length > 12 ? -30 : 0}
+                textAnchor={rows.length > 12 ? "end" : "middle"}
+                height={rows.length > 12 ? 48 : 30}
+              />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={axis} width={64} />
               {tooltip}
               {legend}
@@ -300,18 +348,37 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
       const pctRows = rows.map((r) => {
         const total = series.reduce((sum, s) => sum + (Number(r[s.key]) || 0), 0);
         const out: Record<string, string | number> = { name: String(r.name) };
-        for (const s of series) out[s.key] = total > 0 ? ((Number(r[s.key]) || 0) / total) * 100 : 0;
+        for (const s of series)
+          out[s.key] = total > 0 ? ((Number(r[s.key]) || 0) / total) * 100 : 0;
         return out;
       });
       return (
         <div className={H}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={pctRows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }} stackOffset="expand">
+            <BarChart
+              data={pctRows}
+              margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+              stackOffset="expand"
+            >
               {grid}
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${Math.round(Number(v) * 100)} %`} width={48} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={xAxisInterval(pctRows.length)}
+                angle={pctRows.length > 12 ? -30 : 0}
+                textAnchor={pctRows.length > 12 ? "end" : "middle"}
+                height={pctRows.length > 12 ? 48 : 30}
+              />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => `${Math.round(Number(v) * 100)} %`}
+                width={48}
+              />
               <Tooltip
-                formatter={(v: number | string, name) => [`${Number(v).toFixed(1)} %`, String(name)]}
+                formatter={(v: number | string, name) => [
+                  `${formatPercent(Number(v))}`,
+                  String(name),
+                ]}
                 labelFormatter={(l) => `${dataset.categoryLabel} : ${l}`}
                 contentStyle={{ fontSize: 12 }}
               />
@@ -330,7 +397,14 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               {grid}
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={xAxisInterval(rows.length)}
+                angle={rows.length > 12 ? -30 : 0}
+                textAnchor={rows.length > 12 ? "end" : "middle"}
+                height={rows.length > 12 ? 48 : 30}
+              />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={axis} width={64} />
               {tooltip}
               {legend}
@@ -356,7 +430,14 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               {grid}
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={xAxisInterval(rows.length)}
+                angle={rows.length > 12 ? -30 : 0}
+                textAnchor={rows.length > 12 ? "end" : "middle"}
+                height={rows.length > 12 ? 48 : 30}
+              />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={axis} width={64} />
               {tooltip}
               {legend}
@@ -382,11 +463,23 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={rows} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               {grid}
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={xAxisInterval(rows.length)}
+                angle={rows.length > 12 ? -30 : 0}
+                textAnchor={rows.length > 12 ? "end" : "middle"}
+                height={rows.length > 12 ? 48 : 30}
+              />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={axis} width={64} />
               {tooltip}
               {legend}
-              <Bar dataKey={series[0].key} name={series[0].label} fill={color(0)} radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey={series[0].key}
+                name={series[0].label}
+                fill={color(0)}
+                radius={[4, 4, 0, 0]}
+              />
               {series.slice(1).map((s, i) => (
                 <Line
                   key={s.key}
@@ -444,7 +537,10 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
                   <Cell key={i} fill={PP_SERIES[i % PP_SERIES.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number | string, name) => [fmt(v), String(name)]} contentStyle={{ fontSize: 12 }} />
+              <Tooltip
+                formatter={(v: number | string, name) => [fmt(v), String(name)]}
+                contentStyle={{ fontSize: 12 }}
+              />
               <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -454,8 +550,17 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
       return (
         <div className={H}>
           <ResponsiveContainer width="100%" height="100%">
-            <Treemap data={pieData} dataKey="value" nameKey="name" stroke="var(--background)" fill={color(0)}>
-              <Tooltip formatter={(v: number | string, name) => [fmt(v), String(name)]} contentStyle={{ fontSize: 12 }} />
+            <Treemap
+              data={pieData}
+              dataKey="value"
+              nameKey="name"
+              stroke="var(--background)"
+              fill={color(0)}
+            >
+              <Tooltip
+                formatter={(v: number | string, name) => [fmt(v), String(name)]}
+                contentStyle={{ fontSize: 12 }}
+              />
             </Treemap>
           </ResponsiveContainer>
         </div>
@@ -466,12 +571,19 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
         <div className={H}>
           <ResponsiveContainer width="100%" height="100%">
             <FunnelChart>
-              <Tooltip formatter={(v: number | string, name) => [fmt(v), String(name)]} contentStyle={{ fontSize: 12 }} />
+              <Tooltip
+                formatter={(v: number | string, name) => [fmt(v), String(name)]}
+                contentStyle={{ fontSize: 12 }}
+              />
               <Funnel dataKey="value" nameKey="name" data={sorted} isAnimationActive>
                 {sorted.map((_, i) => (
                   <Cell key={i} fill={PP_SERIES[i % PP_SERIES.length]} />
                 ))}
-                <LabelList position="right" dataKey="name" style={{ fontSize: 11, fill: "var(--foreground)" }} />
+                <LabelList
+                  position="right"
+                  dataKey="name"
+                  style={{ fontSize: 11, fill: "var(--foreground)" }}
+                />
               </Funnel>
             </FunnelChart>
           </ResponsiveContainer>
@@ -494,9 +606,24 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 8, right: 12, left: -8, bottom: 4 }}>
               {grid}
-              <XAxis type="number" dataKey="x" name={xs.label} tick={{ fontSize: 11 }} tickFormatter={axis} />
-              <YAxis type="number" dataKey="y" name={ys.label} tick={{ fontSize: 11 }} tickFormatter={axis} width={64} />
-              {type === "bulles" && <ZAxis type="number" dataKey="z" range={[60, 500]} name={zs.label} />}
+              <XAxis
+                type="number"
+                dataKey="x"
+                name={xs.label}
+                tick={{ fontSize: 11 }}
+                tickFormatter={axis}
+              />
+              <YAxis
+                type="number"
+                dataKey="y"
+                name={ys.label}
+                tick={{ fontSize: 11 }}
+                tickFormatter={axis}
+                width={64}
+              />
+              {type === "bulles" && (
+                <ZAxis type="number" dataKey="z" range={[60, 500]} name={zs.label} />
+              )}
               <Tooltip
                 contentStyle={{ fontSize: 12 }}
                 formatter={(v: number | string, name) => [fmt(v), String(name)]}
@@ -517,7 +644,9 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
           <table className="w-full min-w-[420px] border-separate border-spacing-1 text-xs">
             <thead>
               <tr>
-                <th className="text-left font-medium text-muted-foreground">{dataset.categoryLabel}</th>
+                <th className="text-left font-medium text-muted-foreground">
+                  {dataset.categoryLabel}
+                </th>
                 {series.map((s) => (
                   <th key={s.key} className="px-1 text-center font-medium text-muted-foreground">
                     {s.label}
@@ -561,14 +690,28 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
         const v = Number(r[key]) || 0;
         const base = v >= 0 ? cumul : cumul + v;
         cumul += v;
-        return { name: String(r.name), base, positif: v >= 0 ? v : 0, negatif: v < 0 ? -v : 0, valeur: v, cumul };
+        return {
+          name: String(r.name),
+          base,
+          positif: v >= 0 ? v : 0,
+          negatif: v < 0 ? -v : 0,
+          valeur: v,
+          cumul,
+        };
       });
       return (
         <div className={H}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={wf} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               {grid}
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={xAxisInterval(wf.length)}
+                angle={wf.length > 12 ? -30 : 0}
+                textAnchor={wf.length > 12 ? "end" : "middle"}
+                height={wf.length > 12 ? 48 : 30}
+              />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={axis} width={64} />
               <Tooltip
                 contentStyle={{ fontSize: 12 }}
@@ -607,7 +750,14 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               {grid}
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={xAxisInterval(data.length)}
+                angle={data.length > 12 ? -30 : 0}
+                textAnchor={data.length > 12 ? "end" : "middle"}
+                height={data.length > 12 ? 48 : 30}
+              />
               <YAxis yAxisId="v" tick={{ fontSize: 11 }} tickFormatter={axis} width={64} />
               <YAxis
                 yAxisId="p"
@@ -621,13 +771,27 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
                 contentStyle={{ fontSize: 12 }}
                 formatter={(v: number | string, name) =>
                   name === "Cumul"
-                    ? [`${Number(v).toFixed(1)} %`, "Cumul"]
+                    ? [`${formatPercent(Number(v))}`, "Cumul"]
                     : [fmt(v), series[0].label]
                 }
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar yAxisId="v" dataKey="valeur" name={series[0].label} fill={color(0)} radius={[4, 4, 0, 0]} />
-              <Line yAxisId="p" type="monotone" dataKey="cumulPct" name="Cumul" stroke="var(--pp-mid)" strokeWidth={2} dot={false} />
+              <Bar
+                yAxisId="v"
+                dataKey="valeur"
+                name={series[0].label}
+                fill={color(0)}
+                radius={[4, 4, 0, 0]}
+              />
+              <Line
+                yAxisId="p"
+                type="monotone"
+                dataKey="cumulPct"
+                name="Cumul"
+                stroke="var(--pp-mid)"
+                strokeWidth={2}
+                dot={false}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

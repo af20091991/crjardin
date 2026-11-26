@@ -8,6 +8,9 @@ import {
   type ReactNode,
 } from "react";
 import { setWeekStartDay } from "@/lib/date-utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { useRole } from "@/hooks/use-role";
 
 export type ThemeMode = "light" | "dark" | "auto";
 export type Density = "comfortable" | "compact";
@@ -192,11 +195,18 @@ export const FONT_OPTIONS: { value: FontChoice; label: string }[] = FONT_GROUPS.
 export type BorderWidth = "thin" | "normal" | "strong";
 export type TextScale = "small" | "normal" | "large";
 export type TableDensity = "auto" | "comfortable" | "compact";
+/** Densité des listes en cartes (clients, etc.), indépendante des tableaux. */
+export type ListDensity = "auto" | "comfortable" | "compact";
 export type ContentWidth = "comfortable" | "full";
 export type NavIndicator = "auto" | "dot" | "bar";
 export type AccentSaturation = "normal" | "soft" | "vivid";
 export type DarkTint = "colored" | "neutral";
 export type WeekStart = "auto" | "monday" | "sunday";
+export type SurfaceTone = "white" | "soft";
+export type CardElevation = "flat" | "soft" | "raised";
+export type SidebarWidth = "narrow" | "standard" | "wide";
+export type NavSpacing = "compact" | "comfortable";
+export type ActiveIndicator = "subtle" | "strong";
 
 /* ---------- Lecture des cartes (présentation seule) ---------- */
 export type CardReading = "synthetic" | "standard" | "detailed";
@@ -219,8 +229,16 @@ export const CARD_STYLES: { value: Exclude<CardStyle, "auto">; label: string; hi
   { value: "minimal", label: "Minimal", hint: "Très peu de bordures, valeur dominante." },
   { value: "epure", label: "Épuré", hint: "Respiration importante, fond discret." },
   { value: "pilotage", label: "Pilotage", hint: "Valeur dominante, voyant et comparaison nets." },
-  { value: "editorial", label: "Éditorial", hint: "Hiérarchie typographique forte, espaces généreux." },
-  { value: "contour", label: "Contour", hint: "Carte définie par une bordure fine, intérieur sobre." },
+  {
+    value: "editorial",
+    label: "Éditorial",
+    hint: "Hiérarchie typographique forte, espaces généreux.",
+  },
+  {
+    value: "contour",
+    label: "Contour",
+    hint: "Carte définie par une bordure fine, intérieur sobre.",
+  },
   { value: "accent", label: "Accent", hint: "Filet d'accent discret sur le côté." },
 ];
 
@@ -235,7 +253,6 @@ export function effectiveValueAlign(a: Appearance): "left" | "right" {
   if (a.valueAlign !== "auto") return a.valueAlign;
   return a.ui === "next" ? "right" : "left";
 }
-
 
 export type Appearance = {
   theme: ThemeMode;
@@ -267,6 +284,8 @@ export type Appearance = {
   reducedMotion: boolean;
   // 7 — Densité des tableaux, indépendante de la densité générale
   tableDensity: TableDensity;
+  // 7 bis — Densité des listes en cartes
+  listDensity: ListDensity;
   // 8 — Largeur maximale du contenu
   contentWidth: ContentWidth;
   // 9 — Icônes décoratives
@@ -283,6 +302,16 @@ export type Appearance = {
   sidebarCollapsedDefault: boolean;
   // 15 — Premier jour de la semaine
   weekStart: WeekStart;
+  /** Ton général des surfaces de travail. */
+  surfaceTone: SurfaceTone;
+  /** Élévation permanente des cartes. */
+  cardElevation: CardElevation;
+  /** Largeur du menu latéral déplié. */
+  sidebarWidth: SidebarWidth;
+  /** Espacement vertical des liens du menu. */
+  navSpacing: NavSpacing;
+  /** Intensité visuelle de la page active. */
+  activeIndicator: ActiveIndicator;
 
   /* ---------- Lecture des cartes (présentation seule) ---------- */
   // Niveau de lecture des cartes
@@ -303,6 +332,8 @@ export type Appearance = {
   valueAlign: ValueAlign;
   // Niveau des libellés
   labelLevel: LabelLevel;
+  /** Etat réel de la barre latérale, partagé avec tous les utilisateurs. */
+  sidebarCollapsed: boolean;
 };
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -324,6 +355,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   textScale: "normal",
   reducedMotion: false,
   tableDensity: "auto",
+  listDensity: "auto",
   contentWidth: "comfortable",
   decorativeIcons: true,
   navIndicator: "auto",
@@ -332,6 +364,11 @@ export const DEFAULT_APPEARANCE: Appearance = {
   defaultOpenGroup: "",
   sidebarCollapsedDefault: false,
   weekStart: "auto",
+  surfaceTone: "soft",
+  cardElevation: "soft",
+  sidebarWidth: "standard",
+  navSpacing: "comfortable",
+  activeIndicator: "subtle",
   cardReading: "standard",
   cardComparisons: true,
   euroFormat: "normal",
@@ -342,11 +379,84 @@ export const DEFAULT_APPEARANCE: Appearance = {
   cleanReading: false,
   valueAlign: "auto",
   labelLevel: "full",
+  sidebarCollapsed: false,
 };
-
 
 export const PRIMARY_PRESETS = ["#4F8E33", "#1F3D2B", "#3E7D44", "#2E8CCC", "#825A41", "#0F766E"];
 export const ACCENT_PRESETS = ["#EE8627", "#D98A3D", "#E0A21B", "#C97B4A", "#B4531F", "#DC2626"];
+
+const FONT_CSS_LINK_ID = "pp-google-fonts";
+const GOOGLE_FONT_FAMILY: Record<Exclude<FontChoice, "auto" | "system">, string> = {
+  jakarta: "Plus Jakarta Sans:wght@400;500;600;700",
+  inter: "Inter:wght@400;500;600;700",
+  worksans: "Work Sans:wght@400;500;600;700",
+  manrope: "Manrope:wght@400;500;600;700",
+  outfit: "Outfit:wght@400;500;600;700",
+  sora: "Sora:wght@400;500;600;700",
+  spacegrotesk: "Space Grotesk:wght@400;500;600;700",
+  dmsans: "DM Sans:wght@400;500;600;700",
+  poppins: "Poppins:wght@400;500;600;700",
+  nunito: "Nunito:wght@400;500;600;700",
+  quicksand: "Quicksand:wght@400;500;600;700",
+  roboto: "Roboto:wght@400;500;600;700",
+  opensans: "Open Sans:wght@400;500;600;700",
+  lato: "Lato:wght@400;700",
+  montserrat: "Montserrat:wght@400;500;600;700",
+  raleway: "Raleway:wght@400;500;600;700",
+  rubik: "Rubik:wght@400;500;600;700",
+  figtree: "Figtree:wght@400;500;600;700",
+  karla: "Karla:wght@400;500;600;700",
+  newsreader: "Newsreader:wght@400;500;600;700",
+  fraunces: "Fraunces:wght@400;500;600;700",
+  lora: "Lora:wght@400;500;600;700",
+  sourceserif: "Source Serif 4:wght@400;500;600;700",
+  playfair: "Playfair Display:wght@400;500;600;700",
+  cormorant: "Cormorant Garamond:wght@400;500;600;700",
+  baskerville: "Libre Baskerville:wght@400;700",
+  spectral: "Spectral:wght@400;500;600;700",
+  ptserif: "PT Serif:wght@400;700",
+  robotoslab: "Roboto Slab:wght@400;500;600;700",
+  merriweather: "Merriweather:wght@400;500;600;700",
+  bitter: "Bitter:wght@400;500;600;700",
+  syne: "Syne:wght@400;500;600;700;800",
+  oswald: "Oswald:wght@400;500;600;700",
+  bebas: "Bebas Neue:wght@400",
+  jetbrains: "JetBrains Mono:wght@400;500;600;700",
+  ibmplexmono: "IBM Plex Mono:wght@400;500;600;700",
+  spacemono: "Space Mono:wght@400;700",
+};
+
+function ensureGoogleFonts(a: Appearance) {
+  if (typeof document === "undefined") return;
+  const head = document.head;
+  if (!head?.querySelector || !head.appendChild || !document.createElement) return;
+  const families = new Set<string>();
+  if (a.fontBody === "auto") families.add("Plus Jakarta Sans:wght@400;500;600;700");
+  if (typeof window !== "undefined" && window.location?.pathname?.startsWith("/partage/")) {
+    families.add("Cormorant Garamond:wght@400;500;600;700");
+  }
+  if (a.fontHeading === "auto") families.add("Syne:wght@400;500;600;700;800");
+  if (a.fontNumeric === "auto" && a.ui === "next") {
+    families.add("Newsreader:wght@400;500;600;700");
+  }
+  for (const choice of [a.fontHeading, a.fontBody, a.fontNumeric]) {
+    if (choice && choice !== "auto" && choice !== "system") {
+      families.add(GOOGLE_FONT_FAMILY[choice]);
+    }
+  }
+  const href =
+    "https://fonts.googleapis.com/css2?" +
+    [...families].map((family) => `family=${encodeURIComponent(family)}`).join("&") +
+    "&display=swap";
+  let link = head.querySelector<HTMLLinkElement>(`#${FONT_CSS_LINK_ID}`);
+  if (!link) {
+    link = document.createElement("link");
+    link.id = FONT_CSS_LINK_ID;
+    link.rel = "stylesheet";
+    head.appendChild(link);
+  }
+  if (link.getAttribute("href") !== href) link.setAttribute("href", href);
+}
 
 const STORAGE_KEY = "cr-appearance";
 
@@ -370,6 +480,7 @@ function setFlag(root: HTMLElement, name: string, value: string | null) {
 export function applyAppearance(a: Appearance) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
+  ensureGoogleFonts(a);
   const prefersDark =
     typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches;
   const dark = a.theme === "dark" || (a.theme === "auto" && prefersDark);
@@ -443,6 +554,8 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-motion", a.reducedMotion ? "reduced" : null);
   // 7 — Densité des tableaux
   setFlag(root, "data-table-density", a.tableDensity === "auto" ? null : a.tableDensity);
+  // 7 bis — Densité des listes en cartes
+  setFlag(root, "data-list-density", a.listDensity === "auto" ? null : a.listDensity);
   // 8 — Largeur du contenu
   setFlag(root, "data-content-width", a.contentWidth === "comfortable" ? null : a.contentWidth);
   // 9 — Icônes décoratives
@@ -455,6 +568,11 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-dark-tint", a.darkTint === "colored" ? null : a.darkTint);
   // 15 — Premier jour de la semaine (lundi = comportement actuel des helpers)
   setWeekStartDay(a.weekStart === "sunday" ? 0 : 1);
+  setFlag(root, "data-surface-tone", a.surfaceTone === "soft" ? null : a.surfaceTone);
+  setFlag(root, "data-card-elevation", a.cardElevation === "soft" ? null : a.cardElevation);
+  setFlag(root, "data-sidebar-width", a.sidebarWidth === "standard" ? null : a.sidebarWidth);
+  setFlag(root, "data-nav-spacing", a.navSpacing === "comfortable" ? null : a.navSpacing);
+  setFlag(root, "data-active-indicator", a.activeIndicator === "subtle" ? null : a.activeIndicator);
 
   /* ---------- Lecture des cartes : présentation seule, jamais de calcul ---------- */
   setFlag(root, "data-card-reading", a.cardReading === "standard" ? null : a.cardReading);
@@ -465,7 +583,6 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-value-align", effectiveValueAlign(a) === "left" ? null : "right");
   setFlag(root, "data-label-level", a.labelLevel === "full" ? null : "short");
 }
-
 
 type Ctx = {
   appearance: Appearance;
@@ -480,21 +597,67 @@ const AppearanceContext = createContext<Ctx>({
 });
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const { isAdmin, isLoading: roleLoading } = useRole();
   const [appearance, setState] = useState<Appearance>(DEFAULT_APPEARANCE);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate from storage after mount to avoid SSR mismatch.
+  // L'apparence est désormais globale. Le premier administrateur qui initialise PP
+  // publie son réglage local existant ; ensuite ce réglage devient la référence commune.
   useEffect(() => {
-    const loaded = load();
-    setState(loaded);
-    applyAppearance(loaded);
-  }, []);
+    let cancelled = false;
+    if (!user || roleLoading) return;
 
-  // Re-apply and persist on change.
+    const hydrate = async () => {
+      const { data, error } = await supabase
+        .from("app_appearance")
+        .select("settings")
+        .eq("id", true)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      let loaded: Appearance;
+      if (
+        !error &&
+        data?.settings &&
+        typeof data.settings === "object" &&
+        !Array.isArray(data.settings)
+      ) {
+        loaded = { ...DEFAULT_APPEARANCE, ...(data.settings as Partial<Appearance>) };
+      } else if (isAdmin) {
+        const local = load();
+        let sidebarCollapsed = local.sidebarCollapsed;
+        try {
+          sidebarCollapsed = window.localStorage.getItem("cr-sidebar-collapsed") === "1";
+        } catch {
+          /* ignore */
+        }
+        loaded = { ...local, sidebarCollapsed };
+        const { error: seedError } = await supabase
+          .from("app_appearance")
+          .upsert({ id: true, settings: loaded, updated_by: user.id }, { onConflict: "id" });
+        if (seedError)
+          console.error("[Appearance] Impossible de publier l'apparence globale.", seedError);
+      } else {
+        loaded = DEFAULT_APPEARANCE;
+      }
+
+      setState(loaded);
+      applyAppearance(loaded);
+      setHydrated(true);
+    };
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isAdmin, roleLoading]);
+
   useEffect(() => {
     applyAppearance(appearance);
   }, [appearance]);
 
-  // React to system theme changes when in "auto".
   useEffect(() => {
     if (appearance.theme !== "auto" || typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -503,27 +666,48 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, [appearance]);
 
-  const setAppearance = useCallback((patch: Partial<Appearance>) => {
-    setState((prev) => {
-      const next = { ...prev, ...patch };
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, []);
+  // Seul l'administrateur peut modifier l'apparence globale. Les observateurs
+  // reçoivent la configuration publiée mais ne peuvent pas l'écraser.
+  useEffect(() => {
+    if (!hydrated || !isAdmin || !user) return;
+    const timer = window.setTimeout(() => {
+      void supabase
+        .from("app_appearance")
+        .upsert({ id: true, settings: appearance, updated_by: user.id }, { onConflict: "id" })
+        .then(({ error }) => {
+          if (error) console.error("[Appearance] Enregistrement global impossible.", error);
+        });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [appearance, hydrated, isAdmin, user]);
+
+  const setAppearance = useCallback(
+    (patch: Partial<Appearance>) => {
+      if (!isAdmin) return;
+      setState((prev) => {
+        const next = { ...prev, ...patch };
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+        return next;
+      });
+    },
+    [isAdmin],
+  );
 
   const reset = useCallback(() => {
+    if (!isAdmin) return;
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.setItem("cr-sidebar-collapsed", "0");
     } catch {
       /* ignore */
     }
     setState(DEFAULT_APPEARANCE);
     applyAppearance(DEFAULT_APPEARANCE);
-  }, []);
+  }, [isAdmin]);
 
   const value = useMemo(
     () => ({ appearance, setAppearance, reset }),

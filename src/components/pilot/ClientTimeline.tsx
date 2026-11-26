@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
+import { formatHours, formatPercent } from "@/lib/format-utils";
 
 export interface TimelineInput {
   createdAt?: string | null;
@@ -64,7 +65,7 @@ export function buildTimeline(input: TimelineInput): TimelineEvent[] {
       date: i.intervention_date,
       icon: HardHat,
       label: i.title || i.intervention_type || "Intervention",
-      detail: i.hours_spent != null ? `${Number(i.hours_spent).toFixed(1)} h réalisées` : undefined,
+      detail: i.hours_spent != null ? `${formatHours(Number(i.hours_spent))} réalisées` : undefined,
       badge: i.status,
     });
   }
@@ -99,8 +100,7 @@ export function buildTimeline(input: TimelineInput): TimelineEvent[] {
   years.forEach((y, idx) => {
     const total = byYear.get(y) ?? 0;
     const prev = idx > 0 ? (byYear.get(years[idx - 1]) ?? 0) : null;
-    const evolution =
-      prev != null && prev > 0 ? ((total - prev) / prev) * 100 : null;
+    const evolution = prev != null && prev > 0 ? ((total - prev) / prev) * 100 : null;
     events.push({
       key: `ca:${y}`,
       date: `${y}-12-31`,
@@ -108,7 +108,7 @@ export function buildTimeline(input: TimelineInput): TimelineEvent[] {
       label: `Chiffre d'affaires ${y} : ${formatEuro(total)}`,
       detail:
         evolution != null
-          ? `${evolution >= 0 ? "+" : ""}${evolution.toFixed(0)} % vs ${y - 1}`
+          ? `${evolution >= 0 ? "+" : ""}${formatPercent(evolution)} vs ${y - 1}`
           : undefined,
     });
   });
