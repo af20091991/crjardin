@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
+  cascadeAmounts,
   storedPosteRecap,
   manualLineFields,
   missingFields,
+  previewStoredLine,
   posteClientText,
   posteRecap,
   type RecapRow,
@@ -43,6 +45,8 @@ describe("manualLineFields", () => {
     expect(manualLineFields("fourniture", { pau: 4.5 })).toEqual({
       pau_ht_applied: 4.5,
       cost_status: "connu",
+      unit_multiplier: 1,
+      unit_status: "ok",
     });
   });
 
@@ -101,12 +105,21 @@ describe("missingFields", () => {
     expect(missingFields([frn(), mo({ key: "1-2" })], { "1-2": { cost: 10 } })).toEqual([]);
   });
 
-  test("PAU et unité absents : deux saisies proposées", () => {
-    const missing = missingFields([frn({ purchase: null, unit: null })], {});
-    expect(missing.map((m) => m.field)).toEqual(["pau", "multiplier"]);
+  test("PAU absent : pas listé ici, il se saisit dans la ligne", () => {
+    expect(missingFields([frn({ purchase: null, unit: null })], {})).toEqual([]);
   });
 
-  test("unité non pièce ni kg : multiplicateur demandé", () => {
+  test("PAU absent saisi dans la ligne : le poste est compté, unité résolue", () => {
+    const rows = [frn({ purchase: null, unit: null })];
+    const manual = { "1-1": { pau: 5 } };
+    expect(missingFields(rows, manual)).toEqual([]);
+    const fin = posteRecap(rows, manual);
+    expect(fin.achatFournituresHt).toBe(10); // 2 × 1 × 5
+    expect(fin.margeHt).toBe(10); // PV HT 20 − 10
+    expect(fin.issues).toEqual([]);
+  });
+
+  test("unité non pièce ni kg : multiplicateur 1 par défaut, jamais bloquant", () => {
     const row = frn({
       unit: "m",
       purchase: {
@@ -117,8 +130,8 @@ describe("missingFields", () => {
         unit_status: "non_verifiee",
       },
     });
-    expect(missingFields([row], {}).map((m) => m.field)).toEqual(["multiplier"]);
-    expect(missingFields([row], { "1-1": { multiplier: 2 } })).toEqual([]);
+    expect(missingFields([row], {})).toEqual([]);
+    expect(previewStoredLine(row, undefined).unit_multiplier).toBe(1);
   });
 
   test("main-d'œuvre sans coût saisi : pas une information manquante (0 €)", () => {
@@ -133,8 +146,64 @@ describe("posteClientText", () => {
       frn({ key: "1-3", designation: "Terreau", quantity: 3, unit: null }),
       mo({ quantity: 2, unit: null }),
     ]);
-    expect(text.split("\n")).toEqual(["- Vivace 4 L : 2 pièce", "- Terreau : 3 unité à préciser"]);
+    expect(text.split("\n\n")).toEqual([
+      "- Vivace 4 L\n  Quantité : 2 pièce",
+      "- Terreau\n  Quantité : 3 unité à préciser",
+    ]);
     expect(text.includes("€")).toBe(false);
+  });
+});
+
+describe("cascadeAmounts : les colonnes communiquent", () => {
+  const base = { quantity: 2, pu: 10, ht: 20, ttc: 24 };
+
+  test("quantité modifiée : HT puis TTC recalculés", () => {
+    const next = cascadeAmounts(base, {}, "quantity", 3);
+    expect(next.quantity).toBe(3);
+    expect(next.ht).toBe(30);
+    expect(next.ttc).toBe(36);
+  });
+
+  test("PU modifié au centime : HT et TTC suivent", () => {
+    const next = cascadeAmounts(base, {}, "pu", 10.05);
+    expect(next.ht).toBe(20.1);
+    expect(next.ttc).toBe(24.12);
+  });
+
+  test("HT modifié : PU recalculé", () => {
+    const next = cascadeAmounts(base, {}, "ht", 30);
+    expect(next.pu).toBe(15);
+    expect(next.ttc).toBe(36);
+  });
+
+  test("TTC modifié : HT et PU recalculés", () => {
+    const next = cascadeAmounts(base, {}, "ttc", 36);
+    expect(next.ht).toBe(30);
+    expect(next.pu).toBe(15);
+  });
+
+  test("sans taux connu : TTC non inventé", () => {
+    const next = cascadeAmounts({ quantity: 2, pu: 10, ht: null, ttc: null }, {}, "quantity", 3);
+    expect(next.ht).toBe(30);
+    expect(next.ttc).toBe(undefined);
+  });
+
+  test("quantité saisie : entre dans le total du poste", () => {
+    const rows = [frn({ quantity: 2 })];
+    const manual = { "1-1": cascadeAmounts(base, {}, "quantity", 4) };
+    const fin = posteRecap(rows, manual);
+    expect(fin.pvHt).toBe(40);
+    expect(fin.achatFournituresHt).toBe(20);
+  });
+});
+
+describe("ligne sans prix d'achat : le poste se calcule quand même", () => {
+  test("total porte sur les lignes renseignées, l'écart est signalé", () => {
+    const fin = posteRecap([frn(), frn({ key: "1-3", purchase: null, ht: 30 })], {});
+    expect(fin.achatFournituresHt).toBe(10);
+    expect(fin.pvHt).toBe(50);
+    expect(fin.margeHt).toBe(40);
+    expect(fin.issues).toContain("Prix d'achat manquant.");
   });
 });
 
@@ -170,5 +239,21 @@ describe("storedPosteRecap", () => {
     expect(fin.prixAchatHt).toBe(10);
     expect(fin.margeHt).toBe(90);
     expect(fin.issues).toEqual([]);
+  });
+});
+
+describe("montants saisis à la main", () => {
+  test("HT et TTC saisis : remplacent ceux du devis dans les totaux", () => {
+    const fin = posteRecap([frn(), mo()], { "1-1": { ht: 30, ttc: 36 }, "1-2": { cost: 10 } });
+    expect(fin.pvHt).toBe(110);
+    expect(fin.pvTtc).toBe(132);
+  });
+
+  test("manualLineFields : PU, HT, TTC écrits pour fournitures et main-d'œuvre", () => {
+    expect(manualLineFields("mo", { ht: 50, ttc: 60, pu: 50 })).toEqual({
+      pu_ht: 50,
+      ht: 50,
+      ttc: 60,
+    });
   });
 });

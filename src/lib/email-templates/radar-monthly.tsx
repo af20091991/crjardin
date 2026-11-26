@@ -82,7 +82,7 @@ export const template = {
     monthLabel: "octobre 2026",
     top: [{ label: "Création de jardin · Jacou", score: 78, impressions: 420, clicks: 12 }],
     pages: [{ label: "Visite conseil · Castries", status: "mesure disponible le 21/11/2026" }],
-    radarUrl: "https://crjardin.lovable.app/pilot/site-web",
+    radarUrl: "https://pp.delagraineaujardin.com/pilot/site-web",
   },
 } satisfies TemplateEntry;
 

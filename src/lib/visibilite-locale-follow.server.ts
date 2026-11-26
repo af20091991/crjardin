@@ -9,7 +9,7 @@ import {
   type Effect,
 } from "@/lib/visibilite-locale-follow";
 
-const APP_ORIGIN = "https://crjardin.lovable.app";
+const APP_ORIGIN = "https://pp.delagraineaujardin.com";
 
 // Tables du suivi absentes des types générés tant que Lovable ne les a pas régénérés.
 type Result = PromiseLike<{ data: unknown; error: unknown }>;

@@ -36,7 +36,8 @@ export type MatchStatusValue =
   | "rattachee"
   | "creee"
   | "non_identifie"
-  | "non_applicable";
+  | "non_applicable"
+  | "sans_fiche";
 
 export type SaleStatusValue = "planifie" | "realise" | "regle" | "particulier";
 
@@ -65,6 +66,10 @@ export interface CaEntry {
    */
   net_amount_ht?: number | null;
   match_status?: MatchStatusValue | null;
+  /** Mission SST rattachée à la ligne de charge (rapprochement SST). */
+  subcontractor_mission_id?: string | null;
+  /** Qualification SST : autonome (prestataire seul) ou chantier. null = à qualifier. */
+  sst_mode?: "autonome" | "accompagnee" | null;
   sale_status?: SaleStatusValue;
   /** Classification de charge utilisée par la page Chiffre d'affaires. */
   charge_category?: string | null;
@@ -92,6 +97,9 @@ export type CaEntryInput = {
   charge_category?: string | null;
   charge_class?: "fixe" | "variable" | "a_classer" | null;
   is_investment?: boolean | null;
+  match_status?: MatchStatusValue | null;
+  subcontractor_mission_id?: string | null;
+  sst_mode?: "autonome" | "accompagnee" | null;
 };
 
 /**
@@ -278,4 +286,18 @@ export function calcSap(ttcFacture: number) {
 export function calcRemise(initial: number, pct: number) {
   const remise = (initial * pct) / 100;
   return { remise, net: initial - remise };
+}
+
+/** Taux de TVA proposés pour le montant remisé. */
+export const REMISE_VAT_RATES = [0.1, 0.2] as const;
+
+/**
+ * Montant remisé : la somme de départ et la remise sont TTC ; on sort le prix HT remisé
+ * au taux de TVA choisi (10 % ou 20 %).
+ */
+export function calcRemiseHt(initialTtc: number, pct: number, vatRate: number) {
+  const remise = (initialTtc * pct) / 100;
+  const netTtc = initialTtc - remise;
+  const ht = netTtc / (1 + vatRate);
+  return { remise, netTtc, ht, tva: netTtc - ht };
 }

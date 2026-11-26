@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { getClient } from "@/lib/clients";
+import { ClientCompletenessCard } from "@/components/clients/ClientCompletenessCard";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -11,25 +14,38 @@ import {
   EyeOff,
   ImageIcon,
   Loader2,
+  LayoutDashboard,
+  Pencil,
+  RefreshCw,
   User,
+  ArrowLeft,
+  FileText,
+  Star,
+  type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { FilePicker } from "@/components/FilePicker";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { ViewDocumentButton } from "@/components/PdfViewerDialog";
 import { Label } from "@/components/ui/label";
 import {
   getClientPremium,
   setClientPremiumEnabled,
   updateClientPremium,
+  releaseCoverDocument,
+  renamePremiumDocument,
+  replacePremiumDocumentFile,
   listPremiumDocuments,
   uploadPremiumDocument,
   updatePremiumDocumentVisibility,
   deletePremiumDocument,
   signedPremiumDocumentUrl,
   listClientPhotosForCover,
+  imageDocuments,
   listPremiumWorkCalendar,
   replacePremiumWorkCalendar,
   type PremiumDocument,
@@ -48,9 +64,92 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type PremiumSection = "cover" | "calendar" | "documents" | "note";
+
+function NotePanel({
+  commercialNote,
+  setCommercialNote,
+  googleReviewUrl,
+  setGoogleReviewUrl,
+  canEdit,
+  onSave,
+  saving,
+}: {
+  commercialNote: string;
+  setCommercialNote: (v: string) => void;
+  googleReviewUrl: string;
+  setGoogleReviewUrl: (v: string) => void;
+  canEdit: boolean;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-3 pt-6">
+        <div>
+          <Label htmlFor="commercial-note">Note commerciale (visible du client)</Label>
+          <Textarea
+            id="commercial-note"
+            value={commercialNote}
+            disabled={!canEdit}
+            onChange={(e) => setCommercialNote(e.target.value)}
+            placeholder="Message libre affiché dans l'espace client"
+            rows={2}
+            className="mt-1.5"
+          />
+        </div>
+        <div>
+          <Label htmlFor="google-review">Lien avis Google</Label>
+          <Input
+            id="google-review"
+            value={googleReviewUrl}
+            disabled={!canEdit}
+            onChange={(e) => setGoogleReviewUrl(e.target.value)}
+            placeholder="https://g.page/r/..."
+            className="mt-1.5"
+          />
+        </div>
+        <Button type="button" size="sm" disabled={!canEdit || saving} onClick={onSave}>
+          Enregistrer
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FeatureTile({
+  icon: Icon,
+  title,
+  detail,
+  onOpen,
+}: {
+  icon: LucideIcon;
+  title: string;
+  detail: string;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex items-start gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+    >
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+      <div className="min-w-0">
+        <p className="font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{detail}</p>
+      </div>
+    </button>
+  );
+}
+
 export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
   const qc = useQueryClient();
 
+  const { data: client } = useQuery({
+    queryKey: ["client", clientId],
+    queryFn: () => getClient(clientId),
+  });
   const { data: premium, isLoading } = useQuery({
     queryKey: ["client-premium", clientId],
     queryFn: () => getClientPremium(clientId),
@@ -64,16 +163,11 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
     queryFn: () => listPremiumWorkCalendar(clientId),
   });
 
-  const [gardenState, setGardenState] = useState("");
-  const [gardenObjectives, setGardenObjectives] = useState("");
-  const [gardenSpecificities, setGardenSpecificities] = useState("");
+  const [section, setSection] = useState<PremiumSection | null>(null);
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [commercialNote, setCommercialNote] = useState("");
   const [initialized, setInitialized] = useState(false);
   if (premium && !initialized) {
-    setGardenState(premium.garden_state ?? "");
-    setGardenObjectives(premium.garden_objectives ?? "");
-    setGardenSpecificities(premium.garden_specificities ?? "");
     setGoogleReviewUrl(premium.google_review_url ?? "");
     setCommercialNote(premium.commercial_note ?? "");
     setInitialized(true);
@@ -256,9 +350,6 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
   const saveFields = useMutation({
     mutationFn: () =>
       updateClientPremium(clientId, {
-        garden_state: gardenState || null,
-        garden_objectives: gardenObjectives || null,
-        garden_specificities: gardenSpecificities || null,
         google_review_url: googleReviewUrl || null,
         commercial_note: commercialNote || null,
       }),
@@ -281,6 +372,16 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
 
   return (
     <div className="mt-3 space-y-4">
+      {client && (
+        <ClientCompletenessCard
+          client={client}
+          scope="premium"
+          onEdit={() => undefined}
+          onGestion={() => undefined}
+          onPremium={(next) => setSection(next)}
+        />
+      )}
+
       <Card>
         <CardContent className="flex items-center justify-between gap-3 pt-6">
           <div className="flex items-center gap-2">
@@ -300,6 +401,15 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
         </CardContent>
       </Card>
 
+      {premium?.enabled && (
+        <Button asChild variant="outline" className="w-full">
+          <Link to="/clients/premium-dashboard/$clientId" params={{ clientId }}>
+            <LayoutDashboard className="mr-1.5 h-4 w-4" />
+            Dashboard
+          </Link>
+        </Button>
+      )}
+
       <Dialog
         open={activationOpen}
         onOpenChange={(open) => !activatePremium.isPending && setActivationOpen(open)}
@@ -314,11 +424,12 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="activation-pdf">Calendrier travaux (PDF)</Label>
-            <Input
+            <FilePicker
               id="activation-pdf"
-              type="file"
               accept="application/pdf,.pdf"
-              onChange={(e) => setActivationFile(e.target.files?.[0] ?? null)}
+              fileName={activationFile?.name}
+              label="Choisir le PDF"
+              onFile={setActivationFile}
             />
           </div>
           <DialogFooter className="gap-2 sm:justify-between">
@@ -350,96 +461,87 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
         </Card>
       )}
 
-      <Card>
-        <CardContent className="space-y-3 pt-6">
-          <div>
-            <Label htmlFor="garden-state">État du jardin</Label>
-            <Textarea
-              id="garden-state"
-              value={gardenState}
-              disabled={!canEdit}
-              onChange={(e) => setGardenState(e.target.value)}
-              placeholder="Ex : jardin en bon état général, taille des rosiers prévue en mars…"
-              rows={3}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="garden-objectives">Objectifs du jardin</Label>
-            <Textarea
-              id="garden-objectives"
-              value={gardenObjectives}
-              disabled={!canEdit}
-              onChange={(e) => setGardenObjectives(e.target.value)}
-              placeholder="Ex : préserver les plantes existantes, réduire l’arrosage, garder une floraison étalée…"
-              rows={3}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="garden-specificities">Particularités du jardin</Label>
-            <Textarea
-              id="garden-specificities"
-              value={gardenSpecificities}
-              disabled={!canEdit}
-              onChange={(e) => setGardenSpecificities(e.target.value)}
-              placeholder="Ex : sol très calcaire, zone ventée, présence d’un chien, contraintes d’accès…"
-              rows={3}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="commercial-note">Note commerciale (visible du client)</Label>
-            <Textarea
-              id="commercial-note"
-              value={commercialNote}
-              disabled={!canEdit}
-              onChange={(e) => setCommercialNote(e.target.value)}
-              placeholder="Message libre affiché dans l'espace client"
-              rows={2}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="google-review">Lien avis Google</Label>
-            <Input
-              id="google-review"
-              value={googleReviewUrl}
-              disabled={!canEdit}
-              onChange={(e) => setGoogleReviewUrl(e.target.value)}
-              placeholder="https://g.page/r/..."
-              className="mt-1.5"
-            />
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            disabled={!canEdit || saveFields.isPending}
-            onClick={() => saveFields.mutate()}
-          >
-            Enregistrer
+      {section === null ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FeatureTile
+            icon={ImageIcon}
+            title="Photo de couverture"
+            detail={
+              premium?.cover_photo_id || premium?.cover_document_id
+                ? "Couverture définie"
+                : "Aucune couverture"
+            }
+            onOpen={() => setSection("cover")}
+          />
+          <FeatureTile
+            icon={CalendarDays}
+            title="Calendrier travaux"
+            detail={`${workCalendar?.length ?? 0} intervention(s) au calendrier`}
+            onOpen={() => setSection("calendar")}
+          />
+          <FeatureTile
+            icon={FileText}
+            title="Photos et documents"
+            detail={`${documents?.length ?? 0} document(s)`}
+            onOpen={() => setSection("documents")}
+          />
+          <FeatureTile
+            icon={Star}
+            title="Note et avis Google"
+            detail={commercialNote || googleReviewUrl ? "Renseignés" : "À renseigner"}
+            onOpen={() => setSection("note")}
+          />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setSection(null)}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            Retour aux fonctionnalités
           </Button>
-        </CardContent>
-      </Card>
-
-      <CoverPhotoPicker
-        clientId={clientId}
-        canEdit={canEdit}
-        currentPhotoId={premium?.cover_photo_id ?? null}
-        onSelected={invalidate}
-      />
-
-      <PremiumWorkCalendarCard
-        clientId={clientId}
-        documents={documents ?? []}
-        workCalendar={workCalendar ?? []}
-        canEdit={canEdit}
-        onUpdated={() => {
-          qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
-          qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
-        }}
-      />
-      <PremiumDocumentsCard clientId={clientId} documents={documents ?? []} canEdit={canEdit} />
+          {section === "cover" && (
+            <CoverPhotoPicker
+              clientId={clientId}
+              canEdit={canEdit}
+              currentPhotoId={premium?.cover_photo_id ?? null}
+              currentDocumentId={premium?.cover_document_id ?? null}
+              coverSetBy={premium?.cover_set_by ?? null}
+              coverSetAt={premium?.cover_set_at ?? null}
+              documents={documents ?? []}
+              onSelected={invalidate}
+            />
+          )}
+          {section === "calendar" && (
+            <PremiumWorkCalendarCard
+              clientId={clientId}
+              documents={documents ?? []}
+              workCalendar={workCalendar ?? []}
+              canEdit={canEdit}
+              onUpdated={() => {
+                qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+                qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+              }}
+            />
+          )}
+          {section === "documents" && (
+            <PremiumDocumentsCard
+              clientId={clientId}
+              documents={documents ?? []}
+              canEdit={canEdit}
+            />
+          )}
+          {section === "note" && (
+            <NotePanel
+              commercialNote={commercialNote}
+              setCommercialNote={setCommercialNote}
+              googleReviewUrl={googleReviewUrl}
+              setGoogleReviewUrl={setGoogleReviewUrl}
+              canEdit={canEdit}
+              onSave={() => saveFields.mutate()}
+              saving={saveFields.isPending}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -447,14 +549,36 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
 function CoverPhotoPicker({
   clientId,
   currentPhotoId,
+  currentDocumentId,
+  coverSetBy,
+  coverSetAt,
+  documents,
   canEdit,
   onSelected,
 }: {
   clientId: string;
   currentPhotoId: string | null;
+  currentDocumentId: string | null;
+  coverSetBy: "client" | "gardener" | null;
+  coverSetAt: string | null;
+  documents: PremiumDocument[];
   canEdit: boolean;
   onSelected: () => void;
 }) {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const images = imageDocuments(documents);
+  const hasCover = Boolean(currentPhotoId || currentDocumentId);
+  const chosenByClient = hasCover && coverSetBy === "client";
+  // Si le client a choisi sa couverture, on ne la remplace qu'après confirmation.
+  const confirmReplace = () => {
+    if (!chosenByClient) return true;
+    const when = coverSetAt ? ` le ${new Date(coverSetAt).toLocaleDateString("fr-FR")}` : "";
+    return window.confirm(
+      `Le client a choisi cette photo de couverture${when}. La remplacer par la vôtre ?`,
+    );
+  };
+
   const { data: photos } = useQuery({
     queryKey: ["client-premium-cover-options", clientId],
     queryFn: () => listClientPhotosForCover(clientId),
@@ -469,47 +593,175 @@ function CoverPhotoPicker({
     },
     enabled: (photos?.length ?? 0) > 0,
   });
-
-  const select = useMutation({
-    mutationFn: (photoId: string) => updateClientPremium(clientId, { cover_photo_id: photoId }),
-    onSuccess: () => {
-      toast.success("Photo de couverture mise à jour");
-      onSelected();
+  const { data: docUrls } = useQuery({
+    queryKey: ["client-premium-cover-doc-urls", clientId, images.map((d) => d.id).join(",")],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        images.map(async (d) => [d.id, await signedPremiumDocumentUrl(d.storage_path)] as const),
+      );
+      return Object.fromEntries(entries);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+    enabled: images.length > 0,
   });
+
+  const done = () => {
+    toast.success("Photo de couverture mise à jour");
+    qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+    qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+    onSelected();
+  };
+  const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Erreur");
+
+  // Ancien fichier de couverture (envoyé depuis PP) supprimé quand il est remplacé.
+  const releasePrevious = (newDocId: string | null) =>
+    currentDocumentId && currentDocumentId !== newDocId
+      ? releaseCoverDocument(currentDocumentId)
+      : Promise.resolve();
+
+  const selectPhoto = useMutation({
+    mutationFn: async (photoId: string) => {
+      await updateClientPremium(clientId, {
+        cover_photo_id: photoId,
+        cover_document_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      });
+      await releasePrevious(null);
+    },
+    onSuccess: done,
+    onError,
+  });
+  const selectDocument = useMutation({
+    mutationFn: async (docId: string) => {
+      await updateClientPremium(clientId, {
+        cover_document_id: docId,
+        cover_photo_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      });
+      await releasePrevious(docId);
+    },
+    onSuccess: done,
+    onError,
+  });
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const doc = await uploadPremiumDocument(clientId, file, "Photo de couverture", {
+        coverOnly: true,
+      });
+      await updateClientPremium(clientId, {
+        cover_document_id: doc.id,
+        cover_photo_id: null,
+        cover_set_by: "gardener",
+        cover_set_at: new Date().toISOString(),
+      });
+      await releasePrevious(doc.id);
+    },
+    onSuccess: done,
+    onError,
+  });
+
+  const busy = selectPhoto.isPending || selectDocument.isPending || upload.isPending;
+
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez choisir une image");
+      return;
+    }
+    if (!confirmReplace()) return;
+    upload.mutate(file);
+  };
+
+  const tile = (key: string, src: string | undefined, selected: boolean, onClick: () => void) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onClick}
+      disabled={!canEdit || busy}
+      className={`aspect-square overflow-hidden rounded-lg border-2 ${
+        selected ? "border-primary" : "border-transparent"
+      }`}
+    >
+      {src ? (
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div className="h-full w-full animate-pulse bg-muted" />
+      )}
+    </button>
+  );
+
+  const photoList = photos ?? [];
+  const hasAny = images.length > 0 || photoList.length > 0;
 
   return (
     <Card>
-      <CardContent className="pt-6">
-        <div className="mb-3 flex items-center gap-2">
-          <ImageIcon className="h-4 w-4 text-muted-foreground" />
-          <p className="font-medium">Photo de couverture</p>
-        </div>
-        {(photos?.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Aucune photo d'intervention disponible pour ce client.
-          </p>
-        ) : (
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {photos!.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => select.mutate(p.id)}
-                disabled={!canEdit || select.isPending}
-                className={`aspect-square overflow-hidden rounded-lg border-2 ${
-                  currentPhotoId === p.id ? "border-primary" : "border-transparent"
-                }`}
-              >
-                {urls?.[p.id] ? (
-                  <img src={urls[p.id]} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full animate-pulse bg-muted" />
-                )}
-              </button>
-            ))}
+      <CardContent className="space-y-4 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <p className="font-medium">Photo de couverture</p>
           </div>
+          {hasCover && (
+            <p className="text-xs text-muted-foreground">
+              {chosenByClient
+                ? `Choisie par le client${coverSetAt ? ` le ${new Date(coverSetAt).toLocaleDateString("fr-FR")}` : ""}`
+                : "Choisie par vous"}
+            </p>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!canEdit || busy}
+            onClick={() => fileRef.current?.click()}
+          >
+            {upload.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            Importer depuis mon PC
+          </Button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+        </div>
+
+        {images.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Documents et photos
+            </p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {images.map((d) =>
+                tile(d.id, docUrls?.[d.id], currentDocumentId === d.id, () => {
+                  if (confirmReplace()) selectDocument.mutate(d.id);
+                }),
+              )}
+            </div>
+          </div>
+        )}
+
+        {photoList.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              CR chantier
+            </p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {photoList.map((p) =>
+                tile(p.id, urls?.[p.id], currentPhotoId === p.id, () => {
+                  if (confirmReplace()) selectPhoto.mutate(p.id);
+                }),
+              )}
+            </div>
+          </div>
+        )}
+
+        {!hasAny && (
+          <p className="text-sm text-muted-foreground">
+            Aucune photo disponible. Importez une photo depuis votre PC.
+          </p>
         )}
       </CardContent>
     </Card>
@@ -680,6 +932,41 @@ function PremiumDocumentsCard({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replacingDocId, setReplacingDocId] = useState<string | null>(null);
+
+  const rename = useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => renamePremiumDocument(id, title),
+    onSuccess: () => {
+      setEditingDocId(null);
+      toast.success("Document renommé");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const replace = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) =>
+      replacePremiumDocumentFile(id, clientId, file),
+    onSuccess: () => {
+      toast.success("Fichier remplacé");
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+    onSettled: () => setReplacingDocId(null),
+  });
+
+  const saveRename = (doc: PremiumDocument) => {
+    const title = draftTitle.trim();
+    if (!title || title === doc.title) {
+      setEditingDocId(null);
+      return;
+    }
+    rename.mutate({ id: doc.id, title });
+  };
+
   const remove = useMutation({
     mutationFn: ({ id, storagePath }: { id: string; storagePath: string }) =>
       deletePremiumDocument(id, storagePath),
@@ -718,6 +1005,17 @@ function PremiumDocumentsCard({
           </Button>
         </div>
 
+        <input
+          ref={replaceInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file && replacingDocId) replace.mutate({ id: replacingDocId, file });
+            else setReplacingDocId(null);
+          }}
+        />
         {documents.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun document pour le moment.</p>
         ) : (
@@ -728,7 +1026,23 @@ function PremiumDocumentsCard({
                 className="flex items-center justify-between gap-2 rounded-lg border p-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{doc.title}</p>
+                  {editingDocId === doc.id ? (
+                    <Input
+                      autoFocus
+                      value={draftTitle}
+                      aria-label="Titre du document"
+                      disabled={rename.isPending}
+                      onChange={(e) => setDraftTitle(e.target.value)}
+                      onBlur={() => saveRename(doc)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setEditingDocId(null);
+                      }}
+                      className="h-8 text-sm"
+                    />
+                  ) : (
+                    <p className="truncate text-sm font-medium">{doc.title}</p>
+                  )}
                   <div className="mt-0.5 flex items-center gap-1.5">
                     <Badge variant="outline" className="gap-1 text-[10px]">
                       <User className="h-3 w-3" /> {UPLOADER_LABEL[doc.uploaded_by]}
@@ -736,6 +1050,36 @@ function PremiumDocumentsCard({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Renommer"
+                    disabled={!canEdit || rename.isPending}
+                    onClick={() => {
+                      setDraftTitle(doc.title);
+                      setEditingDocId(doc.id);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remplacer le fichier"
+                    disabled={!canEdit || replace.isPending}
+                    onClick={() => {
+                      setReplacingDocId(doc.id);
+                      replaceInputRef.current?.click();
+                    }}
+                  >
+                    {replacingDocId === doc.id && replace.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -752,6 +1096,10 @@ function PremiumDocumentsCard({
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
+                  <ViewDocumentButton
+                    title={doc.title}
+                    getUrl={() => signedPremiumDocumentUrl(doc.storage_path)}
+                  />
                   <Button
                     type="button"
                     variant="ghost"

@@ -1,9 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { isRemunerationGrossed } from "@/lib/pilot-ca";
-import { remunerationBreakdown, fixedChargesSum, type FixedCharge } from "@/lib/pilot-fixed-charges";
+import {
+  remunerationBreakdown,
+  fixedChargesSum,
+  type FixedCharge,
+} from "@/lib/pilot-fixed-charges";
+import { readRouteSource } from "./route-source";
 
-const page = readFileSync("src/routes/_authenticated/pilot.ca.tsx", "utf8");
+const page = readRouteSource("src/routes/_authenticated/pilot.ca.tsx");
 
 const POSTES: Array<[string, number]> = [
   ["Expert-comptable", 124],
@@ -72,7 +77,8 @@ describe("charges fixes — détail = montant de la ligne", () => {
 
 describe("page CA — un seul encart rémunération, après les charges", () => {
   it("un unique encart Rémunération", () => {
-    const occurrences = page.match(/label=\{`Rémunération \$\{MONTH_NAMES\[month - 1\]\}`\}/g) ?? [];
+    const occurrences =
+      page.match(/label=\{`Rémunération \$\{MONTH_NAMES\[month - 1\]\}`\}/g) ?? [];
     expect(occurrences.length).toBe(1);
   });
 

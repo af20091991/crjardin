@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { FilePicker } from "@/components/FilePicker";
 import { supabase } from "@/integrations/supabase/client";
 import { readCatalogueFile } from "@/lib/predevis-catalogue-file";
 import type { ImportPlan } from "@/lib/predevis-catalogue-import";
 import type { MatrixSource } from "@/lib/predevis-catalogue-matrix";
 import { analyseCatalogue, applyCatalogueImport } from "@/lib/predevis-data";
+import { AefCatalogue } from "@/components/predevis/AefCatalogue";
 
 type Pending = { source: MatrixSource; fileName: string; plan: ImportPlan };
 
@@ -59,6 +61,7 @@ export function CatalogueImport() {
 
   return (
     <div className="space-y-6">
+      <AefCatalogue />
       <Card>
         <CardHeader>
           <CardTitle>Catalogue fournisseurs</CardTitle>
@@ -67,11 +70,11 @@ export function CatalogueImport() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="predevis-excel">Excel fournisseurs (onglet « Produits »)</Label>
-              <input
+              <FilePicker
                 id="predevis-excel"
-                type="file"
                 accept=".xlsx,.xls"
-                onChange={(e) => setExcel(e.target.files?.[0] ?? null)}
+                fileName={excel?.name}
+                onFile={setExcel}
               />
               <Button
                 size="sm"
@@ -83,11 +86,11 @@ export function CatalogueImport() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="predevis-henrri">Export Henrri (onglet « Référence »)</Label>
-              <input
+              <FilePicker
                 id="predevis-henrri"
-                type="file"
                 accept=".xlsx,.xls"
-                onChange={(e) => setHenrri(e.target.files?.[0] ?? null)}
+                fileName={henrri?.name}
+                onFile={setHenrri}
               />
               <Button
                 size="sm"

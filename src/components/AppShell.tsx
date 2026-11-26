@@ -1,4 +1,11 @@
-import { type KeyboardEvent, type ReactNode, useEffect, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,6 +16,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { NativeAppLayer } from "@/components/NativeAppLayer";
 import { MobileUpdatePrompt } from "@/components/MobileUpdatePrompt";
+import { MobileQuickBar } from "@/components/MobileQuickBar";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
 import {
   LayoutDashboard,
@@ -47,6 +55,8 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
+import { useQueryClient } from "@tanstack/react-query";
+import { nativePlugin } from "@/lib/native-app";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { DevTimeCounter } from "@/components/DevTimeCounter";
 import { useAppearance } from "@/lib/appearance";
@@ -111,7 +121,127 @@ export function filterNavItems<T extends { label: string; short: string; to: str
   return items.filter((i) => norm(`${i.label} ${i.short} ${i.to}`).includes(q));
 }
 
+/**
+ * Titre de page sur une seule ligne : la police se réduit (32 px → 14 px minimum)
+ * tant que le texte déborde, l'espacement avec les éléments voisins reste inchangé.
+ */
+function FitTitle({ text, max = 32, min = 14 }: { text: string; max?: number; min?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      let size = max;
+      el.style.fontSize = `${size}px`;
+      while (size > min && el.scrollWidth > el.clientWidth) {
+        size -= 1;
+        el.style.fontSize = `${size}px`;
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [text, max, min]);
+  return (
+    <span
+      ref={ref}
+      style={{ fontSize: max }}
+      className="min-w-0 flex-1 truncate px-2 text-center font-serif font-normal leading-tight text-muted-foreground"
+    >
+      {text}
+    </span>
+  );
+}
+
+/**
+ * Tirer vers le bas en haut de page : recharge les données affichées (appli mobile).
+ * Seuil de 70 px ; pas de rechargement complet de la page.
+ */
+function usePullToRefresh(enabled: boolean) {
+  const queryClient = useQueryClient();
+  const [pulling, setPulling] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let startY: number | null = null;
+    let dy = 0;
+    const onStart = (e: TouchEvent) => {
+      if (window.scrollY > 0 || refreshing) return;
+      startY = e.touches[0].clientY;
+      dy = 0;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startY === null) return;
+      dy = e.touches[0].clientY - startY;
+      if (dy > 0 && window.scrollY === 0) {
+        setPulling(Math.min(dy, 120));
+      }
+    };
+    const onEnd = () => {
+      if (startY === null) return;
+      startY = null;
+      if (dy >= 70) {
+        setRefreshing(true);
+        setPulling(0);
+        void queryClient.invalidateQueries().finally(() => setRefreshing(false));
+      } else {
+        setPulling(0);
+      }
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [enabled, queryClient, refreshing]);
+
+  return { pulling, refreshing };
+}
+
+/**
+ * Numéro de version affiché sous le logo : celui de l'APK installée (plugin App),
+ * sinon celui publié dans mobile-version.json (PWA / navigateur).
+ */
+function useAppVersion(): string {
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const info = await nativePlugin<{ getInfo?: () => Promise<{ version?: string }> }>(
+          "App",
+        )?.getInfo?.();
+        if (info?.version) {
+          if (!cancelled) setVersion(info.version);
+          return;
+        }
+      } catch {
+        /* pas de plugin natif : on passe au fichier publié */
+      }
+      try {
+        const res = await fetch("/mobile-version.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { versionName?: string };
+        if (!cancelled && data.versionName) setVersion(data.versionName);
+      } catch {
+        /* version indisponible : rien d'affiché */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return version;
+}
+
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
+  const appVersion = useAppVersion();
+  const { pulling, refreshing } = usePullToRefresh(true);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
@@ -643,25 +773,25 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         data-shell="content"
         className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}
       >
-        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur md:hidden">
+        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-4 pb-2 pt-[max(env(safe-area-inset-top),0.875rem)] backdrop-blur md:hidden">
           <Sheet>
-            <div className="-ml-1 flex shrink-0 flex-col items-center">
+            <div className="-ml-1 flex h-[76px] shrink-0 flex-col items-center justify-between">
               <SheetTrigger asChild>
                 <button
-                  className="grid h-14 w-14 place-items-center rounded-lg text-foreground active:bg-accent/40"
+                  className="grid h-16 w-16 place-items-center rounded-lg text-foreground active:bg-accent/40"
                   aria-label="Ouvrir le menu des modules"
                   title="Menu des modules"
                 >
-                  <Menu className="h-10 w-10" />
+                  <Menu className="h-14 w-14" />
                 </button>
               </SheetTrigger>
-              <p className="-mt-1 text-[11px] leading-none text-muted-foreground">
+              <p className="text-[11px] leading-none text-muted-foreground">
                 <DevTimeCounter />
               </p>
             </div>
             <SheetContent
               side="left"
-              className="flex h-dvh w-[88vw] max-w-sm flex-col overflow-hidden p-0 pt-[calc(env(safe-area-inset-top)+1rem)]"
+              className="flex h-dvh w-[88vw] max-w-sm flex-col overflow-hidden bg-card p-0 pt-[calc(env(safe-area-inset-top)+1rem)] opacity-100 text-foreground"
             >
               <SheetHeader className="shrink-0 px-6 text-left">
                 <SheetTitle className="font-serif">Modules</SheetTitle>
@@ -699,25 +829,28 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               </div>
             </SheetContent>
           </Sheet>
-          <div className="flex shrink-0 flex-col items-center gap-0.5">
-            <img
-              src={logo}
-              alt="De la graine au jardin"
-              className="h-8 w-8 shrink-0 object-contain"
-            />
-            <span className="font-serif text-[10px] font-semibold leading-none text-primary">
-              PilotPro
-            </span>
-          </div>
-          <span className="min-w-0 flex-1 truncate px-1 text-sm font-medium text-muted-foreground">
-            {headerTitle}
-          </span>
-          <div className="flex shrink-0 items-center gap-3">
-            <GlobalSearch collapsed />
-            <NotificationBell />
-            <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
-              <LogOut className="h-5 w-5" />
-            </button>
+          <FitTitle text={headerTitle} />
+          <div className="flex h-[76px] shrink-0 flex-col items-end justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col items-end gap-0.5 text-[11px] leading-none">
+                <span className="font-serif font-semibold text-primary">PilotPro</span>
+                <span data-shell="app-version" className="text-muted-foreground">
+                  {appVersion ? `v${appVersion}` : ""}
+                </span>
+              </div>
+              <img
+                src="/pilotpro-splash.svg"
+                alt="PilotPro"
+                className="h-12 w-12 shrink-0 object-contain"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <GlobalSearch collapsed />
+              <NotificationBell />
+              <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
+                <LogOut className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </header>
 
@@ -750,8 +883,25 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
         )}
 
+        {(pulling > 0 || refreshing) && (
+          <div
+            data-shell="pull-refresh"
+            className="pointer-events-none fixed left-0 right-0 top-[calc(env(safe-area-inset-top)+4.5rem)] z-30 flex justify-center md:hidden"
+            style={{ transform: `translateY(${refreshing ? 0 : pulling / 2}px)` }}
+          >
+            <span className="rounded-full bg-card px-3 py-1 text-xs text-muted-foreground shadow">
+              {refreshing
+                ? "Actualisation…"
+                : pulling >= 70
+                  ? "Relâcher pour actualiser"
+                  : "Tirer pour actualiser"}
+            </span>
+          </div>
+        )}
+
         <NativeAppLayer />
         <MobileUpdatePrompt />
+        <MobileQuickBar />
 
         <main
           data-shell="main"

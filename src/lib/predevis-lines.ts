@@ -28,16 +28,17 @@ export function lineFinance(row: StoredLine): FinanceLine {
   return { kind: row.kind, ht: row.ht, ttc: row.ttc, costHt, zeroCostReason: row.zero_cost_reason };
 }
 
-/** Multiplicateur proposé automatiquement : 1 pour « pièce » ou « kg » du catalogue, sinon à saisir. */
+/** Multiplicateur proposé automatiquement : 1 pour « pièce », « kg » ou « tonne » du catalogue, sinon à saisir. */
 export function suggestedMultiplier(catalogUnit: string | null): number | null {
-  // Pièce ou kilo : la quantité du devis est déjà dans l'unité de l'article.
-  return catalogUnit === "pièce" || catalogUnit === "kg" ? 1 : null;
+  // Pièce, kilo ou tonne : la quantité du devis est déjà dans l'unité de l'article.
+  return catalogUnit === "pièce" || catalogUnit === "kg" || catalogUnit === "tonne" ? 1 : null;
 }
 
 export type OfferRow = { supplier_id: string | null; source: string; pau_ht: number | null };
 
 /**
  * Achat appliqué automatiquement à l'enregistrement :
+ * - offre AEF (espèce choisie) : son prix pro ;
  * - offre Henrri présente : son PAU (Henrri fait référence) ;
  * - sinon, un seul fournisseur : son PAU ;
  * - plusieurs fournisseurs : rien, le choix reste à faire. Jamais de valeur estimée.
@@ -52,10 +53,14 @@ export function uniqueSupplierPurchase(
   unit_multiplier: number | null;
   unit_status: "ok" | "non_verifiee";
 } | null {
-  // Henrri fait référence : son PAU prime sur celui des fichiers fournisseurs.
+  // Espèce AEF choisie pour le produit : son prix pro prime (choix explicite).
+  // Sinon Henrri fait référence : son PAU prime sur celui des fichiers fournisseurs.
+  const aef = offers.filter((o) => o.source === "aef" && o.pau_ht != null);
   const henrri = offers.filter((o) => o.source === "henrri" && o.pau_ht != null);
   let group: OfferRow[];
-  if (henrri.length > 0) {
+  if (aef.length > 0) {
+    group = aef;
+  } else if (henrri.length > 0) {
     group = henrri;
   } else {
     const groups = new Map<string, OfferRow[]>();
@@ -68,12 +73,14 @@ export function uniqueSupplierPurchase(
   }
   const priced = group.map((o) => o.pau_ht).filter((v): v is number => v != null);
   const value = priced.length > 0 ? Math.max(...priced) : null;
-  const multiplier = suggestedMultiplier(productUnit);
+  // Multiplicateur par défaut : 1 (la quantité du devis est lue dans l'unité de l'article).
+  // Jamais bloquant : une unité différente se corrige dans la quantité de la ligne.
+  const multiplier = suggestedMultiplier(productUnit) ?? 1;
   return {
     supplier_id: group[0]!.supplier_id,
     pau_ht_applied: value,
     cost_status: value == null ? "manquant" : "connu",
     unit_multiplier: multiplier,
-    unit_status: multiplier != null ? "ok" : "non_verifiee",
+    unit_status: "ok",
   };
 }

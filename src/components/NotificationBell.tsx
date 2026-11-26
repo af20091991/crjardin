@@ -1,12 +1,25 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Bell, MessageSquare, HelpCircle, Eye, Check, CalendarDays } from "lucide-react";
+import {
+  Bell,
+  MessageSquare,
+  HelpCircle,
+  Eye,
+  Check,
+  CalendarDays,
+  BellRing,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { sendTestPush } from "@/lib/test-push.functions";
 import { useNavigate } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useRole } from "@/hooks/use-role";
 import {
+  deleteReadNotifications,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -28,7 +41,10 @@ const ICONS: Record<string, typeof Bell> = {
 };
 
 export function NotificationBell() {
+  const [testing, setTesting] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
   const { user } = useAuth();
+  const { role } = useRole();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data: notifs } = useQuery({
@@ -70,6 +86,8 @@ export function NotificationBell() {
     onSuccess: inv,
   });
   const readAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: inv });
+  const clearRead = useMutation({ mutationFn: deleteReadNotifications, onSuccess: inv });
+  const readCount = (notifs ?? []).length - unread;
 
   return (
     <Popover>
@@ -94,16 +112,29 @@ export function NotificationBell() {
       >
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-semibold">Notifications</span>
-          {unread > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => readAll.mutate()}
-            >
-              <Check className="mr-1 h-3 w-3" /> Tout lire
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {unread > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => readAll.mutate()}
+              >
+                <Check className="mr-1 h-3 w-3" /> Tout lire
+              </Button>
+            )}
+            {readCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => clearRead.mutate()}
+                disabled={clearRead.isPending}
+              >
+                Supprimer les lues ({readCount})
+              </Button>
+            )}
+          </div>
         </div>
         {groups.length > 1 && (
           <div className="flex gap-1.5 overflow-x-auto border-b px-3 py-2">
@@ -137,7 +168,7 @@ export function NotificationBell() {
           ) : (
             shown.map((g) => (
               <section key={g.group}>
-                {(filter === "all" ? groups.length > 1 : false) && (
+                {filter === "all" && (
                   <h3 className="sticky top-0 z-10 bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {g.label}
                   </h3>
@@ -149,8 +180,16 @@ export function NotificationBell() {
                       key={n.id}
                       onClick={() => {
                         if (!n.is_read) readOne.mutate(n.id);
-                        const target = notificationTarget(n);
-                        if (target) void navigate({ to: target as never });
+                        const target = notificationTarget(n, role);
+                        if (target) {
+                          const [path, query] = target.split("?");
+                          void navigate({
+                            to: path as never,
+                            search: query
+                              ? (Object.fromEntries(new URLSearchParams(query)) as never)
+                              : undefined,
+                          });
+                        }
                       }}
                       className={`flex w-full items-start gap-2.5 border-b px-3 py-3 text-left transition-colors hover:bg-accent/40 ${
                         n.is_read ? "opacity-60" : "bg-primary/5"
@@ -182,6 +221,42 @@ export function NotificationBell() {
               </section>
             ))
           )}
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t px-3 py-1.5">
+          {pushStatus && (
+            <p role="status" className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {pushStatus}
+            </p>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground"
+            disabled={testing}
+            onClick={async () => {
+              setTesting(true);
+              setPushStatus("Envoi en cours…");
+              try {
+                const r = await sendTestPush();
+                const msg = `Notification push envoyée à ${r.sent} téléphone(s).`;
+                setPushStatus(msg);
+                toast.success(msg);
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : "Envoi impossible";
+                setPushStatus(`Échec : ${msg}`);
+                toast.error(msg);
+              } finally {
+                setTesting(false);
+              }
+            }}
+          >
+            {testing ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <BellRing className="mr-1 h-3 w-3" />
+            )}
+            Tester les notifications push
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

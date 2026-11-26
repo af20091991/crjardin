@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { SstInfoTip, PRIX_CLIENT_TIP } from "@/components/pilot/SstInfoTip";
 import {
   Dialog,
   DialogContent,
@@ -92,7 +93,8 @@ import { EmptyState } from "@/components/pilot/EmptyState";
 
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${formatPercent(n)}`);
 
-export function SstProfitabilityTab() {
+/** `journalOnly` : tableau du journal seul (les synthèses vivent dans le tableau de bord). */
+export function SstProfitabilityTab({ journalOnly = false }: { journalOnly?: boolean } = {}) {
   const qc = useQueryClient();
   const { mode } = usePilotMode();
   const { period } = usePilotPeriod();
@@ -109,8 +111,8 @@ export function SstProfitabilityTab() {
 
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const pnlQ = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
-  const missions = missionsQ.data ?? [];
-  const pnl = pnlQ.data ?? [];
+  const missions = useMemo(() => missionsQ.data ?? [], [missionsQ.data]);
+  const pnl = useMemo(() => pnlQ.data ?? [], [pnlQ.data]);
   // États explicites des graphiques : une erreur n'est jamais montrée comme un zéro.
   const chartsLoading = missionsQ.isLoading || pnlQ.isLoading;
   const chartsError =
@@ -146,17 +148,36 @@ export function SstProfitabilityTab() {
     qc.invalidateQueries({ queryKey: ["sst-audit"] });
   };
 
+  // Sous-traitance déjà enregistrée en charges (aucune saisie supplémentaire demandée).
+  const chargeLines = useMemo(
+    () => sstChargeLines({ chargeRows, missions, clients, year }),
+    [chargeRows, missions, clients, year],
+  );
+  // Une charge rattachée à une mission du même mois fixe le coût de cette mission.
+  const costOverride = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of chargeLines) if (l.missionId) map.set(l.missionId, l.amount);
+    return map;
+  }, [chargeLines]);
+
   const rows = useMemo(
     () =>
-      sstRows({ missions, pnl, ssts, clients, mode, includeArchived: showArchived, year }).filter(
-        (r) => {
-          if (sstFilter !== "all" && r.mission.subcontractor_id !== sstFilter) return false;
-          if (!search.trim()) return true;
-          const hay = `${r.sstName} ${r.clientName} ${r.mission.service_requested} ${r.mission.prestation ?? ""}`;
-          return hay.toLowerCase().includes(search.toLowerCase());
-        },
-      ),
-    [missions, pnl, ssts, clients, mode, showArchived, year, sstFilter, search],
+      sstRows({
+        missions,
+        pnl,
+        ssts,
+        clients,
+        mode,
+        includeArchived: showArchived,
+        year,
+        costOverride,
+      }).filter((r) => {
+        if (sstFilter !== "all" && r.mission.subcontractor_id !== sstFilter) return false;
+        if (!search.trim()) return true;
+        const hay = `${r.sstName} ${r.clientName} ${r.mission.service_requested} ${r.mission.prestation ?? ""}`;
+        return hay.toLowerCase().includes(search.toLowerCase());
+      }),
+    [missions, pnl, ssts, clients, mode, showArchived, year, sstFilter, search, costOverride],
   );
 
   const totals = useMemo(() => sstTotals(rows), [rows]);
@@ -286,11 +307,6 @@ export function SstProfitabilityTab() {
     [perPresta],
   );
 
-  // Sous-traitance déjà enregistrée en charges (aucune saisie supplémentaire demandée).
-  const chargeLines = useMemo(
-    () => sstChargeLines({ chargeRows, missions, clients, year }),
-    [chargeRows, missions, clients, year],
-  );
   const caPeriod = useMemo(() => {
     if (!salesByYear) return null;
     if (year === "all") return [...salesByYear.values()].reduce((s, v) => s + v, 0);
@@ -422,18 +438,24 @@ export function SstProfitabilityTab() {
 
   return (
     <div className="space-y-6">
-      {/* Audit V2.3+ : missions non rattachées à un client → marge client aveugle. */}
-      {missions.filter((m) => !m.client_id && !m.archived_at).length > 0 && (
-        <Card className="border-amber-300/70 bg-amber-50/40">
-          <CardContent className="py-3 text-sm">
-            <strong>{missions.filter((m) => !m.client_id && !m.archived_at).length}</strong> mission
-            {missions.filter((m) => !m.client_id && !m.archived_at).length > 1 ? "s" : ""} de
-            sous-traitance sans client rattaché : la marge par client reste incomplète. Le
-            rattachement se fait ligne par ligne dans le tableau ci-dessous — aucun rapprochement
-            automatique n'est effectué.
-          </CardContent>
-        </Card>
+      {!journalOnly && (
+        <>
+          {/* Audit V2.3+ : missions non rattachées à un client → marge client aveugle. */}
+          {missions.filter((m) => !m.client_id && !m.archived_at).length > 0 && (
+            <Card className="border-amber-300/70 bg-amber-50/40">
+              <CardContent className="py-3 text-sm">
+                <strong>{missions.filter((m) => !m.client_id && !m.archived_at).length}</strong>{" "}
+                mission
+                {missions.filter((m) => !m.client_id && !m.archived_at).length > 1 ? "s" : ""} de
+                sous-traitance sans client rattaché : la marge par client reste incomplète. Le
+                rattachement se fait ligne par ligne dans le tableau ci-dessous — aucun
+                rapprochement automatique n'est effectué.
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
+
       {/* Barre d'outils */}
       <div className="flex flex-wrap items-center gap-2">
         <Select value={allYears ? "all" : "year"} onValueChange={(v) => setAllYears(v === "all")}>
@@ -484,90 +506,95 @@ export function SstProfitabilityTab() {
         </div>
       </div>
 
-      {/* A — Synthèse des missions filtrées */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <PilotCard
-          storageId="sst-ca"
-          audit={{
-            sources: ["subcontractor_missions"],
-            calcul: "Somme des prix de vente HT au client (client_price) des missions filtrées.",
-            periode:
-              "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
-          }}
-          label="CA SST"
-          value={formatEuro(totals.revenue)}
-          sub={`${totals.missions} mission(s)`}
-          help="Somme des prix facturés au client pour les missions confiées à un sous-traitant."
-        />
-        <PilotCard
-          storageId="sst-cout"
-          audit={{
-            sources: ["subcontractor_missions"],
-            calcul:
-              "Somme du montant facturé par le sous-traitant (invoiced_amount), à défaut du prix convenu (agreed_price).",
-            periode:
-              "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
-          }}
-          label="Coût SST"
-          value={formatEuro(totals.cost)}
-          sub={
-            totals.avgHourlyCost != null
-              ? `${formatHourlyRate(totals.avgHourlyCost)} en moyenne`
-              : "Heures non saisies"
-          }
-          tone="negative"
-          help="Montant facturé par les sous-traitants (montant facturé, sinon prix convenu)."
-        />
-        <PilotCard
-          storageId="sst-marge"
-          audit={{
-            sources: ["subcontractor_missions"],
-            calcul:
-              "CA SST − Coût SST, mission par mission puis additionné ; le pourcentage est rapporté au CA SST.",
-            periode:
-              "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
-          }}
-          label="Marge brute"
-          value={formatEuro(totals.margin)}
-          sub={`${pct(totals.marginPct)} de marge`}
-          tone={totals.margin >= 0 ? "positive" : "negative"}
-          progress={
-            totals.marginPct != null
-              ? Math.min(100, (totals.marginPct / marginTarget) * 100)
-              : undefined
-          }
-          help={`Marge = CA client − coût sous-traitant. Objectif paramétré : ${marginTarget} %.`}
-          views={[
-            {
-              key: "marge",
-              label: "Marge brute",
-              value: formatEuro(totals.margin),
-              sub: `${pct(totals.marginPct)} de marge`,
-              tone: totals.margin >= 0 ? "positive" : "negative",
-            },
-            {
-              key: "moyenne",
-              label: "Marge moyenne / mission",
-              value: formatEuro(totals.avgMarginPerMission ?? 0),
-              sub: `${totals.missions} mission(s)`,
-            },
-          ]}
-        />
-        <PilotCard
-          storageId="sst-temps"
-          audit={{
-            sources: ["subcontractor_missions"],
-            calcul:
-              "Somme des heures économisées saisies (hours_saved), à défaut des heures SST réalisées (hours_spent).",
-            periode:
-              "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
-          }}
-          label="Temps économisé"
-          value={formatHours(totals.hoursSaved)}
-          sub={`${formatHours(totals.hours)} réalisées par les SST`}
-          help="Heures que vous n'avez pas eu à réaliser vous-même grâce à la sous-traitance."
-        />
-      </div>
+      {!journalOnly && (
+        <>
+          {/* A — Synthèse des missions filtrées */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <PilotCard
+              storageId="sst-ca"
+              audit={{
+                sources: ["subcontractor_missions"],
+                calcul:
+                  "Somme des prix de vente HT au client (client_price) des missions filtrées.",
+                periode:
+                  "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+              }}
+              label="CA SST"
+              value={formatEuro(totals.revenue)}
+              sub={`${totals.missions} mission(s)`}
+              help="Somme des prix facturés au client pour les missions confiées à un sous-traitant."
+            />
+            <PilotCard
+              storageId="sst-cout"
+              audit={{
+                sources: ["subcontractor_missions"],
+                calcul:
+                  "Somme du montant facturé par le sous-traitant (invoiced_amount), à défaut du prix convenu (agreed_price).",
+                periode:
+                  "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+              }}
+              label="Coût SST"
+              value={formatEuro(totals.cost)}
+              sub={
+                totals.avgHourlyCost != null
+                  ? `${formatHourlyRate(totals.avgHourlyCost)} en moyenne`
+                  : "Heures non saisies"
+              }
+              tone="negative"
+              help="Montant facturé par les sous-traitants (montant facturé, sinon prix convenu)."
+            />
+            <PilotCard
+              storageId="sst-marge"
+              audit={{
+                sources: ["subcontractor_missions"],
+                calcul:
+                  "CA SST − Coût SST, mission par mission puis additionné ; le pourcentage est rapporté au CA SST.",
+                periode:
+                  "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+              }}
+              label="Marge brute"
+              value={formatEuro(totals.margin)}
+              sub={`${pct(totals.marginPct)} de marge`}
+              tone={totals.margin >= 0 ? "positive" : "negative"}
+              progress={
+                totals.marginPct != null
+                  ? Math.min(100, (totals.marginPct / marginTarget) * 100)
+                  : undefined
+              }
+              help={`Marge = CA client − coût sous-traitant. Objectif paramétré : ${marginTarget} %.`}
+              views={[
+                {
+                  key: "marge",
+                  label: "Marge brute",
+                  value: formatEuro(totals.margin),
+                  sub: `${pct(totals.marginPct)} de marge`,
+                  tone: totals.margin >= 0 ? "positive" : "negative",
+                },
+                {
+                  key: "moyenne",
+                  label: "Marge moyenne / mission",
+                  value: formatEuro(totals.avgMarginPerMission ?? 0),
+                  sub: `${totals.missions} mission(s)`,
+                },
+              ]}
+            />
+            <PilotCard
+              storageId="sst-temps"
+              audit={{
+                sources: ["subcontractor_missions"],
+                calcul:
+                  "Somme des heures économisées saisies (hours_saved), à défaut des heures SST réalisées (hours_spent).",
+                periode:
+                  "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+              }}
+              label="Temps économisé"
+              value={formatHours(totals.hoursSaved)}
+              sub={`${formatHours(totals.hours)} réalisées par les SST`}
+              help="Heures que vous n'avez pas eu à réaliser vous-même grâce à la sous-traitance."
+            />
+          </div>
+        </>
+      )}
 
       <Card>
         <CardHeader className="pb-2">
@@ -593,7 +620,10 @@ export function SstProfitabilityTab() {
                       <TableHead>Chantier parallèle</TableHead>
                       <TableHead className="text-right">Temps</TableHead>
                       <TableHead className="text-right">Prix SST</TableHead>
-                      <TableHead className="text-right">Prix HT vente</TableHead>
+                      <TableHead className="text-right">
+                        Prix HT vente
+                        <SstInfoTip text={PRIX_CLIENT_TIP} />
+                      </TableHead>
                       <TableHead className="text-right">Marge nette HT</TableHead>
                       <TableHead className="text-right">%</TableHead>
                       <TableHead className="text-center">Rentabilité</TableHead>
@@ -747,7 +777,10 @@ export function SstProfitabilityTab() {
                         <p>{formatEuro(r.cost)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Prix HT vente</p>
+                        <p className="flex items-center text-xs text-muted-foreground">
+                          Prix HT vente
+                          <SstInfoTip text={PRIX_CLIENT_TIP} />
+                        </p>
                         <p>{formatEuro(r.revenue)}</p>
                       </div>
                       <div>
@@ -852,122 +885,128 @@ export function SstProfitabilityTab() {
         </CardContent>
       </Card>
 
-      {/* C — Graphiques configurables (indicateur + type de visualisation) */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <PilotFlexChart
-          title="Coût, CA et marge par mois"
-          subtitle="Missions sous-traitées de la période sélectionnée"
-          datasets={monthlyDatasets}
-          storageKey="sst-journal:mois"
-          isLoading={chartsLoading}
-          error={chartsError}
-          onRetry={refresh}
-        />
-        <PilotFlexChart
-          title="Marge par sous-traitant"
-          subtitle="Classement par prestataire"
-          datasets={perSstDatasets}
-          storageKey="sst-journal:sous-traitant"
-          isLoading={chartsLoading}
-          error={chartsError}
-          onRetry={refresh}
-        />
-        <div className="lg:col-span-2">
-          <PilotFlexChart
-            title="Répartition du CA sous-traité par prestation"
-            subtitle="Nature des missions confiées"
-            datasets={perPrestaDatasets}
-            storageKey="sst-journal:prestation"
-            isLoading={chartsLoading}
-            error={chartsError}
-            onRetry={refresh}
-          />
-        </div>
-      </div>
-
-      {/* D — Analyse */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Analyse automatique</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {insights.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Pas encore assez de données pour analyser.
-            </p>
-          ) : (
-            insights.map((i, idx) => (
-              <div
-                key={idx}
-                className="rounded-lg border p-3"
-                style={{
-                  borderColor:
-                    i.tone === "positive"
-                      ? PP_COLORS.primary
-                      : i.tone === "negative"
-                        ? PP_COLORS.charges
-                        : PP_COLORS.mid,
-                }}
-              >
-                <p className="text-sm font-medium">{i.title}</p>
-                <p className="text-xs text-muted-foreground">{i.detail}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      {/* F — Sous-traitance repérée dans les charges existantes (lecture seule) */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Sous-traitance repérée dans les charges</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune ressaisie
-            n'est nécessaire. Une ligne couverte par une mission SST du même mois et du même montant
-            est exclue des totaux pour éviter tout double comptage.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {chargeLines.length === 0 ? (
-            <EmptyState
-              icon={ReceiptText}
-              title="Aucune charge de sous-traitance sur cette période."
-              compact
+      {!journalOnly && (
+        <>
+          {/* C — Graphiques configurables (indicateur + type de visualisation) */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <PilotFlexChart
+              title="Coût, CA et marge par mois"
+              subtitle="Missions sous-traitées de la période sélectionnée"
+              datasets={monthlyDatasets}
+              storageKey="sst-journal:mois"
+              isLoading={chartsLoading}
+              error={chartsError}
+              onRetry={refresh}
             />
-          ) : (
-            <>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <PilotCard
-                  storageId="sst-charges-total"
-                  label="Coût sous-traitance (charges)"
-                  value={formatEuro(chargeTotals.amount)}
-                  sub={`${chargeTotals.lines} ligne(s)`}
-                  tone="negative"
-                  help="Somme des charges dont le libellé mentionne la sous-traitance."
+            <PilotFlexChart
+              title="Marge par sous-traitant"
+              subtitle="Classement par prestataire"
+              datasets={perSstDatasets}
+              storageKey="sst-journal:sous-traitant"
+              isLoading={chartsLoading}
+              error={chartsError}
+              onRetry={refresh}
+            />
+            <div className="lg:col-span-2">
+              <PilotFlexChart
+                title="Répartition du CA sous-traité par prestation"
+                subtitle="Nature des missions confiées"
+                datasets={perPrestaDatasets}
+                storageKey="sst-journal:prestation"
+                isLoading={chartsLoading}
+                error={chartsError}
+                onRetry={refresh}
+              />
+            </div>
+          </div>
+
+          {/* D — Analyse */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Analyse automatique</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {insights.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Pas encore assez de données pour analyser.
+                </p>
+              ) : (
+                insights.map((i, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-lg border p-3"
+                    style={{
+                      borderColor:
+                        i.tone === "positive"
+                          ? PP_COLORS.primary
+                          : i.tone === "negative"
+                            ? PP_COLORS.charges
+                            : PP_COLORS.mid,
+                    }}
+                  >
+                    <p className="text-sm font-medium">{i.title}</p>
+                    <p className="text-xs text-muted-foreground">{i.detail}</p>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* F — Sous-traitance repérée dans les charges existantes (lecture seule) */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Sous-traitance repérée dans les charges</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune
+                ressaisie n'est nécessaire. Une ligne couverte par une mission SST du même mois et
+                du même montant est exclue des totaux pour éviter tout double comptage.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {chargeLines.length === 0 ? (
+                <EmptyState
+                  icon={ReceiptText}
+                  title="Aucune charge de sous-traitance sur cette période."
+                  compact
                 />
-                <PilotCard
-                  storageId="sst-charges-part"
-                  label="Part du CA"
-                  value={chargeTotals.shareOfCaPct != null ? pct(chargeTotals.shareOfCaPct) : "—"}
-                  sub={
-                    caPeriod != null
-                      ? `CA de référence ${formatEuro(caPeriod)}`
-                      : "CA non disponible"
-                  }
-                  help="Poids de la sous-traitance dans le chiffre d'affaires de la période."
-                />
-                <PilotCard
-                  storageId="sst-charges-dup"
-                  label="Lignes déjà en mission"
-                  value={String(chargeTotals.duplicates)}
-                  sub={formatEuro(chargeTotals.duplicatesAmount)}
-                  help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
-                />
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <PilotCard
+                      storageId="sst-charges-total"
+                      label="Coût sous-traitance (charges)"
+                      value={formatEuro(chargeTotals.amount)}
+                      sub={`${chargeTotals.lines} ligne(s)`}
+                      tone="negative"
+                      help="Somme des charges dont le libellé mentionne la sous-traitance."
+                    />
+                    <PilotCard
+                      storageId="sst-charges-part"
+                      label="Part du CA"
+                      value={
+                        chargeTotals.shareOfCaPct != null ? pct(chargeTotals.shareOfCaPct) : "—"
+                      }
+                      sub={
+                        caPeriod != null
+                          ? `CA de référence ${formatEuro(caPeriod)}`
+                          : "CA non disponible"
+                      }
+                      help="Poids de la sous-traitance dans le chiffre d'affaires de la période."
+                    />
+                    <PilotCard
+                      storageId="sst-charges-dup"
+                      label="Lignes déjà en mission"
+                      value={String(chargeTotals.duplicates)}
+                      sub={formatEuro(chargeTotals.duplicatesAmount)}
+                      help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
+                    />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* G — Historique */}
       <Card>

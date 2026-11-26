@@ -18,6 +18,8 @@ export type PdfWord = {
   y: number; // haut (croissant vers le bas)
   str: string;
   bold: boolean;
+  /** Taille de police : sert à repérer le titre du devis (texte le plus grand de la page 1). */
+  size?: number;
 };
 
 export type QuoteRow = {
@@ -48,6 +50,8 @@ export type QuotePoste = {
 };
 
 export type QuoteParse = {
+  /** Titre du devis tel qu'il figure en tête du PDF (texte le plus grand de la page 1). */
+  title: string | null;
   devisNumber: string | null;
   postes: QuotePoste[];
   orphanText: string[];
@@ -62,7 +66,7 @@ type Line = { page: number; y: number; words: PdfWord[] };
 type Cells = { ref: string; designation: string; qty: string; pu: string; tva: string; ht: string };
 type Columns = { ref: number; desig: number; qty: number; pu: number; tva: number; ht: number };
 
-const NUMERIC_RE = /^[\d.,\u00a0\u202f]+€?$|^€$|^%$/;
+const NUMERIC_RE = /^\d[\d.,\u00a0\u202f ]*€?$|^€$|^%$/;
 const NOISE_RE = [
   /^DEVIS N°/,
   /^Le (lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche) /,
@@ -90,27 +94,52 @@ function groupLines(words: PdfWord[]): Line[] {
   return lines;
 }
 
+function columnsOf(l: Line): Columns | null {
+  const text = l.words.map((w) => w.str);
+  if (!text.includes("Référence") || !text.includes("Désignation")) return null;
+  const at = (s: string) => l.words.find((w) => w.str === s)?.x;
+  const ref = at("Référence");
+  const desig = at("Désignation");
+  const qty = at("Quantité");
+  const pu = at("PU");
+  const tva = at("TVA");
+  const ht = at("Montant");
+  if ([ref, desig, qty, pu, tva, ht].some((v) => v === undefined)) return null;
+  return { ref: ref!, desig: desig!, qty: qty!, pu: pu!, tva: tva!, ht: ht! };
+}
+
+/** Premier en-tête de tableau. Les pages suivantes peuvent avoir des colonnes décalées : voir parseQuote. */
 function findColumns(lines: Line[]): Columns | null {
   for (const l of lines) {
-    const text = l.words.map((w) => w.str);
-    if (!text.includes("Référence") || !text.includes("Désignation")) continue;
-    const at = (s: string) => l.words.find((w) => w.str === s)?.x;
-    const ref = at("Référence");
-    const desig = at("Désignation");
-    const qty = at("Quantité");
-    const pu = at("PU");
-    const tva = at("TVA");
-    const ht = at("Montant");
-    if ([ref, desig, qty, pu, tva, ht].some((v) => v === undefined)) continue;
-    return { ref: ref!, desig: desig!, qty: qty!, pu: pu!, tva: tva!, ht: ht! };
+    const cols = columnsOf(l);
+    if (cols) return cols;
   }
   return null;
 }
 
 /** Affecte chaque mot à une colonne : numérique par centre, texte par bord gauche. */
+/** Fusionne « 1 » + « 400,0000 € » (séparateur de milliers) en un seul mot numérique. */
+function mergeThousands(words: PdfWord[]): PdfWord[] {
+  const out: PdfWord[] = [];
+  for (const w of words) {
+    const prev = out[out.length - 1];
+    if (
+      prev &&
+      /^\d{1,3}$/.test(prev.str) &&
+      /^\d{3}([.,]\d+)?€?$/.test(w.str) &&
+      w.x - prev.x1 < 6
+    ) {
+      out[out.length - 1] = { ...prev, str: `${prev.str} ${w.str}`, x1: w.x1 };
+    } else {
+      out.push(w);
+    }
+  }
+  return out;
+}
+
 function splitCells(line: Line, cols: Columns): Cells {
   const cells: Cells = { ref: "", designation: "", qty: "", pu: "", tva: "", ht: "" };
-  for (const w of line.words) {
+  for (const w of mergeThousands(line.words)) {
     const center = (w.x + w.x1) / 2;
     if (NUMERIC_RE.test(w.str) && center >= cols.qty) {
       const key =
@@ -133,7 +162,7 @@ function num(s: string): number | null {
 
 export function cleanReference(raw: string): string | null {
   const cleaned = raw
-    .replace(/\s*\(copie[^)]*\)?.*$/i, "")
+    .replace(/\s*\(copi[^)]*\)?.*$/i, "")
     .replace(/…/g, "")
     .trim();
   return cleaned.replace(/\s*\(\d+\)$/, "").trim() || null;
@@ -147,12 +176,57 @@ function roundCents(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** Titre : lignes de la page 1 écrites dans la police la plus grande (ex. « DEVIS D'AMÉNAGEMENT … »). */
+export function quoteTitle(words: PdfWord[]): string | null {
+  const sized = words.filter((w) => w.page === 1 && w.size != null);
+  if (sized.length === 0) return null;
+  const max = Math.max(...sized.map((w) => w.size as number));
+  const titleWords = sized.filter((w) => (w.size as number) >= max - 0.5);
+  // groupLines trie du bas vers le haut (y croissant) : le titre se lit du haut vers le bas.
+  const text = groupLines(titleWords)
+    .sort((a, b) => b.y - a.y)
+    .map((l) => l.words.map((w) => w.str).join(" "))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || null;
+}
+
+/** Phrases d'information (intro, renvois, mentions) : jamais un intitulé de poste. */
+const INFO_TEXT_RE =
+  /^(ce devis|le pr[ée]sent|voir\b|annexe|remarque|note\b|conditions|bon pour|cordialement|merci|nous |votre )|\(voir|en annexe|plan\b/i;
+
+/**
+ * Intitulé d'un poste : parmi les blocs en gras lus avant ses lignes, le dernier qui n'est pas une
+ * phrase d'information. Dans un bloc, l'intitulé s'arrête à la première ligne qui se termine par « : ».
+ */
+export function pickTitle(groups: string[][]): string | null {
+  const candidates = groups
+    .map((g) => {
+      const cut = g.findIndex((t) => t.trim().endsWith(":"));
+      return (cut >= 0 ? g.slice(0, cut + 1) : g).join(" ").replace(/\s+/g, " ").trim();
+    })
+    .filter(
+      (t) =>
+        t.length > 0 &&
+        t.length <= 120 &&
+        !INFO_TEXT_RE.test(t) &&
+        !/[.!?]$/.test(t.replace(/:$/, "")),
+    );
+  // Un intitulé se termine par « : » ; sinon le premier bloc court en gras (le plus proche des lignes).
+  const heading = candidates.filter((t) => t.endsWith(":"));
+  if (heading.length > 0) return heading[heading.length - 1];
+  return candidates.length > 0 ? candidates[0] : null;
+}
+
 export function parseQuote(words: PdfWord[]): QuoteParse {
   const firstLines = groupLines(words);
-  const cols = findColumns(firstLines);
+  let cols = findColumns(firstLines);
   const warnings: string[] = [];
+  const title = quoteTitle(words);
   if (!cols) {
     return {
+      title,
       devisNumber: null,
       postes: [],
       orphanText: [],
@@ -174,9 +248,9 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
 
   const postes: QuotePoste[] = [];
   let pending: string[] = [];
-  let pendingBold: string[] = [];
-  let titleDone = false;
-  let lastWasBold = false;
+  /** Blocs de lignes en gras, dans l'ordre de lecture, depuis le dernier Sous Total. Candidats au titre. */
+  let boldGroups: string[][] = [];
+  let inBold = false;
   let current: QuotePoste | null = null;
   let lastRow: QuoteRow | null = null;
   let inClause = false;
@@ -184,7 +258,7 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
   let stop = false;
 
   const openPoste = () => {
-    const title = pendingBold.length > 0 ? pendingBold.join(" ") : null;
+    const title = pickTitle(boldGroups);
     current = {
       index: postes.length + 1,
       title,
@@ -199,15 +273,17 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
     };
     postes.push(current);
     pending = [];
-    pendingBold = [];
-    titleDone = false;
-    lastWasBold = false;
+    boldGroups = [];
+    inBold = false;
   };
 
   for (const line of lines) {
     if (stop) break;
     const lineText = line.words.map((w) => w.str).join(" ");
-    const cells = splitCells(line, cols);
+    // Chaque page répète l'en-tête, mais à d'autres positions : on suit le dernier en-tête lu.
+    const header = columnsOf(line);
+    if (header) cols = header;
+    const cells = splitCells(line, cols!);
 
     if (END_RE.test(lineText)) {
       stop = true;
@@ -251,9 +327,8 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
       current = null;
       lastRow = null;
       pending = [];
-      pendingBold = [];
-      titleDone = false;
-      lastWasBold = false;
+      boldGroups = [];
+      inBold = false;
       continue;
     }
 
@@ -297,12 +372,12 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
     }
     pending.push(text);
     const isBold = line.words.every((w) => w.bold);
-    if (isBold && !titleDone) {
-      pendingBold.push(text);
-      lastWasBold = true;
+    if (isBold) {
+      if (!inBold) boldGroups.push([]);
+      boldGroups[boldGroups.length - 1].push(text);
+      inBold = true;
     } else {
-      if (pendingBold.length > 0) titleDone = true;
-      lastWasBold = false;
+      inBold = false;
     }
   }
 
@@ -328,5 +403,5 @@ export function parseQuote(words: PdfWord[]): QuoteParse {
     }
   }
 
-  return { devisNumber, postes, orphanText, totalHtDeclared, warnings };
+  return { title, devisNumber, postes, orphanText, totalHtDeclared, warnings };
 }

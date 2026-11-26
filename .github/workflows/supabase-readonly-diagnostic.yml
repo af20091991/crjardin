@@ -33,7 +33,7 @@ jobs:
             echo "::error::Configure repository variable SUPABASE_PROJECT_REF and secret SUPABASE_DB_URL."
             exit 1
           fi
-          if [[ "${SUPABASE_PROJECT_REF}" != "mgkeqwwzhcodntkakqaz" ]]; then
+          if [[ "${SUPABASE_PROJECT_REF}" != "wdygsbmivqxvgkgpbrqc" ]]; then
             echo "::error::The configured project reference is not the expected Pilot Pro production project."
             exit 1
           fi

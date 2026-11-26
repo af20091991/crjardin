@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { posteFinance, type FinanceLine } from "../predevis-finance";
+import { chantierFinance, posteFinance, type FinanceLine } from "../predevis-finance";
 import { clientBlock, type ClientBlockLine } from "../predevis-client-block";
 
 const f = (ht: number, costHt: number | null, ttc?: number): FinanceLine => ({
@@ -36,15 +36,28 @@ describe("posteFinance — exemple chiffré", () => {
   });
 });
 
-describe("posteFinance — données manquantes (jamais 0)", () => {
-  test("prix d'achat manquant : indicateurs liés à null", () => {
+describe("posteFinance — données manquantes : signalées, jamais bloquantes", () => {
+  test("prix d'achat manquant : le calcul porte sur les lignes renseignées", () => {
     const r = posteFinance([f(60, 40), f(40, null)]);
-    expect(r.prixAchatHt).toBeNull();
-    expect(r.margeHt).toBeNull();
-    expect(r.tauxMarge).toBeNull();
+    expect(r.prixAchatHt).toBe(40);
+    expect(r.margeHt).toBe(60);
+    expect(r.tauxMarge).toBe(60);
     expect(r.pvHt).toBe(100);
     expect(r.complete).toBe(false);
     expect(r.issues).toContain("Prix d'achat manquant.");
+  });
+
+  test("aucun prix connu : indicateurs d'achat à null, jamais 0", () => {
+    const r = posteFinance([f(60, null)]);
+    expect(r.prixAchatHt).toBeNull();
+    expect(r.achatFournituresHt).toBeNull();
+    expect(r.margeHt).toBeNull();
+  });
+
+  test("montant HT manquant : signalé, PV HT calculé sur le reste", () => {
+    const r = posteFinance([f(60, 40), { ...f(0, 10), ht: null }]);
+    expect(r.pvHt).toBe(60);
+    expect(r.issues).toContain("Montant HT manquant.");
   });
 
   test("MO à 0 € sans motif : signalée et bloque les indicateurs", () => {
@@ -89,8 +102,9 @@ describe("clientBlock", () => {
 
   test("liste les fournitures avec quantité et unité, sans prix ni marge", () => {
     const text = clientBlock(lines);
-    expect(text).toContain("- Terre végétale criblée enrichie - 35L : 22 pièce");
-    expect(text).toContain("- Billes d'argile 20 L, calibrées : 5 unité à préciser");
+    expect(text).toContain("- Terre végétale criblée enrichie - 35L\n  Quantité : 22 pièce");
+    expect(text).toContain("- Billes d'argile 20 L, calibrées\n  Quantité : 5 unité à préciser");
+    expect(text.split("\n\n")).toHaveLength(2);
     expect(text).not.toContain("€");
     expect(text).not.toContain("Main d'oeuvre");
   });
@@ -99,7 +113,7 @@ describe("clientBlock", () => {
     const text = clientBlock([
       { kind: "fourniture", designation: "X", clientDescription: null, quantity: null, unit: null },
     ]);
-    expect(text).toBe("- X : quantité à préciser unité à préciser");
+    expect(text).toBe("- X\n  Quantité : à préciser");
   });
 });
 
@@ -111,7 +125,8 @@ describe("posteFinance : achat des fournitures indépendant de la main-d'œuvre"
       { kind: "mo", ht: 80, ttc: 96, costHt: null, zeroCostReason: null },
     ]);
     expect(r.achatFournituresHt).toBe(50);
-    expect(r.prixAchatHt).toBeNull();
+    expect(r.prixAchatHt).toBe(50);
+    expect(r.issues).toContain("Coût de main-d'œuvre manquant.");
   });
   test("une fourniture sans prix : achat fournitures non calculé", () => {
     const r = posteFinance([
@@ -119,5 +134,54 @@ describe("posteFinance : achat des fournitures indépendant de la main-d'œuvre"
       { kind: "mo", ht: 80, ttc: 96, costHt: 30, zeroCostReason: null },
     ]);
     expect(r.achatFournituresHt).toBeNull();
+  });
+});
+
+describe("coût SST (rentabilité SST incluse)", () => {
+  const lines = [
+    { kind: "fourniture" as const, ht: 1000, ttc: 1200, costHt: 600, zeroCostReason: null },
+  ];
+  test("sans coût SST saisi : marge SST-incluse non calculée", () => {
+    const f = posteFinance(lines);
+    expect(f.sstCostHt ?? null).toBeNull();
+    expect(f.margeAvecSstHt ?? null).toBeNull();
+    expect(f.tauxMargeAvecSst ?? null).toBeNull();
+  });
+  test("coût SST déduit de la marge nette et reporté en taux", () => {
+    const f = posteFinance(lines, { sstCostHt: 150 });
+    expect(f.margeHt).toBe(400);
+    expect(f.margeAvecSstHt).toBe(250);
+    expect(f.tauxMargeAvecSst).toBe(25);
+  });
+});
+
+describe("synthèse chantier", () => {
+  test("somme des postes, SST inclus, taux sur PV total", () => {
+    const a = posteFinance(
+      [{ kind: "fourniture", ht: 1000, ttc: 1200, costHt: 600, zeroCostReason: null }],
+      { sstCostHt: 100 },
+    );
+    const b = posteFinance(
+      [{ kind: "fourniture", ht: 1000, ttc: 1200, costHt: 400, zeroCostReason: null }],
+      { sstCostHt: 200 },
+    );
+    const c = chantierFinance([a, b]);
+    expect(c.pvHt).toBe(2000);
+    expect(c.margeHt).toBe(1000);
+    expect(c.sstCostHt).toBe(300);
+    expect(c.margeAvecSstHt).toBe(700);
+    expect(c.tauxMarge).toBe(50);
+    expect(c.tauxMargeAvecSst).toBe(35);
+    expect(c.postesAvecSst).toBe(2);
+  });
+  test("sans SST saisi : coût SST null, marge après SST null", () => {
+    const c = chantierFinance([
+      posteFinance([
+        { kind: "fourniture", ht: 1000, ttc: 1200, costHt: 600, zeroCostReason: null },
+      ]),
+    ]);
+    expect(c.sstCostHt).toBeNull();
+    expect(c.margeAvecSstHt).toBeNull();
+    expect(c.postesAvecSst).toBe(0);
   });
 });

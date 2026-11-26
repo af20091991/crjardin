@@ -23,6 +23,101 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-22",
+    version: "2.8.15",
+    theme: "Général",
+    title: "Notifications : icône « PP » sur cercle vert",
+    details: [
+      "Les notifications push de l'application affichent un cercle vert avec « PP » en blanc.",
+    ],
+  },
+  {
+    date: "2026-11-22",
+    version: "2.8.14",
+    theme: "Général",
+    title: "Tableau de bord SST : chiffres financiers en premier, sous-modules enrichis",
+    details: [
+      "Données financières affichées en premier : chiffres clés, graphiques, puis détail par sous-traitant.",
+      "Nouveaux indicateurs : part de la sous-traitance dans le CA, écart entre prix convenu et facturé.",
+      "Évolution annuelle à partir de 2026, prix de vente et coût par heure par prestation.",
+      "Missions par mois et par sous-traitant, répartition autonome / chantier dans le temps.",
+      "Heures économisées face aux heures réalisées, prochaines missions et modifications du calendrier SST.",
+    ],
+  },
+  {
+    date: "2026-11-16",
+    version: "2.8.13",
+    theme: "Général",
+    title: "Démarrage de l'appli : splash complet, plus d'écran blanc",
+    details: [
+      "Le logo s'affiche jusqu'à la fin de l'animation, puis l'appli apparaît sans écran blanc.",
+    ],
+  },
+  {
+    date: "2026-11-16",
+    version: "2.8.12",
+    theme: "Général",
+    title: "Test des notifications depuis les paramètres",
+    details: [
+      "Cloche : « Tester les notifications push » envoie une notification à votre seul compte.",
+    ],
+  },
+  {
+    date: "2026-11-16",
+    version: "2.8.11",
+    theme: "Clients",
+    title: "Lien client régénérable",
+    details: ["Fiche client : « Régénérer le lien » crée un nouveau lien et désactive l'ancien."],
+  },
+  {
+    date: "2026-11-16",
+    version: "2.8.10",
+    theme: "Clients",
+    title: "Fiche client : planning PDF en un clic et rubriques en liste",
+    details: [
+      "Fiche client : raccourci « Planning d'entretien annuel (PDF) » ouvert directement dans l'appli ou le navigateur.",
+      "Documents Premium : bouton « Voir » pour consulter chaque document sans le télécharger.",
+      "Fiche client : rubriques de gestion regroupées dans une liste déroulante, plus lisible.",
+    ],
+  },
+  {
+    date: "2026-11-16",
+    version: "2.8.9",
+    theme: "Clients",
+    title: "Notifications Premium validées par le gérant",
+    details: [
+      "Chaque évènement utile au client (compte-rendu, préconisation, document, photos, calendrier, suivi du jardin, message) crée une notification en attente.",
+      "Gérant : rien n'est envoyé sans votre choix « Envoyer » ou « Ne pas envoyer », depuis la fiche Premium du client.",
+      "Envoi par e-mail et affichage dans la rubrique « Nouveautés » de l'espace client.",
+    ],
+  },
+  {
+    date: "2026-11-16",
+    version: "2.8.8",
+    theme: "Clients",
+    title: "Espace Premium : navigation simplifiée et installation visible",
+    details: [
+      "Espace Premium : navigation à plat, sans sous-menu ; toutes les rubriques restent accessibles en un clic.",
+      "Espace Premium : bouton d'installation bien visible sur l'accueil (Android : application ; iPhone : étapes pour l'écran d'accueil).",
+    ],
+  },
+  {
+    date: "2026-11-12",
+    version: "2.8.7",
+    theme: "Général",
+    title: "Version 2.8 : améliorations mobiles et PDF",
+    details: [
+      "Mobile : en-tête repensé (logo PilotPro, version, recherche, notifications), titre de page adaptatif.",
+      "Mobile : tirer vers le bas pour actualiser les données.",
+      "Mobile : proposition de mise à jour de l'appli à chaque nouvelle version.",
+      "Photos : compression automatique avant envoi au compte-rendu.",
+      "Clients : indicateur d'adresse non vérifiée à la saisie.",
+      "Clients : export de la fiche client en PDF.",
+      "PDF : charte graphique centralisée (couleurs du logo).",
+      "Personnalisation : densité des listes en cartes, réglable et réversible.",
+    ],
+  },
+  {
     date: "2026-11-08",
     version: "2.7.1",
     theme: "Général",

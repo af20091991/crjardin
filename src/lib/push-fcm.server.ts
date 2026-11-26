@@ -1,6 +1,8 @@
 /** Envoi de notifications push via Firebase Cloud Messaging (API HTTP v1).
  *  Secret requis : FIREBASE_SERVICE_ACCOUNT (JSON du compte de service Firebase). */
 
+import { notificationTarget } from "@/lib/notification-groups";
+
 interface ServiceAccount {
   project_id: string;
   client_email: string;
@@ -89,7 +91,7 @@ export async function sendPush(
               token,
               notification: { title: msg.title, body: msg.body ?? undefined },
               data: { url: msg.url },
-              android: { priority: "HIGH", notification: { channel_id: "default" } },
+              android: { priority: "HIGH" },
             },
           }),
         },
@@ -101,9 +103,12 @@ export async function sendPush(
   return { sent, invalid };
 }
 
-/** Page à ouvrir au toucher de la notification. */
-export function notificationUrl(n: { type: string; client_id: string | null }): string {
-  if (n.type === "sst_calendar") return "/pilot/calendrier";
-  if (n.client_id) return `/clients/${n.client_id}`;
-  return "/";
+/** Page à ouvrir au toucher de la notification (même règle que la cloche in-app). */
+export function notificationUrl(n: {
+  type: string;
+  client_id: string | null;
+  intervention_id: string | null;
+  title?: string | null;
+}): string {
+  return notificationTarget({ ...n, intervention_id: n.intervention_id ?? null }, "admin") ?? "/";
 }

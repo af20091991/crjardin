@@ -238,11 +238,11 @@ export const getCeevPlanningUrlByClientId = createServerFn({ method: "POST" })
     const db = admin();
     const { data: client, error } = await db
       .from("clients")
-      .select("id,ceev_enabled,ceev_planning_path,ceev_planning_filename")
+      .select("id,ceev_planning_path,ceev_planning_filename")
       .eq("id", data.clientId)
       .single();
     if (error || !client) throw new Error("Client introuvable");
-    if (!client.ceev_enabled || !client.ceev_planning_path) {
+    if (!client.ceev_planning_path) {
       throw new Error("Aucun calendrier disponible");
     }
 

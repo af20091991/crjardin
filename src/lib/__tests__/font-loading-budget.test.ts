@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { FONT_STACKS } from "@/lib/appearance";
+import { readRouteSource } from "./route-source";
 
-const root = readFileSync("src/routes/__root.tsx", "utf8");
+const root = readRouteSource("src/routes/__root.tsx");
 const appearance = readFileSync("src/lib/appearance.tsx", "utf8");
 const hrefs = [...root.matchAll(/https:\/\/fonts\.googleapis\.com\/css2\?[^"]+/g)].map((m) => m[0]);
 
@@ -29,7 +30,7 @@ describe("budget de chargement des polices", () => {
     const catalogue = Object.entries(FONT_STACKS).filter(([key]) => key !== "system");
     for (const [key, stack] of catalogue) {
       const family = (stack.split(",")[0] ?? "").replace(/"/g, "").trim();
-      expect(appearance).toContain(key + ": \"" + family + ":");
+      expect(appearance).toContain(key + ': "' + family + ":");
     }
   });
 

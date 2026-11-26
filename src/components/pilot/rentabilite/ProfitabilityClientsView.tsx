@@ -44,6 +44,7 @@ import {
 import { ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
 import { EntityStatusQuickEdit } from "@/components/pilot/rentabilite/EntityStatusQuickEdit";
 import { CertifyReferentialAction } from "@/components/pilot/rentabilite/CertifyReferentialAction";
+import { SaleReviewPanel } from "@/components/pilot/rentabilite/SaleReviewPanel";
 import { useAttachmentCertification } from "@/components/pilot/useAttachmentCertification";
 import type { ClientCertification } from "@/lib/pilot-attachment-certification";
 import { topClients } from "@/lib/pilot-top-clients";
@@ -187,6 +188,7 @@ export function ProfitabilityClientsView() {
 
   return (
     <div className="space-y-4">
+      <SaleReviewPanel />
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           CA, heures réelles et rentabilité par client. Cliquez sur un nom pour ouvrir sa fiche

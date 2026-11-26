@@ -3,22 +3,28 @@ import { PREMIUM_NAV } from "@/components/share/PremiumNav";
 
 describe("menu Premium", () => {
   const labels = PREMIUM_NAV.map((entry) => entry.label);
+  const ids = PREMIUM_NAV.map((entry) => entry.id);
 
-  test("Préconisations vient juste après Les interventions", () => {
-    expect(labels.indexOf("Préconisations")).toBe(labels.indexOf("Les interventions") + 1);
+  test("navigation à plat : une rubrique = une page, sans sous-menu", () => {
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(labels.every((label) => label.length > 0)).toBe(true);
   });
 
-  test("« Photos et Documents » regroupe Photos, Documents et Calendrier travaux", () => {
-    const group = PREMIUM_NAV.find((entry) => entry.label === "Photos et Documents");
-    expect(group && "children" in group ? group.children.map((c) => c.label) : []).toEqual([
-      "Photos",
-      "Documents",
-      "Calendrier travaux",
-    ]);
+  test("Préconisations vient juste après Interventions", () => {
+    expect(labels.indexOf("Préconisations")).toBe(labels.indexOf("Interventions") + 1);
   });
 
-  test("Photos n'est plus au premier niveau du menu", () => {
-    expect(labels).not.toContain("Photos");
-    expect(labels).not.toContain("Documents");
+  test("toutes les rubriques de contenu restent accessibles au premier niveau", () => {
+    for (const id of [
+      "garden",
+      "reports",
+      "recommendations",
+      "calendar",
+      "photos",
+      "documents",
+      "exchange",
+    ]) {
+      expect(ids).toContain(id as (typeof ids)[number]);
+    }
   });
 });

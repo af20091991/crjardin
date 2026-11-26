@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isConcernedBySstChange } from "@/lib/sst-calendar-recipients";
 
-const APP_ORIGIN = "https://crjardin.lovable.app";
+const APP_ORIGIN = "https://pp.delagraineaujardin.com";
 
 interface ChangeRow {
   id: string;

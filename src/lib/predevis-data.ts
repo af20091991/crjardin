@@ -5,6 +5,8 @@
 // À retirer après la resynchronisation des types dans l'éditeur Lovable.
 import { supabase } from "@/integrations/supabase/client";
 import type { CatalogueSource } from "./predevis-catalogue-normalize";
+import type { AefSpecies } from "./predevis-catalogue-aef";
+import { potKey } from "./predevis-catalogue-aef";
 import {
   buildCatalogueImport,
   type ImportPlan,
@@ -31,7 +33,13 @@ import { posteFinance, type PosteFinance } from "./predevis-finance";
 
 import type { QuoteParse } from "./predevis-quote-parse";
 import { clientBlock } from "./predevis-client-block";
-import { manualLineFields, type ManualValues } from "./predevis-recap";
+import {
+  manualLineFields,
+  storedPosteRecap,
+  type ManualHeader,
+  type ManualValues,
+} from "./predevis-recap";
+import { detectThemes } from "./predevis-themes";
 
 // Temporaire : types.ts ne contient pas encore les tables predevis_* (resynchronisation Lovable à faire).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -240,17 +248,21 @@ export async function saveQuoteDraft(args: {
   userId: string;
   choices?: MatchChoices;
   manual?: ManualValues;
+  header?: ManualHeader;
 }): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
-  const { parse, fileName, userId, choices = {}, manual = {} } = args;
+  const { parse, fileName, userId, choices = {}, manual = {}, header = {} } = args;
   const products = await loadCatalogueProducts();
+  const totalHtDeclared =
+    header.totalHtDeclared !== undefined ? header.totalHtDeclared : parse.totalHtDeclared;
 
   const { data: quote, error: qe } = await db()
     .from("predevis_quotes")
     .insert({
-      title: `Pré-devis ${parse.devisNumber ?? fileName}`,
+      // Nom = titre de l'en-tête du PDF (modifiable à l'import) ; à défaut, le nom du fichier.
+      title: header.title?.trim() || parse.title || fileName,
       devis_number: parse.devisNumber,
       source_file_name: fileName,
-      total_ht_declared: parse.totalHtDeclared,
+      total_ht_declared: totalHtDeclared,
       status: "brouillon",
       created_by: userId,
     })
@@ -260,7 +272,7 @@ export async function saveQuoteDraft(args: {
   const quoteId: string = quote.id;
 
   try {
-    return await writePostesAndLines(quoteId, parse, products, choices, manual);
+    return await writePostesAndLines(quoteId, parse, products, choices, manual, header);
   } catch (e) {
     // Pas de transaction côté client : on retire le devis partiel pour ne pas laisser un brouillon incomplet.
     await db().from("predevis_quotes").delete().eq("id", quoteId);
@@ -274,6 +286,7 @@ async function writePostesAndLines(
   products: CatalogueProduct[],
   choices: MatchChoices,
   manual: ManualValues,
+  header: ManualHeader,
 ): Promise<{ quoteId: string; posteCount: number; lineCount: number }> {
   const offersByProduct = await loadOffersByProduct();
   const unitById = new Map(products.map((p) => [p.id, p.unit]));
@@ -302,13 +315,17 @@ async function writePostesAndLines(
         description_lines: poste.descriptionLines,
         detection: "auto",
         review_status: "a_verifier",
-        subtotal_ht: poste.subtotalHt,
+        subtotal_ht:
+          header.subtotals && poste.index in header.subtotals
+            ? header.subtotals[poste.index]
+            : poste.subtotalHt,
+        sst_cost_ht: header.sst?.[poste.index] ?? null,
         client_block: clientBlock(
-          rows.map(({ row, match }) => ({
+          rows.map(({ key, row, match }) => ({
             kind: row.kind,
             designation: row.designation,
             clientDescription: null,
-            quantity: row.quantity,
+            quantity: manual[key]?.quantity ?? row.quantity,
             unit: match.productId ? (unitById.get(match.productId) ?? null) : null,
           })),
         ),
@@ -367,15 +384,54 @@ export type QuoteSummary = {
   total_ht_declared: number | null;
   status: string;
   created_at: string;
+  archived_at?: string | null;
+  superseded_at?: string | null;
+  /** Client rattaché (table clients), optionnel. */
+  client_id?: string | null;
 };
 
 export async function listQuotes(): Promise<QuoteSummary[]> {
   const { data, error } = await db()
     .from("predevis_quotes")
-    .select("id, title, devis_number, total_ht_declared, status, created_at")
+    .select(
+      "id, title, devis_number, total_ht_declared, status, created_at, archived_at, superseded_at, client_id",
+    )
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+/** Clients actifs (non fusionnés) pour la liste déroulante du pré-devis. */
+export async function listClientOptions(): Promise<Array<{ id: string; name: string }>> {
+  const { data, error } = await db()
+    .from("clients")
+    .select("id, name")
+    .is("merged_into_client_id", null)
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string }>;
+}
+
+/** Rattache un devis à un client (null = aucun). */
+export async function setQuoteClient(quoteId: string, clientId: string | null): Promise<void> {
+  const { error } = await db()
+    .from("predevis_quotes")
+    .update({ client_id: clientId })
+    .eq("id", quoteId);
+  if (error) throw error;
+}
+
+/** Renomme un devis. */
+export async function renameQuote(quoteId: string, title: string): Promise<void> {
+  const { error } = await db().from("predevis_quotes").update({ title }).eq("id", quoteId);
+  if (error) throw error;
+}
+
+/** Supprime des devis (leurs postes et lignes partent avec eux). */
+export async function deleteQuotes(quoteIds: string[]): Promise<void> {
+  if (quoteIds.length === 0) return;
+  const { error } = await db().from("predevis_quotes").delete().in("id", quoteIds);
+  if (error) throw error;
 }
 
 export type StoredPoste = {
@@ -385,6 +441,11 @@ export type StoredPoste = {
   review_status: "a_verifier" | "valide";
   subtotal_ht: number | null;
   client_block: string | null;
+  /** Coût de sous-traitance du poste (HT), saisi à la main. */
+  sst_cost_ht?: number | null;
+  /** Thème principal de travaux, choisi ou suggéré. */
+  theme?: string | null;
+  secondary_themes?: string[] | null;
 };
 
 export type StoredQuoteLine = Omit<StoredLine, "kind"> & {
@@ -420,12 +481,16 @@ export async function loadQuoteDetail(quoteId: string): Promise<QuoteDetail> {
   const [quote, postes, lines, products, offers, suppliers] = await Promise.all([
     db()
       .from("predevis_quotes")
-      .select("id, title, devis_number, total_ht_declared, status, created_at")
+      .select(
+        "id, title, devis_number, total_ht_declared, status, created_at, archived_at, superseded_at",
+      )
       .eq("id", quoteId)
       .single(),
     db()
       .from("predevis_postes")
-      .select("id, position, title, review_status, subtotal_ht, client_block")
+      .select(
+        "id, position, title, review_status, subtotal_ht, client_block, sst_cost_ht, theme, secondary_themes",
+      )
       .eq("quote_id", quoteId)
       .order("position"),
     db().from("predevis_lines").select("*").eq("quote_id", quoteId).order("position"),
@@ -501,6 +566,57 @@ export async function updateLineFields(
   await refreshClientBlocks(quoteId);
 }
 
+export type LineAmountPatch = {
+  quantity?: number | null;
+  pu_ht?: number | null;
+  ht?: number | null;
+  ttc?: number | null;
+  unit_multiplier?: number | null;
+  unit_status?: "ok" | "non_verifiee";
+  pau_ht_applied?: number | null;
+  manual_cost_ht?: number | null;
+};
+
+/**
+ * Montants corrigés à la main sur un devis enregistré. Rien n'est recalculé :
+ * ce qui est saisi est ce qui est enregistré (indicateurs recalculés à l'affichage).
+ */
+export async function saveQuoteAmounts(args: {
+  quoteId: string;
+  lines: Record<string, LineAmountPatch>;
+  postes: Record<string, number | null>;
+  /** Coût SST par poste (id du poste → montant HT). */
+  sst?: Record<string, number | null>;
+  totalHtDeclared?: number | null;
+  title?: string;
+}): Promise<void> {
+  const { quoteId, lines, postes, sst, totalHtDeclared, title } = args;
+  const ops: PromiseLike<{ error: unknown }>[] = [];
+  if (title !== undefined) {
+    ops.push(db().from("predevis_quotes").update({ title }).eq("id", quoteId));
+  }
+  for (const [id, patch] of Object.entries(lines)) {
+    // Un achat saisi rend la ligne « connue », comme à l'import.
+    const row = patch.pau_ht_applied != null ? { ...patch, cost_status: "connu" } : patch;
+    ops.push(db().from("predevis_lines").update(row).eq("id", id));
+  }
+  for (const [id, subtotal_ht] of Object.entries(postes)) {
+    ops.push(db().from("predevis_postes").update({ subtotal_ht }).eq("id", id));
+  }
+  for (const [id, sst_cost_ht] of Object.entries(sst ?? {})) {
+    ops.push(db().from("predevis_postes").update({ sst_cost_ht }).eq("id", id));
+  }
+  if (totalHtDeclared !== undefined) {
+    ops.push(
+      db().from("predevis_quotes").update({ total_ht_declared: totalHtDeclared }).eq("id", quoteId),
+    );
+  }
+  const results = await Promise.all(ops);
+  const failed = results.find((r) => r.error);
+  if (failed) throw failed.error;
+  await refreshClientBlocks(quoteId);
+}
+
 export async function setPosteReview(
   posteId: string,
   review_status: "a_verifier" | "valide",
@@ -568,4 +684,200 @@ export async function refreshClientBlocks(quoteId: string): Promise<void> {
       .eq("id", poste.id);
     if (error) throw error;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Catalogue AEF : une espèce de référence par produit générique (taille).
+// Le prix pro HT de l'espèce devient l'offre « aef » du produit ; il prime sur Henrri.
+// ---------------------------------------------------------------------------
+
+/** Produits génériques AEF (libellé « … AEF »), avec leur clé de taille. */
+export async function loadAefProducts(): Promise<
+  Array<{ id: string; code: string; designation: string; sizeKey: string | null }>
+> {
+  const products = await loadCatalogueProducts();
+  return products
+    .filter((p) => /aef/i.test(`${p.code} ${p.designation}`))
+    .map((p) => ({
+      id: p.id,
+      code: p.code,
+      designation: p.designation,
+      sizeKey: potKey(p.designation),
+    }))
+    .sort((a, b) => a.designation.localeCompare(b.designation, "fr"));
+}
+
+/** Enregistre l'espèce choisie pour chaque produit AEF (une offre « aef » par produit). */
+export async function saveAefChoices(args: {
+  choices: Record<string, AefSpecies>;
+  userId: string;
+}): Promise<{ offerCount: number }> {
+  const entries = Object.entries(args.choices);
+  if (entries.length === 0) return { offerCount: 0 };
+  const { error: se } = await db()
+    .from("predevis_suppliers")
+    .upsert([{ name: "AEF", norm_name: "aef", created_by: args.userId }], {
+      onConflict: "norm_name",
+      ignoreDuplicates: true,
+    });
+  if (se) throw se;
+  const supplierId = (await loadSupplierIndex()).get("aef")?.id;
+  if (!supplierId) throw new Error("Fournisseur AEF introuvable.");
+
+  const rows = entries.map(([productId, sp]) => ({
+    product_id: productId,
+    supplier_id: supplierId,
+    source: "aef",
+    pau_ht: sp.proPriceHt,
+    pau_raw: `${sp.species} (${sp.size})`,
+  }));
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error } = await db()
+      .from("predevis_offers")
+      .upsert(rows.slice(i, i + CHUNK), { onConflict: "product_id,supplier_key,source" });
+    if (error) throw error;
+  }
+  return { offerCount: rows.length };
+}
+
+// ---------------------------------------------------------------------------
+// Pré-devis 3.0 : archivage, versions écartées, thèmes et historique par thème.
+// ---------------------------------------------------------------------------
+
+/** Ligne enregistrée mise au format de calcul des marges. */
+export function toStoredLine(l: StoredQuoteLine): StoredLine {
+  const n = (v: unknown) => (v == null ? null : Number(v));
+  return {
+    kind: l.line_kind,
+    quantity: n(l.quantity),
+    ht: n(l.ht),
+    ttc: n(l.ttc),
+    pau_ht_applied: n(l.pau_ht_applied),
+    cost_status: l.cost_status,
+    unit_status: l.unit_status,
+    unit_multiplier: n(l.unit_multiplier),
+    manual_cost_ht: n(l.manual_cost_ht),
+    zero_cost_reason: l.zero_cost_reason,
+  };
+}
+
+export async function setQuoteFlags(
+  quoteId: string,
+  flags: { archived_at?: string | null; superseded_at?: string | null },
+): Promise<void> {
+  const { error } = await db().from("predevis_quotes").update(flags).eq("id", quoteId);
+  if (error) throw error;
+}
+
+/** Écarte les versions plus anciennes d'un même devis (hors la version gardée). */
+export async function supersedeOlderVersions(args: {
+  devisNumber: string;
+  keepQuoteId: string;
+  keptCreatedAt: string;
+}): Promise<void> {
+  const { error } = await db()
+    .from("predevis_quotes")
+    .update({ superseded_at: new Date().toISOString() })
+    .eq("devis_number", args.devisNumber)
+    .neq("id", args.keepQuoteId)
+    .lt("created_at", args.keptCreatedAt)
+    .is("superseded_at", null);
+  if (error) throw error;
+}
+
+export async function setPosteTheme(
+  posteId: string,
+  theme: string | null,
+  secondary: string[],
+): Promise<void> {
+  const { error } = await db()
+    .from("predevis_postes")
+    .update({ theme, secondary_themes: secondary })
+    .eq("id", posteId);
+  if (error) throw error;
+}
+
+/** Thème suggéré pour un poste, à partir de son titre et de ses désignations. */
+export function suggestedTheme(
+  title: string,
+  lines: StoredQuoteLine[],
+): { main: string | null; secondary: string[] } {
+  return detectThemes(
+    title,
+    lines.map((l) => l.designation),
+  );
+}
+
+export type ThemeHistory = {
+  postes: number;
+  pvHt: number;
+  margeHt: number;
+  margeAvecSstHt: number;
+};
+
+/** Historique par thème : postes des devis archivés et non écartés, avec leur marge. */
+export async function loadThemeBenchmark(): Promise<Map<string, ThemeHistory>> {
+  const out = new Map<string, ThemeHistory>();
+  const quotes = await db()
+    .from("predevis_quotes")
+    .select("id")
+    .not("archived_at", "is", null)
+    .is("superseded_at", null);
+  if (quotes.error) throw quotes.error;
+  const ids: string[] = (quotes.data ?? []).map((q: { id: string }) => q.id);
+  if (ids.length === 0) return out;
+
+  const [postes, lines] = await Promise.all([
+    db()
+      .from("predevis_postes")
+      .select("id, quote_id, theme, sst_cost_ht")
+      .in("quote_id", ids)
+      .not("theme", "is", null),
+    db().from("predevis_lines").select("*").in("quote_id", ids),
+  ]);
+  if (postes.error) throw postes.error;
+  if (lines.error) throw lines.error;
+
+  for (const p of postes.data ?? []) {
+    const rows = (lines.data ?? []).filter((l: StoredQuoteLine) => l.poste_id === p.id);
+    const sst = p.sst_cost_ht == null ? null : Number(p.sst_cost_ht);
+    const fin = storedPosteRecap(rows.map(toStoredLine), sst);
+    if (fin.pvHt == null || fin.margeHt == null) continue;
+    const cur = out.get(p.theme) ?? { postes: 0, pvHt: 0, margeHt: 0, margeAvecSstHt: 0 };
+    out.set(p.theme, {
+      postes: cur.postes + 1,
+      pvHt: cur.pvHt + fin.pvHt,
+      margeHt: cur.margeHt + fin.margeHt,
+      margeAvecSstHt: cur.margeAvecSstHt + (fin.margeAvecSstHt ?? fin.margeHt),
+    });
+  }
+  return out;
+}
+
+/** Prestation sans achat (SAV, garantie) : les lignes de fourniture sans prix sont marquées « sans achat ». */
+/** Nom du poste, saisi à la main (remplace le titre détecté). */
+export async function renamePoste(posteId: string, title: string): Promise<void> {
+  const { error } = await db().from("predevis_postes").update({ title }).eq("id", posteId);
+  if (error) throw error;
+}
+
+/** Ligne SAV : prix de revient 0 €, sans achat. Ne touche pas une ligne qui a déjà un PAU. */
+export async function markLineSav(lineId: string): Promise<void> {
+  const { error } = await db()
+    .from("predevis_lines")
+    .update({ zero_cost_reason: "sav" })
+    .eq("id", lineId)
+    .is("pau_ht_applied", null);
+  if (error) throw error;
+}
+
+export async function markPosteWithoutPurchase(posteId: string): Promise<void> {
+  const { error } = await db()
+    .from("predevis_lines")
+    .update({ zero_cost_reason: "sav" })
+    .eq("poste_id", posteId)
+    .eq("line_kind", "fourniture")
+    .is("pau_ht_applied", null)
+    .is("zero_cost_reason", null);
+  if (error) throw error;
 }

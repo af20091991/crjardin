@@ -62,7 +62,7 @@ function wpCredentials(): string | null {
 }
 
 const WP_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (compatible; PilotPro/1.0; +https://crjardin.lovable.app)",
+  "User-Agent": "Mozilla/5.0 (compatible; PilotPro/1.0; +https://pp.delagraineaujardin.com)",
   Accept: "application/json",
 };
 

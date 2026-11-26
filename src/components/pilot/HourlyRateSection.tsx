@@ -39,7 +39,6 @@ import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatHourlyRate, formatRatio } from "@/lib/format-utils";
 import { useRole } from "@/hooks/use-role";
 
-
 type ColKey = "terrain" | "gestion" | "total" | "jours" | "ca" | "brut" | "net" | "caJour" | "part";
 type GraphKey = "brut" | "net" | "cible" | "heures";
 

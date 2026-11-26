@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
+import { RoutePending } from "./components/RoutePending";
 
 export const getRouter = () => {
   // networkMode "always" : sur mobile, navigator.onLine peut être faux au démarrage de l'appli et
@@ -22,7 +23,9 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
+    defaultPendingComponent: RoutePending,
     defaultErrorComponent: ({ error, reset }) => <RouteErrorBoundary error={error} reset={reset} />,
   });
 

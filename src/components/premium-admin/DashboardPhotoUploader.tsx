@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,30 @@ import {
 import { addPhoto, listPhotos } from "@/lib/interventions";
 import { addFreePhoto, listFreePhotos } from "@/lib/free-photos";
 import { uploadInterventionPhoto } from "@/lib/storage";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+
+type PhotoAlbumRow = { id: string; name: string; created_at: string };
+type AlbumTableClient = {
+  from: (_table: "client_photo_albums") => {
+    select: (_columns: string) => {
+      eq: (
+        _column: "client_id",
+        value: string,
+      ) => {
+        order: (
+          _column: "created_at",
+          options: { ascending: boolean },
+        ) => Promise<{ data: PhotoAlbumRow[] | null; error: { message: string } | null }>;
+      };
+    };
+    insert: (values: { client_id: string; user_id: string; name: string }) => {
+      select: (_columns: string) => {
+        single: () => Promise<{ data: PhotoAlbumRow | null; error: { message: string } | null }>;
+      };
+    };
+  };
+};
 
 export interface UploadableIntervention {
   id: string;
@@ -28,17 +52,75 @@ export function DashboardPhotoUploader({
   clientId,
   interventions,
   onUploaded,
+  defaultAlbumId,
+  initialFiles,
 }: {
   clientId: string;
   interventions: UploadableIntervention[];
-  onUploaded: () => void;
+  onUploaded: (count: number) => void;
+  /** Album dans lequel importer directement (photos libres). */
+  defaultAlbumId?: string;
+  /** Fichiers déposés sur la zone photo : envoyés dès l'ouverture du formulaire. */
+  initialFiles?: File[];
 }) {
-  const [interventionId, setInterventionId] = useState<string>(interventions[0]?.id ?? FREE_VALUE);
+  const [interventionId, setInterventionId] = useState<string>(
+    defaultAlbumId ? FREE_VALUE : (interventions[0]?.id ?? FREE_VALUE),
+  );
   const isFree = interventionId === FREE_VALUE;
   const [busy, setBusy] = useState(false);
+  const [albums, setAlbums] = useState<PhotoAlbumRow[]>([]);
+  const [albumId, setAlbumId] = useState(defaultAlbumId ?? "");
+  const [albumName, setAlbumName] = useState("");
+  const [creatingAlbum, setCreatingAlbum] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
-  const upload = async (files: FileList | null) => {
+  useEffect(() => {
+    if (!isFree) return;
+    const loadAlbums = async () => {
+      const db = supabase as unknown as AlbumTableClient;
+      const { data } = await db
+        .from("client_photo_albums")
+        .select("id,name,created_at")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
+      setAlbums(data ?? []);
+    };
+    void loadAlbums();
+  }, [clientId, isFree]);
+
+  const createAlbum = async () => {
+    const name = albumName.trim();
+    if (!name || creatingAlbum) return;
+    setCreatingAlbum(true);
+    try {
+      const db = supabase as unknown as AlbumTableClient;
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Session expirée.");
+      const { data, error } = await db
+        .from("client_photo_albums")
+        .insert({ client_id: clientId, user_id: auth.user.id, name })
+        .select("id,name,created_at")
+        .single();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("Album non retourné.");
+      setAlbums((current) => [data, ...current]);
+      setAlbumId(data.id);
+      setAlbumName("");
+      toast.success("Album créé.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Création de l'album impossible.");
+    } finally {
+      setCreatingAlbum(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialFiles && initialFiles.length > 0) void upload(initialFiles);
+    // Exécuté une seule fois, au montage du formulaire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const upload = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0 || !interventionId) return;
     const list = Array.from(files);
     setBusy(true);
@@ -51,7 +133,7 @@ export function DashboardPhotoUploader({
         try {
           const path = await uploadInterventionPhoto(file);
           position += 1;
-          if (isFree) await addFreePhoto(clientId, path, position);
+          if (isFree) await addFreePhoto(clientId, path, position, albumId || null);
           else await addPhoto(interventionId, path, position);
           ok += 1;
         } catch (error) {
@@ -63,7 +145,7 @@ export function DashboardPhotoUploader({
       }
       if (ok > 0) {
         toast.success(`${ok} photo${ok > 1 ? "s" : ""} ajoutée${ok > 1 ? "s" : ""}.`);
-        onUploaded();
+        onUploaded(ok);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ajout impossible.");
@@ -115,6 +197,43 @@ export function DashboardPhotoUploader({
           </label>
         </Button>
       </div>
+      {isFree && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={albumId || "__none__"}
+            onValueChange={(value) => setAlbumId(value === "__none__" ? "" : value)}
+            disabled={busy}
+          >
+            <SelectTrigger className="min-w-48 flex-1">
+              <SelectValue placeholder="Album de destination" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Photos sans album</SelectItem>
+              {albums.map((album) => (
+                <SelectItem key={album.id} value={album.id}>
+                  {album.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            className="min-w-40 flex-1"
+            maxLength={100}
+            value={albumName}
+            onChange={(event) => setAlbumName(event.target.value)}
+            placeholder="Nom du nouvel album"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!albumName.trim() || creatingAlbum}
+            onClick={() => void createAlbum()}
+          >
+            {creatingAlbum ? <Loader2 className="mr-1 size-4 animate-spin" /> : null}Créer l'album
+          </Button>
+        </div>
+      )}
       <p className="text-xs text-muted-foreground">
         Sélectionnez autant de photos que vous voulez : elles sont ajoutées les unes après les
         autres. Les photos libres ne nécessitent aucune intervention.

@@ -32,8 +32,11 @@ import { template as premiumDocumentTemplate } from "./premium-document";
 import { template as sstCalendarChangeTemplate } from "./sst-calendar-change";
 import { template as sstMissionAssignedTemplate } from "./sst-mission-assigned";
 import { template as radarMonthlyTemplate } from "./radar-monthly";
+import { template as premiumNotificationTemplate } from "./premium-notification";
+import { template as clientAccessLinkTemplate } from "./client-access-link";
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
+  "client-access-link": clientAccessLinkTemplate,
   "new-report": newReportTemplate,
   "client-activity": clientActivityTemplate,
   "sst-planning": sstPlanningTemplate,
@@ -46,4 +49,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   "sst-calendar-change": sstCalendarChangeTemplate,
   "sst-mission-assigned": sstMissionAssignedTemplate,
   "radar-monthly": radarMonthlyTemplate,
+  "premium-notification": premiumNotificationTemplate,
 };

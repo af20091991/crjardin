@@ -20,6 +20,7 @@ export type PremiumStatus = {
 
 export type PremiumMessage = {
   id: string;
+  client_read_at?: string | null;
   client_id: string;
   intervention_id: string | null;
   kind: string;

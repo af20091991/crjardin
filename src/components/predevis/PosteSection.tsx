@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { PosteFinance } from "@/lib/predevis-finance";
+import { prixCiblePourTaux, TARGET_MARGIN_PCT, type PosteFinance } from "@/lib/predevis-finance";
 import { amount, copyText, eur } from "@/components/predevis/predevis-format";
 
 /** Une ligne du tableau d'un poste. Le rattachement et l'achat sont déjà mis en forme par l'écran appelant. */
@@ -18,6 +18,8 @@ export type ViewRow = {
   ttc: number | null;
   pau: ReactNode;
   rattachement: ReactNode;
+  /** Champs de saisie à la place des montants, en mode modification. */
+  editable?: { quantity: ReactNode; pu: ReactNode; ht: ReactNode; ttc: ReactNode };
 };
 
 export function PosteSection({
@@ -26,22 +28,32 @@ export function PosteSection({
   meta,
   rows,
   fin,
+  sst,
   clientText,
   children,
 }: {
   index: number;
-  title: string;
+  title: ReactNode;
   meta?: ReactNode;
   rows: ViewRow[];
   fin: PosteFinance;
+  /** Coût de sous-traitance : valeur, et champ de saisie à la place dans le récapitulatif. */
+  sst?: { value: number | null; editor?: ReactNode };
   clientText: string;
   children?: ReactNode;
 }) {
+  const sousSeuil = fin.tauxMargeAvecSst != null && fin.tauxMargeAvecSst < TARGET_MARGIN_PCT;
+  const cibleHt = sst ? prixCiblePourTaux(fin.prixAchatHt, sst.value) : null;
   return (
     <section className="space-y-6 rounded-xl border bg-card p-6">
       <header className="flex flex-wrap items-center gap-3">
         <h3 className="font-display text-lg">
           Poste {index} — {title}
+          {sst && sousSeuil && (
+            <Badge variant="outline" className="ml-3 text-amber-700">
+              Sous le seuil de {TARGET_MARGIN_PCT} %
+            </Badge>
+          )}
         </h3>
         {meta}
       </header>
@@ -52,11 +64,11 @@ export function PosteSection({
             <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
               <th className="py-2 pr-4 text-left font-medium">Réf.</th>
               <th className="py-2 pr-4 text-left font-medium">Désignation</th>
-              <th className="py-2 pr-4 text-right font-medium">Qté</th>
-              <th className="py-2 pr-4 text-right font-medium">PAU HT détecté</th>
-              <th className="py-2 pr-4 text-right font-medium">PU HT</th>
-              <th className="py-2 pr-4 text-right font-medium">HT</th>
-              <th className="py-2 pr-4 text-right font-medium">TTC</th>
+              <th className="py-2 pr-4 text-center font-medium">Qté</th>
+              <th className="py-2 pr-4 text-center font-medium">PAU HT détecté</th>
+              <th className="py-2 pr-4 text-center font-medium">PU HT</th>
+              <th className="py-2 pr-4 text-center font-medium">HT</th>
+              <th className="py-2 pr-4 text-center font-medium">TTC</th>
               <th className="py-2 text-right font-medium">Rattachement catalogue</th>
             </tr>
           </thead>
@@ -77,11 +89,13 @@ export function PosteSection({
                     </Badge>
                   )}
                 </td>
-                <td className="py-3 pr-4 text-right">{r.quantity ?? "—"}</td>
-                <td className="py-3 pr-4 text-right">{r.pau}</td>
-                <td className="py-3 pr-4 text-right">{eur(r.pu)}</td>
-                <td className="py-3 pr-4 text-right">{eur(r.ht)}</td>
-                <td className="py-3 pr-4 text-right">{eur(r.ttc)}</td>
+                <td className="py-3 pr-4 text-center">
+                  {r.editable?.quantity ?? r.quantity ?? "—"}
+                </td>
+                <td className="py-3 pr-4 text-center">{r.pau}</td>
+                <td className="py-3 pr-4 text-center">{r.editable?.pu ?? eur(r.pu)}</td>
+                <td className="py-3 pr-4 text-center">{r.editable?.ht ?? eur(r.ht)}</td>
+                <td className="py-3 pr-4 text-center">{r.editable?.ttc ?? eur(r.ttc)}</td>
                 <td className="py-3 text-right">
                   <div className="flex justify-end">{r.rattachement}</div>
                 </td>
@@ -93,10 +107,10 @@ export function PosteSection({
               <td className="py-3 pr-4" colSpan={3}>
                 Total poste {index}
               </td>
-              <td className="py-3 pr-4 text-right">{eur(fin.achatFournituresHt)}</td>
+              <td className="py-3 pr-4 text-center">{eur(fin.achatFournituresHt)}</td>
               <td className="py-3 pr-4" />
-              <td className="py-3 pr-4 text-right">{eur(fin.pvHt)}</td>
-              <td className="py-3 pr-4 text-right">{eur(fin.pvTtc)}</td>
+              <td className="py-3 pr-4 text-center">{eur(fin.pvHt)}</td>
+              <td className="py-3 pr-4 text-center">{eur(fin.pvTtc)}</td>
               <td className="py-3" />
             </tr>
           </tfoot>
@@ -120,15 +134,45 @@ export function PosteSection({
           />
           <RecapLine label="Prix de revient HT (fournitures + MO)" value={eur(fin.prixAchatHt)} />
           <RecapLine label="Marge nette HT" value={eur(fin.margeHt)} strong />
+          {sst && (
+            <>
+              <RecapLine label="Coût SST" value={sst.editor ?? eur(sst.value)} />
+              <RecapLine
+                label="Marge nette HT après SST"
+                value={eur(fin.margeAvecSstHt ?? null)}
+                strong
+              />
+            </>
+          )}
           <RecapLine
             label="Taux de marge"
-            value={
-              fin.tauxMarge == null
-                ? "données insuffisantes"
-                : `${fin.tauxMarge.toFixed(2).replace(".", ",")} %`
-            }
+            value={fin.tauxMarge == null ? "—" : `${fin.tauxMarge.toFixed(2).replace(".", ",")} %`}
             strong
           />
+          {sst && (
+            <RecapLine
+              label="Taux de marge après SST"
+              value={
+                fin.tauxMargeAvecSst == null
+                  ? "—"
+                  : `${fin.tauxMargeAvecSst.toFixed(2).replace(".", ",")} %`
+              }
+              strong
+            />
+          )}
+          {sst && sousSeuil && cibleHt != null && fin.pvHt != null && (
+            <RecapLine
+              label={`Prix de vente pour ${TARGET_MARGIN_PCT} % après SST`}
+              value={`${eur(cibleHt)} (+${eur(cibleHt - fin.pvHt)})`}
+              strong
+            />
+          )}
+          {fin.issues.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Calcul sur les lignes renseignées : {fin.issues.length} information
+              {fin.issues.length > 1 ? "s" : ""} à compléter ci-dessous.
+            </p>
+          )}
         </div>
 
         <div className="space-y-3 rounded-lg bg-muted/40 p-4">
@@ -144,7 +188,9 @@ export function PosteSection({
               Copier le texte
             </Button>
           </div>
-          <p className="whitespace-pre-line text-sm">{clientText || "—"}</p>
+          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+            {clientText || "—"}
+          </pre>
         </div>
       </div>
 
@@ -161,7 +207,7 @@ function RecapLine({
   strong,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   copy?: string | null;
   copyLabel?: string;
   strong?: boolean;

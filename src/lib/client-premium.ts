@@ -17,6 +17,10 @@ export interface ClientPremium {
   google_review_url: string | null;
   commercial_note: string | null;
   cover_photo_id: string | null;
+  cover_document_id: string | null;
+  /** Qui a choisi la couverture : le client (son choix est protégé) ou le jardinier. */
+  cover_set_by: "client" | "gardener" | null;
+  cover_set_at: string | null;
 }
 
 export type PremiumDocumentUploader = "gardener" | "client";
@@ -66,7 +70,7 @@ export async function getClientPremium(clientId: string): Promise<ClientPremium 
     .maybeSingle();
 
   return {
-    ...(data as ClientPremium),
+    ...(data as unknown as ClientPremium),
     garden_state: latestReport?.garden_state ?? (data.garden_state as string | null),
   };
 }
@@ -132,11 +136,20 @@ export async function updateClientPremium(
       | "google_review_url"
       | "commercial_note"
       | "cover_photo_id"
+      | "cover_document_id"
+      | "cover_set_by"
+      | "cover_set_at"
     >
   >,
 ): Promise<void> {
   const user_id = await uid();
-  const { error } = await supabase
+  // Colonnes cover_set_* absentes de types.ts (régénération à faire) : écriture typée à la main.
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      upsert: (values: unknown, options: unknown) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+  const { error } = await loose
     .from("client_premium")
     .upsert({ client_id: clientId, user_id, ...patch }, { onConflict: "client_id" });
   if (error) throw new Error(`Impossible d'enregistrer les modifications : ${error.message}`);
@@ -149,13 +162,43 @@ export async function listPremiumDocuments(clientId: string): Promise<PremiumDoc
     .eq("client_id", clientId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`Impossible de charger les documents : ${error.message}`);
-  return data as PremiumDocument[];
+  // Les fichiers de couverture ne sont listés nulle part ailleurs : ils n'apparaissent que comme couverture.
+  return (data as PremiumDocument[]).filter(
+    (d) => !(d as PremiumDocument & { cover_only?: boolean }).cover_only,
+  );
+}
+
+/** Supprime le fichier de couverture précédent (envoyé depuis PP) une fois remplacé. */
+export async function releaseCoverDocument(docId: string): Promise<void> {
+  // Colonne cover_only absente de types.ts (régénération à faire).
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: string,
+        ) => {
+          maybeSingle: () => Promise<{
+            data: { storage_path: string; cover_only: boolean } | null;
+          }>;
+        };
+      };
+    };
+  };
+  const { data } = await loose
+    .from("client_premium_documents")
+    .select("storage_path, cover_only")
+    .eq("id", docId)
+    .maybeSingle();
+  if (!data?.cover_only) return;
+  await deletePremiumDocument(docId, data.storage_path);
 }
 
 export async function uploadPremiumDocument(
   clientId: string,
   file: File,
   title: string,
+  options: { coverOnly?: boolean } = {},
 ): Promise<PremiumDocument> {
   const user_id = await uid();
   const ext = file.name.split(".").pop() || "pdf";
@@ -165,7 +208,17 @@ export async function uploadPremiumDocument(
     upsert: false,
   });
   if (uploadError) throw new Error(`Échec de l'envoi du document : ${uploadError.message}`);
-  const { data, error } = await supabase
+  // Colonne cover_only absente de types.ts (régénération à faire).
+  const loose = supabase as unknown as {
+    from: (table: string) => {
+      insert: (values: unknown) => {
+        select: () => {
+          single: () => Promise<{ data: unknown; error: { message: string } | null }>;
+        };
+      };
+    };
+  };
+  const { data, error } = await loose
     .from("client_premium_documents")
     .insert({
       client_id: clientId,
@@ -175,6 +228,7 @@ export async function uploadPremiumDocument(
       storage_path: path,
       size_bytes: file.size,
       uploaded_by: "gardener",
+      cover_only: options.coverOnly ?? false,
     })
     .select()
     .single();
@@ -185,12 +239,59 @@ export async function uploadPremiumDocument(
   return data as PremiumDocument;
 }
 
+const IMAGE_EXT_RE = /\.(jpe?g|png|webp|gif|heic|heif)$/i;
+
+/** Documents du client qui sont des photos (utilisables comme couverture). */
+export function imageDocuments(documents: PremiumDocument[]): PremiumDocument[] {
+  return documents.filter((d) => IMAGE_EXT_RE.test(d.filename));
+}
+
 export async function updatePremiumDocumentVisibility(id: string, visible: boolean): Promise<void> {
   const { error } = await supabase
     .from("client_premium_documents")
     .update({ visible_to_client: visible })
     .eq("id", id);
   if (error) throw new Error(`Impossible de mettre à jour le document : ${error.message}`);
+}
+
+export async function renamePremiumDocument(id: string, title: string): Promise<void> {
+  const clean = title.trim();
+  if (!clean) throw new Error("Le titre ne peut pas être vide");
+  const { error } = await supabase
+    .from("client_premium_documents")
+    .update({ title: clean })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible de renommer le document : ${error.message}`);
+}
+
+/** Remplace le fichier d'un document en gardant son identifiant (couverture et calendrier restent liés). */
+export async function replacePremiumDocumentFile(
+  id: string,
+  clientId: string,
+  file: File,
+): Promise<void> {
+  const { data: current, error: readError } = await supabase
+    .from("client_premium_documents")
+    .select("storage_path")
+    .eq("id", id)
+    .single();
+  if (readError || !current) throw new Error("Document introuvable");
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${clientId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (uploadError) throw new Error(`Échec de l'envoi du fichier : ${uploadError.message}`);
+  const { error } = await supabase
+    .from("client_premium_documents")
+    .update({ storage_path: path, filename: file.name, size_bytes: file.size })
+    .eq("id", id);
+  if (error) {
+    await supabase.storage.from(DOCS_BUCKET).remove([path]);
+    throw new Error(`Impossible de remplacer le document : ${error.message}`);
+  }
+  await supabase.storage.from(DOCS_BUCKET).remove([current.storage_path]);
 }
 
 export async function deletePremiumDocument(id: string, storagePath: string): Promise<void> {
@@ -225,6 +326,8 @@ export async function listClientPhotosForCover(
     .from("intervention_photos")
     .select("id, storage_path")
     .in("intervention_id", ids)
+    // Seules les photos que le client voit peuvent devenir sa couverture.
+    .eq("include_in_report", true)
     .order("created_at", { ascending: false })
     .limit(40);
   if (error) throw new Error(`Impossible de charger les photos : ${error.message}`);

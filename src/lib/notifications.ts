@@ -27,6 +27,15 @@ export async function markNotificationRead(id: string): Promise<void> {
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-  const { error } = await supabase.from("notifications").update({ is_read: true }).eq("is_read", false);
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("is_read", false);
+  if (error) throw error;
+}
+
+/** Supprime toutes les notifications déjà lues de l'utilisateur connecté (RLS : ses seules lignes). */
+export async function deleteReadNotifications(): Promise<void> {
+  const { error } = await supabase.from("notifications").delete().eq("is_read", true);
   if (error) throw error;
 }

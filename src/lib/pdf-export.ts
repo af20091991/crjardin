@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import logo from "@/assets/logo.png";
 import type { UploadedPhoto } from "@/lib/storage";
+import { PDF_BRAND } from "@/lib/pdf-brand";
 
 export interface ReportData {
   nomClient: string;
@@ -14,12 +15,11 @@ export interface ReportData {
   photos: UploadedPhoto[];
 }
 
-// Palette du carnet Premium, adaptée au rendu PDF (vert profond, crème et encre).
-const GREEN: [number, number, number] = [79, 142, 51];
-const DARK: [number, number, number] = [48, 55, 45];
-const MUTED: [number, number, number] = [112, 116, 106];
-const LINE: [number, number, number] = [221, 226, 215];
-const SURFACE: [number, number, number] = [247, 249, 243];
+const GREEN = PDF_BRAND.green;
+const DARK = PDF_BRAND.dark;
+const MUTED = PDF_BRAND.muted;
+const LINE = PDF_BRAND.line;
+const SURFACE = PDF_BRAND.surface;
 
 async function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

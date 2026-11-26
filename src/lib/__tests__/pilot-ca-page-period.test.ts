@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { monthlyCaRows, monthlyCaTotals } from "@/lib/pilot-ca-months";
 import { monthTotals, yearTotals, type CaEntry } from "@/lib/pilot-ca";
+import { readRouteSource } from "./route-source";
 
 const NOW = new Date("2026-08-21T10:00:00Z");
 const YEAR = 2026;
@@ -34,9 +35,9 @@ function sale(partial: Partial<CaEntry> = {}): CaEntry {
 
 describe("page CA — période globale unique", () => {
   test("source unique : aucun état local displayMode dans pilot.ca.tsx", () => {
-    const src = readFileSync("src/routes/_authenticated/pilot.ca.tsx", "utf8");
+    const src = readRouteSource("src/routes/_authenticated/pilot.ca.tsx");
     expect(src).not.toContain("displayMode");
-    expect(src).not.toContain('setDisplayMode');
+    expect(src).not.toContain("setDisplayMode");
     expect(src).not.toContain('value="annee"');
   });
 

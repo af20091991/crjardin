@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { monthForecastHt } from "@/lib/pilot-ca-forecast";
 import { monthTotals, type CaEntry } from "@/lib/pilot-ca";
+import { readRouteSource } from "./route-source";
 
 const NOW = new Date("2026-08-21T10:00:00Z");
 const YEAR = 2026;
@@ -53,7 +54,7 @@ describe("prévisionnel total HT des ventes du mois", () => {
   });
 
   test("la carte CA TTC n'existe plus sur la page CA", () => {
-    const src = readFileSync("src/routes/_authenticated/pilot.ca.tsx", "utf8");
+    const src = readRouteSource("src/routes/_authenticated/pilot.ca.tsx");
     expect(src).not.toContain('label="CA TTC"');
     expect(src).toContain("Prévisionnel total HT — ventes du mois");
   });

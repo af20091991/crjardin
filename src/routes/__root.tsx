@@ -26,6 +26,7 @@ import { registerPwa } from "@/lib/pwa";
 import { APP_VERSION } from "@/lib/app-meta";
 import { hydrateAccountPrefs, setPrefsUser } from "@/lib/account-prefs";
 import { useAuth } from "@/hooks/use-auth";
+import { RoutePending } from "@/components/RoutePending";
 
 function NotFoundComponent() {
   return (
@@ -114,13 +115,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0ae2d8fa-5fd4-4797-ab10-a001529d7362/id-preview-66a2adc9--3545adef-a337-4e33-aef9-684d626fa27c.lovable.app-1781453660626.png",
+        content: "https://pp.delagraineaujardin.com/icon-512.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0ae2d8fa-5fd4-4797-ab10-a001529d7362/id-preview-66a2adc9--3545adef-a337-4e33-aef9-684d626fa27c.lovable.app-1781453660626.png",
+        content: "https://pp.delagraineaujardin.com/icon-512.png",
       },
       { name: "theme-color", content: "#4F8E33" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -138,7 +137,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/manifest.webmanifest" },
       {
         rel: "preconnect",
-        href: "https://mgkeqwwzhcodntkakqaz.supabase.co",
+        href: "https://wdygsbmivqxvgkgpbrqc.supabase.co",
         crossOrigin: "anonymous",
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -158,42 +157,38 @@ html.js-client #pp-splash{display:none!important}
 #pp-splash img{width:min(86vmin,886px);height:auto}
 `;
 
-/** Écran de démarrage PilotPro : animation SVG de 4 s, seule chose affichée avant l'appli. */
+/** Écran de démarrage PilotPro : animation SVG (4,0 s), jouée en entier avant l'appli.
+ * Tout le calendrier est géré ici, dans un seul script, à partir du début réel de l'animation. */
 function SplashOverlay() {
+  const script = `(function(){
+var el=document.getElementById('pp-splash');
+function hideNative(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}
+hideNative();
+if(!el)return;
+setTimeout(function(){el.classList.add('pp-out');setTimeout(function(){el.remove();},300);},3000);
+})();`;
   return (
     <>
       <div id="pp-splash" aria-hidden="true">
         <img src="/pilotpro-splash.svg" alt="" />
       </div>
-      {/* Filet de sécurité : si l'appli ne démarre pas, l'écran disparaît tout de même. */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html:
-            "(function(){var i=document.querySelector('#pp-splash img');function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}function s(){window.__ppSplashStart=performance.now();h();}if(i){if(i.complete&&i.naturalWidth)s();else i.addEventListener('load',s);}setTimeout(function(){var e=document.getElementById('pp-splash');if(e)e.remove();},14000);})();",
-        }}
-      />
+      <script dangerouslySetInnerHTML={{ __html: script }} />
     </>
   );
-}
-
-/** Masque l'écran une fois l'animation complète (4 s à partir de son affichage), appli prête. */
-function hideSplash() {
-  const el = document.getElementById("pp-splash");
-  if (!el) return;
-  const start =
-    (window as unknown as { __ppSplashStart?: number }).__ppSplashStart ?? performance.now();
-  // Animation (4,1 s) + 0,4 s de maintien sur le logo complet.
-  const wait = Math.max(0, start + 4500 - performance.now());
-  window.setTimeout(() => {
-    el.classList.add("pp-out");
-    window.setTimeout(() => el.remove(), 300);
-  }, wait);
 }
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
       <head>
+        {/* Retire un ancien service worker et son cache AVANT le chargement des modules :
+            sinon une version obsolète peut bloquer l'app sans jamais atteindre registerPwa. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(!('serviceWorker' in navigator))return;navigator.serviceWorker.getRegistrations().then(function(rs){var had=rs.length>0;return Promise.all(rs.map(function(r){return r.unregister();})).then(function(){return ('caches' in window)?caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}):null;}).then(function(){if(had&&!sessionStorage.getItem('pp-sw-purged')){sessionStorage.setItem('pp-sw-purged','1');location.reload();}});});}catch(e){}})();",
+          }}
+        />
         <HeadContent />
         {/* Espace client (appli Jardin Signature) : pas d'écran de démarrage PilotPro. */}
         <script
@@ -218,6 +213,11 @@ function AccountPrefsGate({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [readyFor, setReadyFor] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!userId) {
@@ -239,7 +239,9 @@ function AccountPrefsGate({ children }: { children: ReactNode }) {
     };
   }, [userId]);
 
-  if (userId && readyFor !== userId) return null;
+  // Pendant le chargement des préférences, afficher un indicateur plutôt qu'un écran blanc.
+  // Premier rendu identique au serveur (évite l'erreur d'hydratation) ; indicateur ensuite.
+  if (mounted && userId && readyFor !== userId) return <RoutePending />;
   return <>{children}</>;
 }
 
@@ -248,7 +250,6 @@ function RootComponent() {
 
   useEffect(() => {
     registerPwa();
-    hideSplash();
   }, []);
 
   return (

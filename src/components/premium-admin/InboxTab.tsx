@@ -70,8 +70,19 @@ function MessageBubble({ message }: { message: PremiumMessage }) {
         />
       )}
       <p className="mt-1 text-[11px] text-muted-foreground">
-        {mine ? GARDENER_AUTHOR_NAME : message.kind === "question" ? "Question" : "Client"} ·{" "}
-        {fmtDateTime(message.created_at)}
+        {mine
+          ? GARDENER_AUTHOR_NAME
+          : message.kind === "question"
+            ? "Question"
+            : message.kind === "demande"
+              ? "Demande d'intervention"
+              : "Client"}{" "}
+        · {fmtDateTime(message.created_at)}
+        {mine && (
+          <span className="ml-1 font-medium text-primary">
+            {message.client_read_at ? `· Vu ${fmtDateTime(message.client_read_at)}` : "· Non lu"}
+          </span>
+        )}
       </p>
     </div>
   );
@@ -124,9 +135,12 @@ export function InboxTab({
   rows,
   messages,
   composeFor,
+  focusClientId,
 }: {
   rows: PremiumRow[];
   messages: PremiumMessage[];
+  /** Conversation à montrer (ouverture depuis une notification) : défilement jusqu'à elle. */
+  focusClientId?: string | null;
   /** Demande d'ouverture de la rédaction pour un client (bouton « Écrire » des cartes). */
   composeFor?: { clientId: string; nonce: number } | null;
 }) {
@@ -140,6 +154,17 @@ export function InboxTab({
   const [composeFile, setComposeFile] = useState<File | null>(null);
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [confirm, setConfirm] = useState<Outgoing | null>(null);
+
+  useEffect(() => {
+    if (!focusClientId) return;
+    setView("open");
+    const timer = window.setTimeout(() => {
+      document
+        .querySelector(`[data-client-thread="${focusClientId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [focusClientId]);
 
   useEffect(() => {
     if (!composeFor) return;
@@ -399,7 +424,11 @@ export function InboxTab({
               const clientId = row.client.id;
               const draft = drafts[clientId] ?? "";
               return (
-                <Card key={clientId} className="flex flex-col gap-4 p-5">
+                <Card
+                  key={clientId}
+                  data-client-thread={clientId}
+                  className="flex flex-col gap-4 p-5"
+                >
                   <div className="flex items-center justify-between gap-3">
                     <p className="truncate font-medium">
                       {displayClientName(row.client, row.contact)}

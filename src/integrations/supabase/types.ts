@@ -845,6 +845,9 @@ export type Database = {
           client_id: string;
           commercial_note: string | null;
           cover_photo_id: string | null;
+          cover_document_id: string | null;
+          cover_set_at: string | null;
+          cover_set_by: string | null;
           created_at: string;
           deactivated_at: string | null;
           enabled: boolean;
@@ -860,6 +863,9 @@ export type Database = {
           client_id: string;
           commercial_note?: string | null;
           cover_photo_id?: string | null;
+          cover_document_id?: string | null;
+          cover_set_at?: string | null;
+          cover_set_by?: string | null;
           created_at?: string;
           deactivated_at?: string | null;
           enabled?: boolean;
@@ -875,6 +881,9 @@ export type Database = {
           client_id?: string;
           commercial_note?: string | null;
           cover_photo_id?: string | null;
+          cover_document_id?: string | null;
+          cover_set_at?: string | null;
+          cover_set_by?: string | null;
           created_at?: string;
           deactivated_at?: string | null;
           enabled?: boolean;
@@ -919,6 +928,7 @@ export type Database = {
       client_premium_documents: {
         Row: {
           client_id: string;
+          cover_only: boolean;
           created_at: string;
           filename: string;
           id: string;
@@ -932,6 +942,7 @@ export type Database = {
         };
         Insert: {
           client_id: string;
+          cover_only?: boolean;
           created_at?: string;
           filename: string;
           id?: string;
@@ -945,6 +956,7 @@ export type Database = {
         };
         Update: {
           client_id?: string;
+          cover_only?: boolean;
           created_at?: string;
           filename?: string;
           id?: string;
@@ -1170,6 +1182,41 @@ export type Database = {
             columns: ["site_id"];
             isOneToOne: false;
             referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      client_photo_albums: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          id: string;
+          name: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          id?: string;
+          name: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "client_photo_albums_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
             referencedColumns: ["id"];
           },
         ];
@@ -1935,6 +1982,7 @@ export type Database = {
       };
       intervention_photos: {
         Row: {
+          album_id: string | null;
           caption: string | null;
           created_at: string;
           id: string;
@@ -1948,6 +1996,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          album_id?: string | null;
           caption?: string | null;
           created_at?: string;
           id?: string;
@@ -1961,6 +2010,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          album_id?: string | null;
           caption?: string | null;
           created_at?: string;
           id?: string;
@@ -1973,6 +2023,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "intervention_photos_album_id_fkey";
+            columns: ["album_id"];
+            isOneToOne: false;
+            referencedRelation: "client_photo_albums";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "intervention_photos_intervention_id_fkey";
             columns: ["intervention_id"];
@@ -2386,6 +2443,8 @@ export type Database = {
           matched_at: string | null;
           month: number;
           net_amount_ht: number | null;
+          subcontractor_mission_id: string | null;
+          sst_mode: string | null;
           note: string | null;
           position: number;
           raw_category: string | null;
@@ -2425,6 +2484,8 @@ export type Database = {
           matched_at?: string | null;
           month: number;
           net_amount_ht?: number | null;
+          subcontractor_mission_id?: string | null;
+          sst_mode?: string | null;
           note?: string | null;
           position?: number;
           raw_category?: string | null;
@@ -2464,6 +2525,8 @@ export type Database = {
           matched_at?: string | null;
           month?: number;
           net_amount_ht?: number | null;
+          subcontractor_mission_id?: string | null;
+          sst_mode?: string | null;
           note?: string | null;
           position?: number;
           raw_category?: string | null;
@@ -4725,6 +4788,7 @@ export type Database = {
           recommendations: string | null;
           report_notes: string | null;
           service_id: string | null;
+          sst_mode: string | null;
           service_requested: string;
           site_id: string | null;
           status: string;
@@ -4760,6 +4824,7 @@ export type Database = {
           recommendations?: string | null;
           report_notes?: string | null;
           service_id?: string | null;
+          sst_mode?: string | null;
           service_requested: string;
           site_id?: string | null;
           status?: string;
@@ -4795,6 +4860,7 @@ export type Database = {
           recommendations?: string | null;
           report_notes?: string | null;
           service_id?: string | null;
+          sst_mode?: string | null;
           service_requested?: string;
           site_id?: string | null;
           status?: string;

@@ -18,6 +18,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as PartageTokenRouteImport } from './routes/partage.$token'
+import { Route as AlbumTokenRouteImport } from './routes/album.$token'
 import { Route as AuthenticatedVersionsRouteImport } from './routes/_authenticated/versions'
 import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedSstRouteImport } from './routes/_authenticated/sst'
@@ -35,12 +36,12 @@ import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
-import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ApiPublicRadarQuotidienRouteImport } from './routes/api/public/radar-quotidien'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push-dispatch'
 import { Route as ApiPublicPpFullBackupRouteImport } from './routes/api/public/pp-full-backup'
 import { Route as ApiPublicPpCaBackupRouteImport } from './routes/api/public/pp-ca-backup'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as ApiPublicEmailUnsubscribeRouteImport } from './routes/api/public/email-unsubscribe'
 import { Route as ApiPublicDevTimeRouteImport } from './routes/api/public/dev-time'
 import { Route as ApiPublicBrevoWebhookRouteImport } from './routes/api/public/brevo-webhook'
 import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
@@ -57,6 +58,7 @@ import { Route as AuthenticatedPilotRapprochementRouteImport } from './routes/_a
 import { Route as AuthenticatedPilotRapportsRouteImport } from './routes/_authenticated/pilot.rapports'
 import { Route as AuthenticatedPilotQualiteRouteImport } from './routes/_authenticated/pilot.qualite'
 import { Route as AuthenticatedPilotPrestationsRouteImport } from './routes/_authenticated/pilot.prestations'
+import { Route as AuthenticatedPilotPredevisRouteImport } from './routes/_authenticated/pilot.predevis'
 import { Route as AuthenticatedPilotPilotageRouteImport } from './routes/_authenticated/pilot.pilotage'
 import { Route as AuthenticatedPilotParametresRouteImport } from './routes/_authenticated/pilot.parametres'
 import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
@@ -90,6 +92,7 @@ import { Route as AuthenticatedPilotFicheClientIdRouteImport } from './routes/_a
 import { Route as AuthenticatedPilotClientsClientKeyRouteImport } from './routes/_authenticated/pilot.clients.$clientKey'
 import { Route as AuthenticatedPilotCeevContratsAgreementIdRouteImport } from './routes/_authenticated/pilot.ceev-contrats.$agreementId'
 import { Route as AuthenticatedClientsPremiumDashboardClientIdRouteImport } from './routes/_authenticated/clients/premium-dashboard.$clientId'
+import { Route as AuthenticatedClientsDashboardClientIdRouteImport } from './routes/_authenticated/clients/dashboard.$clientId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -133,6 +136,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const PartageTokenRoute = PartageTokenRouteImport.update({
   id: '/partage/$token',
   path: '/partage/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlbumTokenRoute = AlbumTokenRouteImport.update({
+  id: '/album/$token',
+  path: '/album/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedVersionsRoute = AuthenticatedVersionsRouteImport.update({
@@ -226,11 +234,6 @@ const AuthenticatedClientsIndexRoute =
     path: '/clients/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
-  id: '/lovable/email/events',
-  path: '/lovable/email/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicRadarQuotidienRoute = ApiPublicRadarQuotidienRouteImport.update({
   id: '/api/public/radar-quotidien',
   path: '/api/public/radar-quotidien',
@@ -254,6 +257,11 @@ const ApiPublicPpCaBackupRoute = ApiPublicPpCaBackupRouteImport.update({
 const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   id: '/api/public/email-open',
   path: '/api/public/email-open',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEmailUnsubscribeRoute = ApiPublicEmailUnsubscribeRouteImport.update({
+  id: '/api/public/email-unsubscribe',
+  path: '/api/public/email-unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicDevTimeRoute = ApiPublicDevTimeRouteImport.update({
@@ -342,6 +350,12 @@ const AuthenticatedPilotPrestationsRoute =
   AuthenticatedPilotPrestationsRouteImport.update({
     id: '/prestations',
     path: '/prestations',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotPredevisRoute =
+  AuthenticatedPilotPredevisRouteImport.update({
+    id: '/predevis',
+    path: '/predevis',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
 const AuthenticatedPilotPilotageRoute =
@@ -539,6 +553,12 @@ const AuthenticatedClientsPremiumDashboardClientIdRoute =
     path: '/clients/premium-dashboard/$clientId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClientsDashboardClientIdRoute =
+  AuthenticatedClientsDashboardClientIdRouteImport.update({
+    id: '/clients/dashboard/$clientId',
+    path: '/clients/dashboard/$clientId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -560,6 +580,7 @@ export interface FileRoutesByFullPath {
   '/sst': typeof AuthenticatedSstRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/versions': typeof AuthenticatedVersionsRoute
+  '/album/$token': typeof AlbumTokenRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
   '/clients/premium': typeof AuthenticatedClientsPremiumRoute
@@ -586,6 +607,7 @@ export interface FileRoutesByFullPath {
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/pilot/pilotage': typeof AuthenticatedPilotPilotageRoute
+  '/pilot/predevis': typeof AuthenticatedPilotPredevisRoute
   '/pilot/prestations': typeof AuthenticatedPilotPrestationsRoute
   '/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
@@ -603,16 +625,17 @@ export interface FileRoutesByFullPath {
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/email-unsubscribe': typeof ApiPublicEmailUnsubscribeRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/radar-quotidien': typeof ApiPublicRadarQuotidienRoute
-  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot/': typeof AuthenticatedPilotIndexRoute
+  '/clients/dashboard/$clientId': typeof AuthenticatedClientsDashboardClientIdRoute
   '/clients/premium-dashboard/$clientId': typeof AuthenticatedClientsPremiumDashboardClientIdRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -640,6 +663,7 @@ export interface FileRoutesByTo {
   '/sst': typeof AuthenticatedSstRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/versions': typeof AuthenticatedVersionsRoute
+  '/album/$token': typeof AlbumTokenRoute
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -666,6 +690,7 @@ export interface FileRoutesByTo {
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/pilot/pilotage': typeof AuthenticatedPilotPilotageRoute
+  '/pilot/predevis': typeof AuthenticatedPilotPredevisRoute
   '/pilot/prestations': typeof AuthenticatedPilotPrestationsRoute
   '/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
@@ -683,16 +708,17 @@ export interface FileRoutesByTo {
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/email-unsubscribe': typeof ApiPublicEmailUnsubscribeRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/radar-quotidien': typeof ApiPublicRadarQuotidienRoute
-  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
+  '/clients/dashboard/$clientId': typeof AuthenticatedClientsDashboardClientIdRoute
   '/clients/premium-dashboard/$clientId': typeof AuthenticatedClientsPremiumDashboardClientIdRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -723,6 +749,7 @@ export interface FileRoutesById {
   '/_authenticated/sst': typeof AuthenticatedSstRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
   '/_authenticated/versions': typeof AuthenticatedVersionsRoute
+  '/album/$token': typeof AlbumTokenRoute
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -750,6 +777,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/_authenticated/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/_authenticated/pilot/pilotage': typeof AuthenticatedPilotPilotageRoute
+  '/_authenticated/pilot/predevis': typeof AuthenticatedPilotPredevisRoute
   '/_authenticated/pilot/prestations': typeof AuthenticatedPilotPrestationsRoute
   '/_authenticated/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/_authenticated/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
@@ -767,16 +795,17 @@ export interface FileRoutesById {
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/dev-time': typeof ApiPublicDevTimeRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/email-unsubscribe': typeof ApiPublicEmailUnsubscribeRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/api/public/pp-full-backup': typeof ApiPublicPpFullBackupRoute
   '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/radar-quotidien': typeof ApiPublicRadarQuotidienRoute
-  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/_authenticated/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
+  '/_authenticated/clients/dashboard/$clientId': typeof AuthenticatedClientsDashboardClientIdRoute
   '/_authenticated/clients/premium-dashboard/$clientId': typeof AuthenticatedClientsPremiumDashboardClientIdRoute
   '/_authenticated/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -808,6 +837,7 @@ export interface FileRouteTypes {
     | '/sst'
     | '/statistiques'
     | '/versions'
+    | '/album/$token'
     | '/partage/$token'
     | '/clients/$clientId'
     | '/clients/premium'
@@ -834,6 +864,7 @@ export interface FileRouteTypes {
     | '/pilot/objectifs'
     | '/pilot/parametres'
     | '/pilot/pilotage'
+    | '/pilot/predevis'
     | '/pilot/prestations'
     | '/pilot/qualite'
     | '/pilot/rapports'
@@ -851,16 +882,17 @@ export interface FileRouteTypes {
     | '/api/public/brevo-webhook'
     | '/api/public/dev-time'
     | '/api/public/email-open'
+    | '/api/public/email-unsubscribe'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
     | '/api/public/radar-quotidien'
-    | '/lovable/email/events'
     | '/clients/'
     | '/fiches/'
     | '/interventions/'
     | '/parc-materiel/'
     | '/pilot/'
+    | '/clients/dashboard/$clientId'
     | '/clients/premium-dashboard/$clientId'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
@@ -888,6 +920,7 @@ export interface FileRouteTypes {
     | '/sst'
     | '/statistiques'
     | '/versions'
+    | '/album/$token'
     | '/partage/$token'
     | '/'
     | '/clients/$clientId'
@@ -914,6 +947,7 @@ export interface FileRouteTypes {
     | '/pilot/objectifs'
     | '/pilot/parametres'
     | '/pilot/pilotage'
+    | '/pilot/predevis'
     | '/pilot/prestations'
     | '/pilot/qualite'
     | '/pilot/rapports'
@@ -931,16 +965,17 @@ export interface FileRouteTypes {
     | '/api/public/brevo-webhook'
     | '/api/public/dev-time'
     | '/api/public/email-open'
+    | '/api/public/email-unsubscribe'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
     | '/api/public/radar-quotidien'
-    | '/lovable/email/events'
     | '/clients'
     | '/fiches'
     | '/interventions'
     | '/parc-materiel'
     | '/pilot'
+    | '/clients/dashboard/$clientId'
     | '/clients/premium-dashboard/$clientId'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
@@ -970,6 +1005,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sst'
     | '/_authenticated/statistiques'
     | '/_authenticated/versions'
+    | '/album/$token'
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
@@ -997,6 +1033,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/objectifs'
     | '/_authenticated/pilot/parametres'
     | '/_authenticated/pilot/pilotage'
+    | '/_authenticated/pilot/predevis'
     | '/_authenticated/pilot/prestations'
     | '/_authenticated/pilot/qualite'
     | '/_authenticated/pilot/rapports'
@@ -1014,16 +1051,17 @@ export interface FileRouteTypes {
     | '/api/public/brevo-webhook'
     | '/api/public/dev-time'
     | '/api/public/email-open'
+    | '/api/public/email-unsubscribe'
     | '/api/public/pp-ca-backup'
     | '/api/public/pp-full-backup'
     | '/api/public/push-dispatch'
     | '/api/public/radar-quotidien'
-    | '/lovable/email/events'
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
     | '/_authenticated/interventions/'
     | '/_authenticated/parc-materiel/'
     | '/_authenticated/pilot/'
+    | '/_authenticated/clients/dashboard/$clientId'
     | '/_authenticated/clients/premium-dashboard/$clientId'
     | '/_authenticated/pilot/ceev-contrats/$agreementId'
     | '/_authenticated/pilot/clients/$clientKey'
@@ -1042,16 +1080,17 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AlbumTokenRoute: typeof AlbumTokenRoute
   PartageTokenRoute: typeof PartageTokenRoute
   ApiPublicApRemindersRoute: typeof ApiPublicApRemindersRoute
   ApiPublicBrevoWebhookRoute: typeof ApiPublicBrevoWebhookRoute
   ApiPublicDevTimeRoute: typeof ApiPublicDevTimeRoute
   ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
+  ApiPublicEmailUnsubscribeRoute: typeof ApiPublicEmailUnsubscribeRoute
   ApiPublicPpCaBackupRoute: typeof ApiPublicPpCaBackupRoute
   ApiPublicPpFullBackupRoute: typeof ApiPublicPpFullBackupRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
   ApiPublicRadarQuotidienRoute: typeof ApiPublicRadarQuotidienRoute
-  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
@@ -1118,6 +1157,13 @@ declare module '@tanstack/react-router' {
       path: '/partage/$token'
       fullPath: '/partage/$token'
       preLoaderRoute: typeof PartageTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/album/$token': {
+      id: '/album/$token'
+      path: '/album/$token'
+      fullPath: '/album/$token'
+      preLoaderRoute: typeof AlbumTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/versions': {
@@ -1239,13 +1285,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/lovable/email/events': {
-      id: '/lovable/email/events'
-      path: '/lovable/email/events'
-      fullPath: '/lovable/email/events'
-      preLoaderRoute: typeof LovableEmailEventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/radar-quotidien': {
       id: '/api/public/radar-quotidien'
       path: '/api/public/radar-quotidien'
@@ -1279,6 +1318,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/email-open'
       fullPath: '/api/public/email-open'
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/email-unsubscribe': {
+      id: '/api/public/email-unsubscribe'
+      path: '/api/public/email-unsubscribe'
+      fullPath: '/api/public/email-unsubscribe'
+      preLoaderRoute: typeof ApiPublicEmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/dev-time': {
@@ -1391,6 +1437,13 @@ declare module '@tanstack/react-router' {
       path: '/prestations'
       fullPath: '/pilot/prestations'
       preLoaderRoute: typeof AuthenticatedPilotPrestationsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/predevis': {
+      id: '/_authenticated/pilot/predevis'
+      path: '/predevis'
+      fullPath: '/pilot/predevis'
+      preLoaderRoute: typeof AuthenticatedPilotPredevisRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/pilot/pilotage': {
@@ -1624,6 +1677,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsPremiumDashboardClientIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clients/dashboard/$clientId': {
+      id: '/_authenticated/clients/dashboard/$clientId'
+      path: '/clients/dashboard/$clientId'
+      fullPath: '/clients/dashboard/$clientId'
+      preLoaderRoute: typeof AuthenticatedClientsDashboardClientIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -1663,6 +1723,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotObjectifsRoute: typeof AuthenticatedPilotObjectifsRoute
   AuthenticatedPilotParametresRoute: typeof AuthenticatedPilotParametresRoute
   AuthenticatedPilotPilotageRoute: typeof AuthenticatedPilotPilotageRoute
+  AuthenticatedPilotPredevisRoute: typeof AuthenticatedPilotPredevisRoute
   AuthenticatedPilotPrestationsRoute: typeof AuthenticatedPilotPrestationsRoute
   AuthenticatedPilotQualiteRoute: typeof AuthenticatedPilotQualiteRoute
   AuthenticatedPilotRapportsRoute: typeof AuthenticatedPilotRapportsRoute
@@ -1702,6 +1763,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotObjectifsRoute: AuthenticatedPilotObjectifsRoute,
   AuthenticatedPilotParametresRoute: AuthenticatedPilotParametresRoute,
   AuthenticatedPilotPilotageRoute: AuthenticatedPilotPilotageRoute,
+  AuthenticatedPilotPredevisRoute: AuthenticatedPilotPredevisRoute,
   AuthenticatedPilotPrestationsRoute: AuthenticatedPilotPrestationsRoute,
   AuthenticatedPilotQualiteRoute: AuthenticatedPilotQualiteRoute,
   AuthenticatedPilotRapportsRoute: AuthenticatedPilotRapportsRoute,
@@ -1752,6 +1814,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFichesIndexRoute: typeof AuthenticatedFichesIndexRoute
   AuthenticatedInterventionsIndexRoute: typeof AuthenticatedInterventionsIndexRoute
   AuthenticatedParcMaterielIndexRoute: typeof AuthenticatedParcMaterielIndexRoute
+  AuthenticatedClientsDashboardClientIdRoute: typeof AuthenticatedClientsDashboardClientIdRoute
   AuthenticatedClientsPremiumDashboardClientIdRoute: typeof AuthenticatedClientsPremiumDashboardClientIdRoute
 }
 
@@ -1782,6 +1845,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFichesIndexRoute: AuthenticatedFichesIndexRoute,
   AuthenticatedInterventionsIndexRoute: AuthenticatedInterventionsIndexRoute,
   AuthenticatedParcMaterielIndexRoute: AuthenticatedParcMaterielIndexRoute,
+  AuthenticatedClientsDashboardClientIdRoute:
+    AuthenticatedClientsDashboardClientIdRoute,
   AuthenticatedClientsPremiumDashboardClientIdRoute:
     AuthenticatedClientsPremiumDashboardClientIdRoute,
 }
@@ -1797,16 +1862,17 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AlbumTokenRoute: AlbumTokenRoute,
   PartageTokenRoute: PartageTokenRoute,
   ApiPublicApRemindersRoute: ApiPublicApRemindersRoute,
   ApiPublicBrevoWebhookRoute: ApiPublicBrevoWebhookRoute,
   ApiPublicDevTimeRoute: ApiPublicDevTimeRoute,
   ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
+  ApiPublicEmailUnsubscribeRoute: ApiPublicEmailUnsubscribeRoute,
   ApiPublicPpCaBackupRoute: ApiPublicPpCaBackupRoute,
   ApiPublicPpFullBackupRoute: ApiPublicPpFullBackupRoute,
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
   ApiPublicRadarQuotidienRoute: ApiPublicRadarQuotidienRoute,
-  LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport

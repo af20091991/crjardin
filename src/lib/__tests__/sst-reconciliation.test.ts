@@ -1,111 +1,86 @@
-import { describe, expect, test } from "bun:test";
-import { buildSstReconciliation, missionRef } from "@/lib/sst-reconciliation";
-import { isSubcontractingLabel } from "@/lib/sst-charges";
-import type { SstChargeLine } from "@/lib/sst-charges";
+import { describe, expect, it } from "bun:test";
+import { sstReconciliation } from "@/lib/sst-accounting-gap";
+import type { SubcontractorMission } from "@/lib/subcontractors";
 
-const charge = (o: Partial<SstChargeLine> & { id: string; month: number; amount: number }): SstChargeLine => ({
+const mission = (
+  id: string,
+  date: string,
+  cost: number,
+  extra: Partial<SubcontractorMission> = {},
+) =>
+  ({
+    id,
+    user_id: "u",
+    subcontractor_id: "s1",
+    client_id: "c1",
+    mission_date: date,
+    invoiced_amount: cost,
+    agreed_price: cost,
+    archived_at: null,
+    prestation: null,
+    service_requested: "x",
+    ...extra,
+  }) as unknown as SubcontractorMission;
+
+const charge = (
+  id: string,
+  month: number,
+  amount: number,
+  extra: Record<string, unknown> = {},
+) => ({
+  id,
   year: 2026,
-  designation: "Sous-traitance",
-  provider: "",
-  clientName: null,
-  duplicateOfMission: false,
-  ...o,
+  month,
+  amount_ht: amount,
+  designation: "SST Dupont",
+  kind: "charge",
+  is_investment: false,
+  charge_category: "SST",
+  subcontractor_mission_id: null,
+  match_status: "en_attente",
+  ...extra,
 });
 
-const m = (o: { id: string; date: string; amount: number; sst: string; client?: string }) =>
-  missionRef({
-    id: o.id,
-    mission_date: o.date,
-    invoiced_amount: o.amount,
-    agreed_price: null,
-    service_requested: "Taille",
-    sstName: o.sst,
-    clientName: o.client ?? null,
-  });
-
-describe("rapprochement SST", () => {
-  const period = "exercice_complet" as const;
-
-  test("rapproche mois + montant identiques", () => {
-    const r = buildSstReconciliation({
-      missions: [m({ id: "m1", date: "2026-03-10", amount: 300, sst: "Chloé" })],
-      chargeLines: [charge({ id: "c1", month: 3, amount: 300, designation: "Sous-traitance Chloé" })],
-      year: 2026,
-      period,
+describe("sstReconciliation", () => {
+  it("lie une charge à la mission de même mois et montant", () => {
+    const r = sstReconciliation({
+      charges: [charge("a", 3, 100)],
+      missions: [mission("m1", "2026-03-10", 100)],
     });
-    expect(r.rows).toHaveLength(1);
-    expect(r.rows[0]!.kind).toBe("correspondance_exacte");
-    expect(r.status).toBe("certifie");
-    expect(r.gap).toBe(0);
+    expect(r.unlinkedCharges).toHaveLength(0);
+    expect(r.missingMissions).toHaveLength(0);
   });
 
-  test("classe une charge sans mission et une mission sans charge", () => {
-    const r = buildSstReconciliation({
-      missions: [m({ id: "m1", date: "2026-03-10", amount: 300, sst: "Chloé" })],
-      chargeLines: [charge({ id: "c1", month: 5, amount: 120, designation: "Sous-traitance Lozza" })],
-      year: 2026,
-      period,
+  it("propose les charges non rattachées et les missions sans charge", () => {
+    const r = sstReconciliation({
+      charges: [charge("a", 4, 55)],
+      missions: [mission("m1", "2026-03-10", 100)],
     });
-    const kinds = r.rows.map((x) => x.kind).sort();
-    expect(kinds).toEqual(["charge_sans_mission", "mission_sans_charge"]);
-    expect(r.unmatchedMissionTotal).toBe(300);
-    expect(r.unmatchedChargeTotal).toBe(120);
-    expect(r.gap).toBe(180);
-    expect(r.status).toBe("incomplet");
+    expect(r.unlinkedCharges.map((c) => c.id)).toEqual(["a"]);
+    expect(r.missingMissions.map((m) => m.id)).toEqual(["m1"]);
   });
 
-  test("détecte un décalage de période sur montant identique", () => {
-    const r = buildSstReconciliation({
-      missions: [m({ id: "m1", date: "2026-06-10", amount: 250, sst: "Fanny" })],
-      chargeLines: [charge({ id: "c1", month: 2, amount: 250, designation: "Sous-traitance Fanny" })],
-      year: 2026,
-      period,
-    });
-    expect(r.rows[0]!.kind).toBe("difference_periode");
-  });
-
-  test("signale un doublon strict côté charges", () => {
-    const r = buildSstReconciliation({
-      missions: [],
-      chargeLines: [
-        charge({ id: "c1", month: 4, amount: 100, designation: "Sous-traitance X" }),
-        charge({ id: "c2", month: 4, amount: 100, designation: "Sous-traitance X" }),
+  it("retire une charge marquée « sans fiche » et une mission rattachée manuellement", () => {
+    const r = sstReconciliation({
+      charges: [
+        charge("a", 4, 55, { match_status: "sans_fiche" }),
+        charge("b", 5, 80, { subcontractor_mission_id: "m2" }),
       ],
-      year: 2026,
-      period,
+      missions: [mission("m1", "2026-03-10", 100), mission("m2", "2026-05-02", 70)],
     });
-    expect(r.rows.filter((x) => x.kind === "doublon")).toHaveLength(1);
-    expect(r.status).toBe("suspect");
+    expect(r.unlinkedCharges).toHaveLength(0);
+    expect(r.missingMissions.map((m) => m.id)).toEqual(["m1"]);
   });
 
-  test("chaque ligne est comptée une seule fois", () => {
-    const r = buildSstReconciliation({
+  it("ignore les autres exercices, les missions archivées et les investissements", () => {
+    const r = sstReconciliation({
+      charges: [charge("a", 4, 55, { is_investment: true })],
       missions: [
-        m({ id: "m1", date: "2026-03-10", amount: 300, sst: "Chloé" }),
-        m({ id: "m2", date: "2026-03-12", amount: 300, sst: "Chloé" }),
+        mission("m1", "2025-03-10", 100),
+        mission("m2", "2026-03-10", 100, { archived_at: "2026-04-01" }),
       ],
-      chargeLines: [charge({ id: "c1", month: 3, amount: 300, designation: "Sous-traitance Chloé" })],
-      year: 2026,
-      period,
     });
-    expect(r.matchedMissionTotal + r.unmatchedMissionTotal).toBe(r.missionTotal);
-    expect(r.matchedChargeTotal + r.unmatchedChargeTotal).toBe(r.chargeTotal);
-  });
-
-  test("filtre les deux côtés sur le même exercice", () => {
-    const r = buildSstReconciliation({
-      missions: [m({ id: "m1", date: "2025-03-10", amount: 300, sst: "Chloé" })],
-      chargeLines: [charge({ id: "c1", year: 2025, month: 3, amount: 300 })],
-      year: 2026,
-      period,
-    });
-    expect(r.rows).toHaveLength(0);
-    expect(r.missionTotal).toBe(0);
-    expect(r.chargeTotal).toBe(0);
-  });
-
-  test("détecte la variante « Ss-traitance » dans les libellés", () => {
-    expect(isSubcontractingLabel("Ss-traitance d'Aboville")).toBe(true);
-    expect(isSubcontractingLabel("Carburant")).toBe(false);
+    expect(r.unlinkedCharges).toHaveLength(0);
+    expect(r.missingMissions).toHaveLength(0);
   });
 });

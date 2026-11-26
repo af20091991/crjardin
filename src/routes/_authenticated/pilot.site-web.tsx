@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { SiteWebDashboard } from "@/components/pilot/SiteWebDashboard";
 
 export const Route = createFileRoute("/_authenticated/pilot/site-web")({
@@ -12,9 +12,8 @@ export const Route = createFileRoute("/_authenticated/pilot/site-web")({
       },
     ],
   }),
-  component: SiteWebPage,
+  component: lazyRouteComponent(
+    () => import("@/route-components/_authenticated/pilot.site-web"),
+    "SiteWebPage",
+  ),
 });
-
-function SiteWebPage() {
-  return <SiteWebDashboard />;
-}

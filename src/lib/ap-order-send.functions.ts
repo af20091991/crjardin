@@ -2,15 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 // prettier-ignore
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const MAX_PDF_BYTES = 4 * 1024 * 1024;
 const SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
+const MAX_PDF_BYTES = 4 * 1024 * 1024;
 
 export interface SendApOrderInput {
   supplierId: string;
   worksiteId: string;
   worksiteLabel: string;
   pdfBase64: string;
-  orderText: string;
   attemptId: string;
 }
 
@@ -85,9 +84,6 @@ export const sendApSupplierOrder = createServerFn({ method: "POST" })
       const { sendApOrderEmail } = await import("@/lib/ap-order-mailer.server");
       const result = await sendApOrderEmail({
         to,
-        supplierName: supplier.name,
-        worksiteLabel: data.worksiteLabel,
-        orderText: data.orderText,
         pdfUrl: signed.signedUrl,
         idempotencyKey: `ap-order-${attempt}-${supplier.id}`,
       });

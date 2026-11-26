@@ -139,9 +139,13 @@ export function EditableRecommendation({
         <X className="mr-1 h-3 w-3" />
         Pas intéressé
       </Badge>
+    ) : reco.client_viewed_at ? (
+      <Badge variant="outline" className="shrink-0 border-amber-500 text-amber-700">
+        Consultée · sans réponse
+      </Badge>
     ) : (
-      <Badge variant="outline" className="shrink-0">
-        Sans réponse
+      <Badge variant="outline" className="shrink-0 text-muted-foreground">
+        Non consultée
       </Badge>
     );
 

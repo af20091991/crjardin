@@ -1,11 +1,11 @@
 import { render } from "@react-email/render";
 import React from "react";
-import { sendLovableEmail, EmailAPIError } from "@lovable.dev/email-js";
+import { sendLovableEmail, EmailAPIError } from "@/lib/mail/send-mail";
 import { resolvePremiumClientIdentity } from "@/lib/premium-client-name";
 
 const FROM = "De la graine au jardin <contact@delagraineaujardin.com>";
 const SENDER_DOMAIN = "notify.delagraineaujardin.com";
-export const PREMIUM_TRACKING_ORIGIN = "https://crjardin.lovable.app";
+export const PREMIUM_TRACKING_ORIGIN = "https://pp.delagraineaujardin.com";
 
 export type PremiumMailStatus = "sent" | "skipped" | "suppressed" | "failed";
 
@@ -81,8 +81,8 @@ export async function sendPremiumMailToAll(options: SendOptions): Promise<Premiu
     lastName: contact?.last_name,
   });
 
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+  const apiKey = process.env["RESEND_API_KEY"];
+  if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
   const premiumUrl = `${PREMIUM_TRACKING_ORIGIN}/partage/${client.share_token}${
     section ? `?section=${encodeURIComponent(section)}` : ""
   }`;
@@ -121,7 +121,7 @@ export async function sendPremiumMailToAll(options: SendOptions): Promise<Premiu
         lastName: identity.lastName || undefined,
         ...extraProps,
         premiumUrl,
-        unsubscribeUrl: `https://api.lovable.dev/v1/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
+        unsubscribeUrl: `${PREMIUM_TRACKING_ORIGIN}/api/public/email-unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
       });
       let html = await render(element);
       const text = await render(element, { plainText: true });

@@ -43,8 +43,11 @@ export function NativeAppLayer() {
       if (!url) return;
       try {
         const u = new URL(url);
-        // Lien d'e-mail https://crjardin.lovable.app/... → même page dans l'appli
-        if (u.protocol === "https:" && u.hostname === "crjardin.lovable.app") {
+        // Lien d'e-mail https://pp.delagraineaujardin.com/... → même page dans l'appli
+        if (
+          u.protocol === "https:" &&
+          (u.hostname === "pp.delagraineaujardin.com" || u.hostname === "crjardin.lovable.app")
+        ) {
           const target = `${u.pathname}${u.search}${u.hash}`;
           if (target !== "/" && /^\/[\w/_.$%~:@!&=+,;?#-]*$/.test(target)) {
             window.location.assign(target);
@@ -131,30 +134,54 @@ export function NativeAppLayer() {
     };
   }, []);
 
-  // Tirer pour actualiser (appli installée uniquement : le navigateur gère déjà ce geste)
+  // Tirer pour actualiser : tout périphérique tactile (le geste n'existe pas à la souris)
   useEffect(() => {
-    if (!appLike) return;
+    // Intention explicite uniquement : un simple retour en haut (défilement, élan, liste interne)
+    // ne déclenche jamais l'actualisation.
     let startY: number | null = null;
+    let startX = 0;
+    let startAt = 0;
+    let lastScrollAt = 0;
+    const onScroll = () => {
+      lastScrollAt = Date.now();
+    };
+    const scrolledInside = (target: EventTarget | null) => {
+      let el = target instanceof Element ? target : null;
+      while (el && el !== document.body) {
+        if (el.scrollTop > 0) return true;
+        el = el.parentElement;
+      }
+      return false;
+    };
     const onStart = (e: TouchEvent) => {
-      startY = window.scrollY <= 0 ? e.touches[0].clientY : null;
+      const atTop = window.scrollY <= 0 && !scrolledInside(e.target);
+      const settled = Date.now() - lastScrollAt > 800;
+      startY = atTop && settled ? e.touches[0].clientY : null;
+      startX = e.touches[0].clientX;
+      startAt = Date.now();
     };
     const onEnd = (e: TouchEvent) => {
       if (startY === null) return;
       const dy = e.changedTouches[0].clientY - startY;
+      const dx = Math.abs(e.changedTouches[0].clientX - startX);
+      const held = Date.now() - startAt;
       startY = null;
-      if (dy > PULL_THRESHOLD && window.scrollY <= 0) {
+      const deliberate = dy > PULL_THRESHOLD + 40 && dx < dy / 3 && held > 350;
+      if (deliberate && window.scrollY <= 0) {
         haptic("MEDIUM");
         toast.message("Actualisation…");
         void queryClient.invalidateQueries();
       }
     };
+    window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("touchstart", onStart, { passive: true });
     document.addEventListener("touchend", onEnd, { passive: true });
     return () => {
+      window.removeEventListener("scroll", onScroll);
       document.removeEventListener("touchstart", onStart);
       document.removeEventListener("touchend", onEnd);
     };
-  }, [appLike, queryClient]);
+  }, [queryClient]);
 
   // Verrouillage biométrique (option activée dans Personnalisation)
   const unlock = async () => {

@@ -305,7 +305,13 @@ export function PilotCard({
         {helpText && (
           <Popover>
             <PopoverTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Aide">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 sm:h-7 sm:w-7"
+                title="Aide"
+              >
                 <HelpCircle className="h-3.5 w-3.5" />
               </Button>
             </PopoverTrigger>

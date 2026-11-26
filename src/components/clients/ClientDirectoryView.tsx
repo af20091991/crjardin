@@ -1,4 +1,5 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import type { MouseEvent } from "react";
 import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { ChevronRight, Mail, MapPin, MoreHorizontal, Phone, Search, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,17 @@ export function ClientDirectoryView({
   );
 }
 
+/** Toute la carte ouvre la fiche, sauf les boutons et liens qu'elle contient (favori, téléphone, adresse). */
+function useOpenClientOnCardClick(clientId: string) {
+  const navigate = useNavigate();
+  return (e: MouseEvent<HTMLElement>) => {
+    if ((e.target as HTMLElement).closest("a, button, input, select, textarea, [data-no-open]")) {
+      return;
+    }
+    navigate({ to: "/clients/$clientId", params: { clientId } });
+  };
+}
+
 function DirectoryRow({
   row,
   onToggleFavorite,
@@ -82,8 +94,13 @@ function DirectoryRow({
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
 }) {
+  const openClient = useOpenClientOnCardClick(row.id);
   return (
-    <div className="group grid grid-cols-[minmax(260px,2fr)_minmax(160px,1fr)_minmax(150px,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/20">
+    <div
+      data-list-row
+      onClick={openClient}
+      className="group grid cursor-pointer grid-cols-[minmax(260px,2fr)_minmax(160px,1fr)_minmax(150px,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/20"
+    >
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
@@ -122,7 +139,7 @@ function DirectoryRow({
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" asChild>
           <Link to="/clients/$clientId" params={{ clientId: row.id }}>
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -139,8 +156,13 @@ function MobileDirectoryRow({
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
 }) {
+  const openClient = useOpenClientOnCardClick(row.id);
   return (
-    <Card className="p-3">
+    <Card
+      data-list-row
+      onClick={openClient}
+      className="cursor-pointer p-3 transition-colors active:bg-muted/30"
+    >
       <div className="flex items-start gap-3">
         <button
           type="button"
@@ -200,7 +222,7 @@ function MobileDirectoryRow({
             )}
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" asChild>
           <Link to="/clients/$clientId" params={{ clientId: row.id }}>
             <MoreHorizontal className="h-4 w-4" />
           </Link>
