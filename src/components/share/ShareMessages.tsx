@@ -103,11 +103,13 @@ export function MessageThread({
   interventionId: string | null;
   messages: ClientMessage[];
 }) {
+  const qc = useQueryClient();
   useEffect(() => {
     // Le client a ouvert ses messages : le gérant voit « Vu ».
-    void markGardenerMessagesRead({ data: { token } }).catch(() => undefined);
+    void markGardenerMessagesRead({ data: { token } })
+      .then(() => qc.invalidateQueries({ queryKey: ["shared-messages", token] }))
+      .catch(() => undefined);
   }, [token]);
-  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"annotation" | "question" | "demande">("annotation");
   const [content, setContent] = useState("");
