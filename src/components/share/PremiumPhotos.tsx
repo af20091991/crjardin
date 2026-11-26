@@ -154,6 +154,35 @@ export function PremiumPhotos({
     onSettled: () => setPendingId(null),
   });
 
+  // Action discrète affichée dans la visionneuse : définir la photo agrandie comme couverture.
+  const coverFooter = (photo: SharedPhoto) => {
+    if (!allowCover) return null;
+    const isCover = photo.id === coverPhotoId;
+    return (
+      <div className="mt-3 flex justify-center">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-auto px-2 py-1 text-xs text-muted-foreground hover:text-primary"
+          disabled={isCover || setCover.isPending}
+          onClick={() => setCover.mutate(photo.id)}
+        >
+          {isCover ? (
+            <>
+              <Check className="mr-1 size-3" /> Photo de couverture
+            </>
+          ) : (
+            <>
+              {pendingId === photo.id && <Loader2 className="mr-1 size-3 animate-spin" />}
+              Définir comme photo de couverture
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  };
+
   const uploadPhotos = async (files: FileList | null) => {
     if (!files?.length || uploading) return;
     const selected = Array.from(files);
@@ -347,6 +376,7 @@ export function PremiumPhotos({
                       alt={photo.caption ?? "Photo d'intervention"}
                       caption={photo.caption}
                       onOpen={() => void trackPremiumView({ data: { token, section: "photo", itemId: photo.id, itemLabel: photo.caption ?? "photo sans légende" } }).catch(() => undefined)}
+                      footer={coverFooter(photo)}
                     >
                       <ThumbImg
                         src={photo.url!}
