@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-11-27",
+    version: "2.8.17",
+    theme: "Marque",
+    title: "Jardin Signature : nouvelle animation d'ouverture",
+    details: [
+      "Nouvelle animation de lancement (5,5 s) : la plume se pose dans le logo, puis la phrase « Mon jardin, au rythme de la Nature » s'écrit.",
+      "Respecte le réglage « réduire les animations » du téléphone.",
+    ],
+  },
+  {
+    date: "2026-11-27",
     version: "2.8.16",
     theme: "Clients",
     title: "Fiche client : bouton « Vue client » à gauche du crayon",
