@@ -34,12 +34,15 @@ export function PremiumNav({
   onNavigate,
   className = "",
   pendingRecommendations = 0,
+  pendingMessages = 0,
 }: {
   section: PremiumSection;
   onNavigate: (section: PremiumSection) => void;
   className?: string;
   /** Préconisations encore sans réponse du client : affichées en pastille à côté de l'onglet. */
   pendingRecommendations?: number;
+  /** Messages du gérant non encore ouverts par le client : affichés en « +N » sur la messagerie. */
+  pendingMessages?: number;
 }) {
   return (
     <div
@@ -51,7 +54,12 @@ export function PremiumNav({
       >
         {PREMIUM_NAV.map(({ id, label, icon: Icon }) => {
           const active = section === id;
-          const pending = id === "recommendations" ? pendingRecommendations : 0;
+          const pending =
+            id === "recommendations"
+              ? pendingRecommendations
+              : id === "exchange"
+                ? pendingMessages
+                : 0;
           return (
             <button
               key={id}
@@ -69,9 +77,13 @@ export function PremiumNav({
               {pending > 0 && (
                 <span
                   className="absolute right-1 top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold leading-5 text-primary-foreground"
-                  aria-label={`${pending} préconisation${pending > 1 ? "s" : ""} en attente de décision`}
+                  aria-label={
+                    id === "exchange"
+                      ? `${pending} message${pending > 1 ? "s" : ""} du jardinier non lu${pending > 1 ? "s" : ""}`
+                      : `${pending} préconisation${pending > 1 ? "s" : ""} en attente de décision`
+                  }
                 >
-                  {pending}
+                  {id === "exchange" ? `+${pending}` : pending}
                 </span>
               )}
             </button>

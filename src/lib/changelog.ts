@@ -128,6 +128,16 @@ export const CHANGELOG: ChangeEntry[] = [
     ],
   },
   {
+    date: "2026-11-08",
+    version: "2.7.1",
+    theme: "Général",
+    title: "Saisie mensuelle des jours travaillés",
+    details: [
+      "La colonne « Jours travaillés » reste toujours visible dans le suivi mensuel.",
+      "La saisie est enregistrée sur l’exercice sélectionné et respecte les droits d’édition existants.",
+    ],
+  },
+  {
     date: "2026-11-04",
     version: "2.7.0",
     theme: "Marque",
