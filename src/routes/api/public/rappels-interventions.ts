@@ -68,6 +68,7 @@ export const Route = createFileRoute("/api/public/rappels-interventions")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { sendLovableEmail } = await import("@/lib/mail/send-mail");
         // Tables récentes absentes des types générés : client typé à la main.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const db = supabaseAdmin as unknown as SupabaseClient<any>;
 
         const { data: rows, error } = await db
