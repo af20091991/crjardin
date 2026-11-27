@@ -27,9 +27,7 @@ export const CHANGELOG: ChangeEntry[] = [
     version: "2.8.18",
     theme: "Clients",
     title: "Vue client : affichage plein écran",
-    details: [
-      "La vue client de la fiche s'ouvre en plein écran, comme l'application du client.",
-    ],
+    details: ["La vue client de la fiche s'ouvre en plein écran, comme l'application du client."],
   },
   {
     date: "2026-11-27",
