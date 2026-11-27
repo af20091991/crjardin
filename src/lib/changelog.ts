@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-27",
+    version: "2.8.16",
+    theme: "Clients",
+    title: "Fiche client : bouton « Vue client » à gauche du crayon",
+    details: [
+      "Ouvre la vue client de la fiche en lecture seule, sans passer par le lien partagé.",
+      "Cette visite n'est ni enregistrée, ni notifiée dans PP, et le client ne la voit pas.",
+    ],
+  },
+  {
     date: "2026-11-22",
     version: "2.8.15",
     theme: "Général",

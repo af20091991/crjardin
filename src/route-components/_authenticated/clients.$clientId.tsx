@@ -88,7 +88,16 @@ import {
   Crown,
   FileDown,
   LayoutDashboard,
+  Eye,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { APERCU_FRAME_NAME } from "@/lib/apercu";
 import { exportClientFichePdf } from "@/lib/client-fiche-pdf";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -106,6 +115,7 @@ function ClientDetail() {
   const { canEdit } = useRole();
   const [copied, setCopied] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [clientViewOpen, setClientViewOpen] = useState(false);
   useEffect(() => {
     if (edit && canEdit) setEditOpen(true);
   }, [edit, canEdit]);
@@ -224,8 +234,19 @@ function ClientDetail() {
                   </div>
                 </div>
               </div>
-              {canEdit && (
-                <div className="flex shrink-0 gap-1.5">
+              <div className="flex shrink-0 gap-1.5">
+                {client.share_token && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Ouvrir la vue client"
+                    title="Vue client (lecture seule)"
+                    onClick={() => setClientViewOpen(true)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                )}
+                {canEdit && (
                   <ClientForm
                     client={client}
                     open={editOpen}
@@ -236,6 +257,8 @@ function ClientDetail() {
                       </Button>
                     }
                   />
+                )}
+                {canEdit && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -265,7 +288,26 @@ function ClientDetail() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                </div>
+                )}
+              </div>
+              {client.share_token && (
+                <Dialog open={clientViewOpen} onOpenChange={setClientViewOpen}>
+                  <DialogContent className="flex h-[85vh] max-w-5xl flex-col gap-3 p-4">
+                    <DialogHeader>
+                      <DialogTitle>Vue client : {client.name}</DialogTitle>
+                      <DialogDescription>
+                        Lecture seule : cette visite n'est ni enregistrée, ni notifiée dans PP, et
+                        le client ne la voit pas.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <iframe
+                      name={APERCU_FRAME_NAME}
+                      src={`/partage/${client.share_token}`}
+                      title={`Vue client : ${client.name}`}
+                      className="min-h-0 w-full flex-1 rounded-xl border bg-background"
+                    />
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
 
