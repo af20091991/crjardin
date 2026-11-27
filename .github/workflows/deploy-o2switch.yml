@@ -39,6 +39,7 @@ jobs:
           FTP_DIR: ${{ secrets.FTP_DIR }}
         run: |
           test -f .output/server/index.mjs || { echo "Build introuvable : .output/server/index.mjs"; exit 1; }
+          date -u +%Y-%m-%dT%H:%M:%SZ > restart.txt
           lftp -e "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
@@ -49,4 +50,26 @@ jobs:
             set cmd:fail-exit true;
             open -u '$FTP_USER','$FTP_PASSWORD' ftp://$FTP_HOST:21;
             mirror -R --verbose --parallel=2 --only-newer .output/ ${FTP_DIR:-/};
+            mkdir -p ${FTP_DIR:-/}/tmp;
+            put restart.txt -o ${FTP_DIR:-/}/tmp/restart.txt;
             bye"
+      - name: Vérifier que l'application répond avec les bons fichiers
+        env:
+          PP_URL: https://pp.delagraineaujardin.com
+        run: |
+          for i in $(seq 1 12); do
+            page=$(curl -s -m 30 "$PP_URL/clients" || true)
+            js=$(echo "$page" | grep -o '/assets/[^"]*\.js' | head -1)
+            if [ -n "$js" ]; then
+              type=$(curl -s -o /dev/null -m 30 -w '%{content_type}' "$PP_URL$js" || true)
+              case "$type" in
+                *javascript*) echo "OK : $js ($type)"; exit 0 ;;
+              esac
+              echo "Essai $i : $js renvoie $type"
+            else
+              echo "Essai $i : pas de script trouvé dans la page"
+            fi
+            sleep 10
+          done
+          echo "Échec : l'application ne sert pas les bons fichiers après déploiement"
+          exit 1
