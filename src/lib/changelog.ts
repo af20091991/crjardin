@@ -24,6 +24,13 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-11-27",
+    version: "2.8.18",
+    theme: "Clients",
+    title: "Vue client : affichage plein écran",
+    details: ["La vue client de la fiche s'ouvre en plein écran, comme l'application du client."],
+  },
+  {
+    date: "2026-11-27",
     version: "2.8.17",
     theme: "Marque",
     title: "Jardin Signature : nouvelle animation d'ouverture",
