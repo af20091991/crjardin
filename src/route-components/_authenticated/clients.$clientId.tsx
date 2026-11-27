@@ -292,8 +292,8 @@ function ClientDetail() {
               </div>
               {client.share_token && (
                 <Dialog open={clientViewOpen} onOpenChange={setClientViewOpen}>
-                  <DialogContent className="flex h-[85vh] max-w-5xl flex-col gap-3 p-4">
-                    <DialogHeader>
+                  <DialogContent className="inset-0 left-0 top-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-0 p-0 sm:rounded-none">
+                    <DialogHeader className="sr-only">
                       <DialogTitle>Vue client : {client.name}</DialogTitle>
                       <DialogDescription>
                         Lecture seule : cette visite n'est ni enregistrée, ni notifiée dans PP, et
@@ -304,7 +304,7 @@ function ClientDetail() {
                       name={APERCU_FRAME_NAME}
                       src={`/partage/${client.share_token}`}
                       title={`Vue client : ${client.name}`}
-                      className="min-h-0 w-full flex-1 rounded-xl border bg-background"
+                      className="min-h-0 w-full flex-1 border-0 bg-background"
                     />
                   </DialogContent>
                 </Dialog>
