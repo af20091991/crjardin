@@ -23,6 +23,7 @@ import { PremiumNav } from "@/components/share/PremiumNav";
 import { PremiumInstall } from "@/components/share/PremiumInstall";
 import { PremiumNews } from "@/components/share/PremiumNews";
 import { PremiumPhotos } from "@/components/share/PremiumPhotos";
+import { ClientNotes, PortraitEditor } from "@/components/share/PremiumClientEntries";
 import { PremiumRecommendations } from "@/components/share/PremiumRecommendations";
 import { PremiumWorkCalendar } from "@/components/share/PremiumWorkCalendar";
 import { PremiumUpcomingWorks } from "@/components/share/PremiumUpcomingWorks";
@@ -214,7 +215,16 @@ export function PremiumExperience({
             <PremiumPageIntro
               eyebrow="Portrait du jardin"
               title="Le jardin"
-              text="Un lieu vivant, ses particularités et son suivi au fil des saisons."
+              text={
+                premium.garden_intro ??
+                "Un lieu vivant, ses particularités et son suivi au fil des saisons."
+              }
+            />
+            <PortraitEditor
+              token={token}
+              customText={premium.garden_intro}
+              signedBy={premium.garden_intro_signed_by}
+              signedAt={premium.garden_intro_signed_at}
             />
             <GardenTab
               client={client}
@@ -361,6 +371,7 @@ export function GardenTab({ client, interventions, recommendations, premium, tok
       <section><p className="text-xs uppercase text-primary">Au présent</p><h3 className="mt-3 font-['Cormorant_Garamond',Georgia,serif] text-3xl">L’état du jardin</h3><p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{premium.garden_state || "L’état du jardin n’est pas encore renseigné."}</p></section>
       <div className="space-y-8">{premium.garden_objectives && <section><h3 className="font-['Cormorant_Garamond',Georgia,serif] text-3xl">Les objectifs</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{premium.garden_objectives}</p></section>}{premium.garden_specificities && <section><h3 className="font-['Cormorant_Garamond',Georgia,serif] text-3xl">Ses particularités</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{premium.garden_specificities}</p></section>}</div>
     </div>
+    <ClientNotes token={token} notes={premium.client_notes} />
     {premium.upcoming.length > 0 && <section className="border-t pt-10"><p className="text-xs uppercase text-primary">À venir</p><h3 className="mt-3 font-['Cormorant_Garamond',Georgia,serif] text-3xl">Prochaines étapes</h3><div className="mt-6 divide-y border-t">{premium.upcoming.map((item) => <div key={item.id} className="grid gap-2 py-5 sm:grid-cols-[10rem_1fr]"><span className="text-sm text-muted-foreground">{fmtDate(item.scheduled_date)}</span><div>{item.title}{item.details && <p className="mt-2 text-sm text-muted-foreground">{item.details}</p>}</div></div>)}</div></section>}
     {recommendations.length > 0 && <section className="border-t pt-10"><p className="text-xs uppercase text-primary">Le regard du paysagiste</p><h3 className="mt-3 font-['Cormorant_Garamond',Georgia,serif] text-3xl">Conseils et observations</h3><div className="mt-6 space-y-4">{recommendations.map((r) => <RecoCard key={r.id} reco={r} token={token} />)}</div></section>}
     {photos.length > 1 && <section className="border-t pt-10"><p className="text-xs uppercase text-primary">Mémoire du jardin</p><h3 className="mt-3 font-['Cormorant_Garamond',Georgia,serif] text-3xl">En images</h3><div className="mt-6 grid gap-3 sm:grid-cols-3">{photos.slice(1).map((p) => p.url && <ImageLightbox key={p.id} src={p.url} alt={p.caption ?? "Photo du jardin"} caption={p.caption}><img src={p.url} alt={p.caption ?? "Photo du jardin"} className="aspect-[4/3] w-full object-cover" /></ImageLightbox>)}</div></section>}

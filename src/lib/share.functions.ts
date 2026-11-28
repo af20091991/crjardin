@@ -109,12 +109,24 @@ export interface PremiumRecommendationGroup {
   items: SharedRecommendation[];
 }
 
+/** Note signée saisie par le client dans « Mes notes ». */
+export interface SharedClientNote {
+  id: string;
+  body: string;
+  signed_by: string;
+  created_at: string;
+}
+
 export interface SharedPremiumData {
   recommendation_groups: PremiumRecommendationGroup[];
   enabled: boolean;
   garden_state: string | null;
   garden_objectives: string | null;
   garden_specificities: string | null;
+  garden_intro: string | null;
+  garden_intro_signed_by: string | null;
+  garden_intro_signed_at: string | null;
+  client_notes: SharedClientNote[];
   google_review_url: string | null;
   commercial_note: string | null;
   cover_photo_url: string | null;
@@ -777,9 +789,24 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       (b.date ?? "").localeCompare(a.date ?? ""),
     );
 
+    const { data: introRow } = await supabaseAdmin
+      .from("client_premium")
+      .select("garden_intro, garden_intro_signed_by, garden_intro_signed_at")
+      .eq("client_id", client.id)
+      .maybeSingle();
+    const { data: noteRows } = await supabaseAdmin
+      .from("client_premium_notes")
+      .select("id, body, signed_by, created_at")
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: false });
+
     return {
       recommendation_groups: recommendationGroups,
       enabled: raw.enabled,
+      garden_intro: introRow?.garden_intro ?? null,
+      garden_intro_signed_by: introRow?.garden_intro_signed_by ?? null,
+      garden_intro_signed_at: introRow?.garden_intro_signed_at ?? null,
+      client_notes: (noteRows ?? []) as SharedClientNote[],
       garden_state: latestGardenReport?.garden_state ?? raw.garden_state,
       garden_objectives: raw.garden_objectives,
       garden_specificities: raw.garden_specificities,
@@ -1379,4 +1406,86 @@ export const trackPremiumView = createServerFn({ method: "POST" })
       });
     }
     return { ok: true };
+  });
+
+/** Nom saisi pour signer une entrée du client : obligatoire, 2 à 100 caractères. */
+function cleanSignature(value: string | undefined): string {
+  const name = (value ?? "").trim().replace(/\s+/g, " ");
+  if (name.length < 2 || name.length > 100) {
+    throw new Error("Saisissez votre nom (2 à 100 caractères) pour signer cette entrée.");
+  }
+  return name;
+}
+
+/** Portrait du jardin : le client remplace la phrase d'origine (une seule version, signée). */
+// prettier-ignore
+export const setSharedGardenIntro = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; text: string; signedBy: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    const text = data.text?.trim() ?? "";
+    if (!text || text.length > 500) {
+      throw new Error("La phrase doit contenir entre 1 et 500 caractères.");
+    }
+    return { token: data.token, text, signedBy: cleanSignature(data.signedBy) };
+  })
+  .handler(async ({ data }) => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const signedAt = new Date().toISOString();
+    const { error } = await supabaseAdmin
+      .from("client_premium")
+      .update({
+        garden_intro: data.text,
+        garden_intro_signed_by: data.signedBy,
+        garden_intro_signed_at: signedAt,
+        updated_at: signedAt,
+      })
+      .eq("client_id", client.id);
+    if (error) {
+      throw new Error(`Enregistrement impossible : ${error.message}`);
+    }
+    await supabaseAdmin.from("notifications").insert({
+      user_id: client.user_id,
+      type: "client_activity",
+      title: `${client.name} a modifié le portrait du jardin`,
+      body: `Phrase signée par ${data.signedBy} : « ${data.text} »`,
+      client_id: client.id,
+    });
+    return {
+      garden_intro: data.text,
+      garden_intro_signed_by: data.signedBy,
+      garden_intro_signed_at: signedAt,
+    };
+  });
+
+/** « Mes notes » : ajoute une note signée. Les notes ne sont jamais modifiées ni écrasées. */
+// prettier-ignore
+export const addSharedClientNote = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; body: string; signedBy: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    const body = data.body?.trim() ?? "";
+    if (!body || body.length > 2000) {
+      throw new Error("La note doit contenir entre 1 et 2000 caractères.");
+    }
+    return { token: data.token, body, signedBy: cleanSignature(data.signedBy) };
+  })
+  .handler(async ({ data }): Promise<SharedClientNote> => {
+    assertNotApercu();
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const { data: note, error } = await supabaseAdmin
+      .from("client_premium_notes")
+      .insert({ client_id: client.id, body: data.body, signed_by: data.signedBy })
+      .select("id, body, signed_by, created_at")
+      .single();
+    if (error || !note) {
+      throw new Error(`Enregistrement impossible : ${error?.message ?? "erreur inconnue"}`);
+    }
+    await supabaseAdmin.from("notifications").insert({
+      user_id: client.user_id,
+      type: "client_activity",
+      title: `${client.name} a ajouté une note`,
+      body: `Note signée par ${data.signedBy} : « ${data.body.slice(0, 200)} »`,
+      client_id: client.id,
+    });
+    return note as SharedClientNote;
   });

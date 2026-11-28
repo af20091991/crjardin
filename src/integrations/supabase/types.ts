@@ -854,6 +854,9 @@ export type Database = {
           garden_state: string | null;
           garden_objectives: string | null;
           garden_specificities: string | null;
+          garden_intro: string | null;
+          garden_intro_signed_by: string | null;
+          garden_intro_signed_at: string | null;
           google_review_url: string | null;
           updated_at: string;
           user_id: string;
@@ -872,6 +875,9 @@ export type Database = {
           garden_state?: string | null;
           garden_objectives?: string | null;
           garden_specificities?: string | null;
+          garden_intro?: string | null;
+          garden_intro_signed_by?: string | null;
+          garden_intro_signed_at?: string | null;
           google_review_url?: string | null;
           updated_at?: string;
           user_id?: string;
@@ -890,6 +896,9 @@ export type Database = {
           garden_state?: string | null;
           garden_objectives?: string | null;
           garden_specificities?: string | null;
+          garden_intro?: string | null;
+          garden_intro_signed_by?: string | null;
+          garden_intro_signed_at?: string | null;
           google_review_url?: string | null;
           updated_at?: string;
           user_id?: string;
@@ -921,6 +930,38 @@ export type Database = {
             columns: ["cover_photo_id"];
             isOneToOne: false;
             referencedRelation: "intervention_photos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      client_premium_notes: {
+        Row: {
+          body: string;
+          client_id: string;
+          created_at: string;
+          id: string;
+          signed_by: string;
+        };
+        Insert: {
+          body: string;
+          client_id: string;
+          created_at?: string;
+          id?: string;
+          signed_by: string;
+        };
+        Update: {
+          body?: string;
+          client_id?: string;
+          created_at?: string;
+          id?: string;
+          signed_by?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "client_premium_notes_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
             referencedColumns: ["id"];
           },
         ];
