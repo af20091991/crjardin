@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-11-28",
+    version: "2.8.19",
+    theme: "Clients",
+    title: "Espace Premium : saisies signées par le client",
+    details: [
+      "Le client peut modifier la phrase du portrait du jardin ; la version précédente est remplacée et la saisie est signée de son nom.",
+      "Nouvelle rubrique « Mes notes » : le client ajoute des notes signées, sans pouvoir les modifier ni les effacer.",
+      "Chaque saisie client affiche son signataire et sa date ; l'artisan est notifié.",
+    ],
+  },
+  {
     date: "2026-11-27",
     version: "2.8.18",
     theme: "Clients",
